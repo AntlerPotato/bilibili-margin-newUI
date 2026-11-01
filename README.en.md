@@ -55,14 +55,14 @@ Screenshots illustrate the main interfaces; details may differ in the current ve
 
 ## Quick start
 
-1. Download `margin.zip` from the [latest release](https://github.com/jiuyang5354/bilibili-margin/releases/latest) and extract it to a permanent folder.
+1. Download [`margin.zip`](https://github.com/jiuyang5354/bilibili-margin/releases/latest/download/margin.zip) from the [latest release](https://github.com/jiuyang5354/bilibili-margin/releases/latest) and extract it to a permanent folder.
 2. Open `edge://extensions` or `chrome://extensions` and enable **Developer mode**.
 3. Select **Load unpacked** and choose the folder containing `manifest.json`.
 4. Open or refresh [Bilibili](https://www.bilibili.com/).
 
 To update a manual installation, replace the extracted files, click **Reload** on the extension management page, then refresh Bilibili. See the [changelog](CHANGELOG.en.md) for release details.
 
-**Firefox (140+)**: download `margin-firefox.zip`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and select the zip. Temporary add-ons are removed when Firefox restarts; a permanent install will be available once MARGIN is listed on Firefox Add-ons.
+**Firefox (140+)**: download [`margin-firefox.zip`](https://github.com/jiuyang5354/bilibili-margin/releases/latest/download/margin-firefox.zip) (direct link, always the latest), open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and select the zip. Temporary add-ons are removed when Firefox restarts; a permanent install will be available once MARGIN is listed on Firefox Add-ons.
 
 Other Chromium browsers (Brave, Opera, Vivaldi, Arc and others) can follow the Chrome steps but are not individually tested. Safari is not supported yet.
 

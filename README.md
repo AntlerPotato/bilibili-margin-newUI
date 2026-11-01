@@ -55,14 +55,14 @@
 
 ## 快速开始
 
-1. 从 [最新版本](https://github.com/jiuyang5354/bilibili-margin/releases/latest) 下载 `margin.zip`，解压到固定文件夹。
+1. 从 [最新版本](https://github.com/jiuyang5354/bilibili-margin/releases/latest) 下载 [`margin.zip`](https://github.com/jiuyang5354/bilibili-margin/releases/latest/download/margin.zip)，解压到固定文件夹。
 2. 打开 `edge://extensions` 或 `chrome://extensions`，开启**开发者模式**。
 3. 点击**加载已解压的扩展程序**，选择包含 `manifest.json` 的文件夹。
 4. 打开或刷新 [B 站](https://www.bilibili.com/)。
 
 更新手动安装版时，将新版解压到原来的文件夹，在扩展管理页点击**重新加载**，再刷新 B 站。详细变化见[更新日志](CHANGELOG.md)。
 
-**Firefox（140 及以上）**：下载 `margin-firefox.zip`，打开 `about:debugging#/runtime/this-firefox`，点击**临时载入附加组件**，选择这个 zip。临时载入的扩展在重启 Firefox 后会被移除，上架 Firefox 附加组件商店后可以正常长期安装。
+**Firefox（140 及以上）**：下载 [`margin-firefox.zip`](https://github.com/jiuyang5354/bilibili-margin/releases/latest/download/margin-firefox.zip)（直链，始终是最新版），打开 `about:debugging#/runtime/this-firefox`，点击**临时载入附加组件**，选择这个 zip。临时载入的扩展在重启 Firefox 后会被移除，上架 Firefox 附加组件商店后可以正常长期安装。
 
 其他 Chromium 内核浏览器（Brave、Opera、Vivaldi、Arc 等）可以按 Chrome 的步骤安装，但未逐一测试。Safari 暂不支持。
 
