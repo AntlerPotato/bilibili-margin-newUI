@@ -378,3 +378,52 @@ html.margin-watch .video-pod__list:not(.list) .simple-base-item::before { conten
 /* 排版细则（v0.39.2）：原生页面同样中西文自动间隙 + 等宽数字 */
 html.margin-skin body { text-autospace: normal; font-variant-numeric: tabular-nums; }
 html.margin-skin .video-title, html.margin-skin .title-txt { text-wrap: pretty; }
+
+/* 播放器控制栏（v0.40.0）：21st「Video Player」（chetanverma16，id 613）——
+ * 控制栏不再是贴底的黑色渐变，而是浮在画面里、四周留 12px 的圆角暗色玻璃坞：
+ * 上排进度条（白 20% 轨道 + 白色已播），下排按钮；出现时从下方 20px、模糊 10px 弹入，隐藏时反向退出。
+ * 只改外观，B 站原有按钮（画质、倍速、字幕、音量、设置、画中画、宽屏、网页全屏、全屏）和高能进度条全部保留。 */
+html.margin-watch .bpx-player-control-mask { background: none !important; }
+html.margin-watch .bpx-player-control-wrap {
+  left: 12px !important; right: 12px !important; bottom: 12px !important; height: auto !important;
+  padding: 10px 8px 4px; border-radius: 16px;
+  background: rgb(17 17 17 / .6); -webkit-backdrop-filter: blur(12px) saturate(140%); backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .08) inset, 0 0 20px rgb(0 0 0 / .2);
+  transition: background-color .3s var(--ease-out, ease), box-shadow .3s var(--ease-out, ease) !important;
+}
+/* 隐藏态：坞的玻璃底整体淡出（B 站自己隐藏按钮），按钮层下沉 20px + 模糊 10px；底部细进度保持原样 */
+html.margin-watch .bpx-player-container[data-ctrl-hidden="true"] .bpx-player-control-wrap {
+  background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+}
+html.margin-watch .bpx-player-control-top, html.margin-watch .bpx-player-control-bottom {
+  transition: transform .4s var(--ease-spring, ease), filter .4s var(--ease-out, ease), opacity .3s var(--ease-out, ease) !important;
+}
+html.margin-watch .bpx-player-container[data-ctrl-hidden="true"] .bpx-player-control-top,
+html.margin-watch .bpx-player-container[data-ctrl-hidden="true"] .bpx-player-control-bottom { transform: translateY(20px); filter: blur(10px); }
+html.margin-watch .bpx-player-control-top { padding: 0 8px; }
+html.margin-watch .bpx-player-progress-wrap .bpx-player-progress-schedule,
+html.margin-watch .bpx-player-progress .bpx-player-progress-schedule-wrap { border-radius: 999px; overflow: hidden; }
+html.margin-watch .bpx-player-progress .bpx-player-progress-schedule { background: rgb(255 255 255 / .2) !important; }
+html.margin-watch .bpx-player-progress .bpx-player-progress-schedule-buffer { background: rgb(255 255 255 / .28) !important; }
+html.margin-watch .bpx-player-progress .bpx-player-progress-schedule-current { background: #fff !important; }
+html.margin-watch .bpx-player-control-bottom { padding: 0 2px !important; margin-top: 4px; }
+html.margin-watch .bpx-player-ctrl-btn { border-radius: 8px; transition: background-color .15s var(--ease-out, ease), transform .2s var(--ease-spring, ease); }
+html.margin-watch .bpx-player-ctrl-btn:hover { background: rgb(17 17 17 / .82); }
+html.margin-watch .bpx-player-ctrl-btn:active { transform: scale(.9); }
+html.margin-watch .bpx-player-ctrl-time-label, html.margin-watch .bpx-player-ctrl-time { font-family: var(--m-mono) !important; font-variant-numeric: tabular-nums; font-size: 13px !important; }
+html.margin-watch .bpx-player-ctrl-quality-result, html.margin-watch .bpx-player-ctrl-playbackrate-result { font-size: 13px !important; }
+/* 高能进度条（pbp）浮在坞上方时随坞缩进 */
+html.margin-watch .bpx-player-pbp { left: 12px !important; right: 12px !important; width: auto !important; }
+/* 坞比播放器窄 24px：B 站给控制层写死了播放器宽度，改为跟随坞 */
+html.margin-watch .bpx-player-control-wrap .bpx-player-control-entity,
+html.margin-watch .bpx-player-control-wrap .bpx-player-control-top,
+html.margin-watch .bpx-player-control-wrap .bpx-player-control-bottom,
+html.margin-watch .bpx-player-control-wrap .bpx-player-progress-area { width: auto !important; max-width: 100%; box-sizing: border-box; }
+html.margin-watch .bpx-player-control-wrap .bpx-player-progress-area { margin: 0 !important; }
+html.margin-watch .bpx-player-control-wrap { width: auto !important; padding: 18px 8px 4px !important; }
+html.margin-watch .bpx-player-control-wrap .bpx-player-control-top { left: 16px !important; right: 16px !important; top: 6px !important; padding: 0 !important; }
+html.margin-watch .bpx-player-shadow-progress-area .bpx-player-progress-schedule-current { background: #fff !important; }
+html.margin-watch .bpx-player-shadow-progress-area .bpx-player-progress-schedule-buffer { background: rgb(255 255 255 / .28) !important; }
+/* 弹幕发送栏与坞同一语言：输入框胶囊、发送键圆角 */
+html.margin-watch .bpx-player-video-inputbar { border-radius: 999px !important; overflow: hidden; }
+html.margin-watch .bpx-player-dm-btn-send { border-radius: 0 999px 999px 0 !important; }

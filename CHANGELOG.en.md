@@ -2,6 +2,12 @@
 
 # Changelog
 
+## [v0.40.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.40.0) · 2026-11-01
+
+- Player controls redesigned after 21st "Video Player" (chetanverma16): a floating rounded dark-glass dock inset 12px inside the video, white progress, spring in / blur out; all native controls kept.
+- Danmaku input bar uses a pill input to match.
+- Fix: home search trending list could differ from Bilibili's header because it was fetched once per page load; now refreshes every 5 minutes and uses the same signed endpoint.
+
 ## [v0.39.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.2) · 2026-11-01
 
 - Typography pass two (references: W3C clreq, Vercel Geist, Linear): comments go from Bilibili's 12/18px to 14/24px with Geist + Source Han Sans (watch and detail pages); automatic CJK–Latin spacing (text-autospace); tabular numerals everywhere; peer titles share one spec (space list titles 18px/1.45 like history), text-wrap pretty/balance; weights limited to 400/500/600; native-page secondary text now meets 4.5:1.

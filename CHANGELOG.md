@@ -2,6 +2,12 @@
 
 # 更新日志
 
+## [v0.40.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.40.0) · 2026-11-01
+
+- 播放器控制栏重做（21st「Video Player」，chetanverma16）：不再是贴底的黑色渐变，改为浮在画面里、四周留 12px 的圆角暗色玻璃坞；上排白色进度条，下排按钮，出现时从下方弹入、隐藏时模糊退出。画质、倍速、字幕、音量、设置、画中画、宽屏、网页全屏、全屏和高能进度条全部保留。
+- 弹幕发送栏改为胶囊输入框，与控制坞统一。
+- 修复首页搜索的热搜与 B 站顶栏不一致：之前热搜只在打开页面时取一次、之后一直沿用，现在 5 分钟刷新，并改用顶栏同款接口。
+
 ## [v0.39.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.2) · 2026-11-01
 
 - 排版第二轮（参考 W3C 中文排版需求 clreq、Vercel Geist、Linear 的字体规则）：

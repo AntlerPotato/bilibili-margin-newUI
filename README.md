@@ -121,6 +121,7 @@ npm run build
 页面使用原生 TypeScript、CSS 和 Shadow DOM；Vite 按路由拆分页面模块，后台 service worker 负责合并足迹计时，中文字体按字符范围分包。
 
 欢迎[报告问题或提出建议](https://github.com/jiuyang5354/bilibili-margin/issues)。提交界面修改时，请附上页面地址、复现步骤和截图；修改播放页时保留 B 站原生播放能力。设计来源与第三方署名见[设计参考与致谢](docs/design-references.md)。
+- 21st「Video Player」（chetanverma16）：播放器浮动控制坞（v0.40.0）
 
 ## 许可
 
