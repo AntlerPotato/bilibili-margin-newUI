@@ -64,6 +64,7 @@ export function createWeather(): HTMLElement {
   };
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; run(); }).observe(el);
   document.addEventListener('visibilitychange', run);
+  addEventListener('margin:wx-loc', () => load());
 
   const editCity = (place: HTMLElement) => {
     const input = h('input', { class: 'wx-city-in', value: wx?.loc.name ?? '', 'aria-label': '城市', placeholder: '输入城市' }) as HTMLInputElement;

@@ -1,3 +1,4 @@
+import { attachPreview } from './preview';
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
 import { account, accountStat } from '../api/account';
@@ -52,6 +53,7 @@ export class FeedApp {
     }));
     const post = h('a', { class: 'fd-post', href: 'https://t.bilibili.com/?margin=off', title: '在 B 站原版里发动态' }, icon('<path d="M12 5v14M5 12h14"/>'), h('span', {}, '发动态'));
     this.list = h('div', { class: 'dy-list fd-list' });
+    attachPreview(this.list, () => this.shell.settings.hoverPreview);
     this.status = h('div', { class: 'status' });
     this.sentinel = h('div', { class: 'sentinel' });
     const center = h('section', { class: 'fd-main' },
@@ -101,7 +103,7 @@ export class FeedApp {
     if (!live.length) return;
     left.append(h('section', { class: 'fd-card fd-live' },
       h('div', { class: 'fd-card-h' }, h('span', {}, '正在直播'), h('b', {}, String(count))),
-      ...live.slice(0, 10).map((u) => h('a', { class: 'fd-live-row', href: u.url, ...ext },
+      ...live.map((u) => h('a', { class: 'fd-live-row', href: u.url, ...ext },
         h('span', { class: 'fd-live-face' }, face(u.face, '', 80)),
         h('span', { class: 'fd-live-b' }, h('b', {}, u.name), h('span', {}, u.title))))));
   }

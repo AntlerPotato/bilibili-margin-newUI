@@ -69,11 +69,18 @@ export class HistoryApp {
         h('div', { class: 'eyebrow' }, h('span', { class: 'en' }, 'History'), this.count),
         h('h1', { class: 'hi-h1' }, '历史记录')),
       h('div', { class: 'hi-tools' }, rec, clear));
-    const bar = h('div', { class: 'hi-bar' }, seg, search);
+    // #2：除时间线外加一个「网格」模式，接近 B 站原版排版，一屏看得更多；记在本机
+    const DKEY = 'margin:hist-view';
+    const wrap = h('div', { class: 'hs' });
+    const applyView = (v: string) => wrap.classList.toggle('dense', v === 'grid');
+    const view = segmented<string>([['line', '时间线'], ['grid', '网格']], localStorage.getItem(DKEY) || 'line', (v) => { localStorage.setItem(DKEY, v); applyView(v); });
+    applyView(localStorage.getItem(DKEY) || 'line');
+    const bar = h('div', { class: 'hi-bar' }, seg, h('div', { class: 'hi-bar-r' }, view, search));
     this.list = h('div', { class: 'hi-list' });
     this.status = h('div', { class: 'status' });
     this.sentinel = h('div', { class: 'sentinel' });
-    s.main.append(h('div', { class: 'hs' }, head, bar, this.list, this.status, this.sentinel));
+    wrap.append(head, bar, this.list, this.status, this.sentinel);
+    s.main.append(wrap);
     new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) this.load(); }, { root: s.app, rootMargin: '900px 0px' }).observe(this.sentinel);
 
     nav().then((n) => {
@@ -156,7 +163,7 @@ export class HistoryApp {
           h('span', { class: 'hi-title' }, it.title),
           h('span', { class: 'hi-meta' },
             it.face ? h('img', { class: 'hi-face', src: `${it.face}@48w_48h_1c.webp`, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : null,
-            h('span', { class: 'hi-up' }, it.author || ' '),
+            upLink(it.author, it.mid),
             it.badge ? h('span', { class: 'hi-badge' }, it.badge) : null),
           h('span', { class: 'hi-note' }, h('span', { class: 'hi-kind' }, KIND_LABEL[it.kind] ?? it.kind.toUpperCase()), h('span', {}, it.device), prog ? h('span', {}, prog) : null))),
       del);
@@ -170,4 +177,17 @@ export class HistoryApp {
     });
     return li;
   }
+}
+
+/** 卡片本身是链接，UP 主名不能再嵌一个 <a>；做成可聚焦的 role=link，点了去空间（#2） */
+function upLink(name: string, mid: number): HTMLElement {
+  const el = h('span', { class: `hi-up${mid ? ' link' : ''}` }, name || ' ');
+  if (!mid) return el;
+  el.setAttribute('role', 'link');
+  el.tabIndex = 0;
+  el.title = `${name} 的个人空间`;
+  const go = (e: Event) => { e.preventDefault(); e.stopPropagation(); window.open(`https://space.bilibili.com/${mid}`, '_blank', 'noopener'); };
+  el.addEventListener('click', go);
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(e); });
+  return el;
 }

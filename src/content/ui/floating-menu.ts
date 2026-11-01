@@ -48,9 +48,11 @@ export function createFloatingMenu(items: MenuItem[], label = '快捷'): Floatin
   const sync = () => {
     const isOpen = el.dataset.open === 'true';
     bar.setAttribute('aria-expanded', String(isOpen));
-    box.style.height = isOpen ? `${list.scrollHeight + 48 + 34}px` : '';
+    // #2：高度按实际内容算（列表 + 底栏），不再多留顶部空白；字体晚加载会变高，所以 fonts.ready 后再量一次
+    box.style.height = isOpen ? `${list.scrollHeight + bar.offsetHeight}px` : '';
   };
   new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['data-open'] });
+  document.fonts?.ready.then(sync);
   box.addEventListener('click', (e) => { if (el.dataset.open !== 'true' && !(e.target as Element).closest('.fm-bar')) open(); });
   bar.addEventListener('click', () => (el.dataset.open === 'true' ? close() : open()));
   document.addEventListener('pointerdown', (e) => { if (el.dataset.open === 'true' && !e.composedPath().includes(el)) close(); });

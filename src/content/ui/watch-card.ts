@@ -1,0 +1,103 @@
+import { every } from '../sched';
+
+/**
+ * v0.41.0 播放页「一张卡片」（参考 21st Post Card，shadcnui-blocks card-06）：
+ * 播放器 + 互动条 + 简介 + 标签合成一张表面卡片。B 站这些节点由 Vue 管理，不能挪进新容器，
+ * 所以在 .left-container 里垫一块绝对定位的底板，按播放器顶到标签底的范围对齐；
+ * 只在左栏尺寸变化时重算（ResizeObserver），宽屏 / 网页全屏 / 全屏时底板只从互动条开始或隐藏。
+ * 同时在视频画面左上角放播放量 / 弹幕数胶囊，跟控制坞一起出现。
+ */
+const PAD = 0;
+
+export function startWatchCard(): void {
+  let card: HTMLElement | null = null;
+  let host: HTMLElement | null = null;
+  let ro: ResizeObserver | null = null;
+  const watched = new WeakSet<Element>();
+
+  const place = () => {
+    if (!host || !card) return;
+    const de = document.documentElement;
+    const screen = document.querySelector('.bpx-player-container')?.getAttribute('data-screen') ?? 'normal';
+    if (screen === 'web' || screen === 'full') { card.hidden = true; return; }
+    const base = host.getBoundingClientRect();
+    const pw = document.querySelector('#playerWrap');
+    const tb = document.querySelector('.video-toolbar-container');
+    const last = document.querySelector('.video-tag-container') ?? document.querySelector('.video-desc-container') ?? tb;
+    if (!last) { card.hidden = true; return; }
+    const wide = de.classList.contains('margin-wide');
+    const startEl = !wide && pw && host.contains(pw) ? pw : tb;
+    if (!startEl) { card.hidden = true; return; }
+    const top = startEl.getBoundingClientRect().top - base.top - PAD;
+    const bottom = last.getBoundingClientRect().bottom - base.top;
+    card.hidden = false;
+    card.className = startEl === pw ? 'm-wcard from-player' : 'm-wcard';
+    card.style.top = `${Math.round(top)}px`;
+    card.style.height = `${Math.max(0, Math.round(bottom - top))}px`;
+    de.classList.toggle('margin-wcard', startEl === pw);
+  };
+
+  const bind = () => {
+    const lc = document.querySelector<HTMLElement>('.left-container');
+    if (!lc) return;
+    // B 站是 SSR + 水合，按位置认领子节点：插在最前面会被当成标题区「认领」掉，所以放最后，并在被改写时重建
+    if (card && !card.classList.contains('m-wcard')) { card = null; host = null; }
+    if (host !== lc) {
+      host = lc;
+      card?.remove();
+      card = document.createElement('div');
+      card.className = 'm-wcard';
+      card.setAttribute('aria-hidden', 'true');
+      lc.append(card);
+      ro?.disconnect();
+      ro = new ResizeObserver(() => requestAnimationFrame(place));
+    }
+    if (card && !card.isConnected) lc.append(card);
+    for (const sel of ['.left-container', '#playerWrap', '.video-toolbar-container', '.video-desc-container', '.video-tag-container']) {
+      const el = document.querySelector(sel);
+      if (el && !watched.has(el)) { watched.add(el); ro!.observe(el); }
+    }
+    stats();
+    place();
+  };
+
+  // 视频画面左上角：播放量 · 弹幕数（读标题下那行 B 站自己的文字，切集后跟着变）
+  let lastStat = '';
+  const stats = () => {
+    const area = document.querySelector<HTMLElement>('.bpx-player-video-area');
+    if (!area) return;
+    const view = document.querySelector('.video-info-detail-list .view-text, .view.item .view-text')?.textContent?.trim() ?? '';
+    const dm = document.querySelector('.video-info-detail-list .dm-text, .dm.item .dm-text')?.textContent?.trim() ?? '';
+    let chip = area.querySelector<HTMLElement>(':scope > .m-vstat');
+    if (!view && !dm) { chip?.remove(); return; }
+    const key = `${view}|${dm}`;
+    if (chip && key === lastStat) return;
+    lastStat = key;
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.className = 'm-vstat';
+      chip.setAttribute('aria-hidden', 'true');
+      area.append(chip);
+    }
+    chip.replaceChildren();
+    const part = (icon: string, label: string, text: string) => {
+      if (!text) return;
+      const s = document.createElement('span');
+      s.className = 'm-vstat-i';
+      const i = document.createElement('i');
+      i.className = `m-vstat-ic ${icon}`;
+      const b = document.createElement('b');
+      b.textContent = text;
+      const u = document.createElement('em');
+      u.textContent = label;
+      s.append(i, b, u);
+      chip!.append(s);
+    };
+    part('play', '播放', view);
+    part('dm', '弹幕', dm);
+  };
+
+  new MutationObserver(() => requestAnimationFrame(place)).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', () => requestAnimationFrame(place), { passive: true });
+  every(1500, bind);
+}

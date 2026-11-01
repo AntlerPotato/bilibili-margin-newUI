@@ -20,6 +20,7 @@ import { skinComments } from './comment-skin';
 import css from '../styles.css?inline';
 import { BackgroundLayer } from '../bg/background';
 import { startTriple } from './triple';
+import { startWatchCard } from './watch-card';
 
 export type SkinKind = 'watch' | 'search' | 'page';
 
@@ -114,7 +115,7 @@ export class WatchSkin {
 
     this.applyTheme(false);
     this.media.addEventListener('change', () => this.applyTheme(false));
-    if (isWatch) { this.watchScreen(); startTriple(); podProgress(); }
+    if (isWatch) { this.watchScreen(); startTriple(); podProgress(); startWatchCard(); }
   }
 
   update(s: Settings): void {

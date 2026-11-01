@@ -169,7 +169,7 @@ export class MessageApp {
   private sessionRow(s: Session, chat: HTMLElement, list: HTMLElement): HTMLElement {
     const name = s.person?.name || `UID ${s.talker}`;
     const b = h('button', { class: 'wh-s', type: 'button' },
-      h('img', { class: 'ms-face', src: s.person?.face ? `${s.person.face}@80w_80h_1c.webp` : '', alt: '', referrerpolicy: 'no-referrer' }),
+      s.person?.face ? h('img', { class: 'ms-face', src: `${s.person.face}@80w_80h_1c.webp`, alt: '', referrerpolicy: 'no-referrer' }) : h('span', { class: 'ms-face wh-noface', 'aria-hidden': 'true' }, icon(ICONS.message)),
       h('span', { class: 'wh-sb' }, h('span', { class: 'wh-sn' }, h('b', {}, name), h('time', {}, s.ts ? fmtAgo(s.ts) : '')), h('span', { class: 'wh-sl' }, s.last)),
       s.unread ? h('i', { class: 'wh-dot' }, String(s.unread)) : null);
     b.dataset.talker = String(s.talker);
@@ -190,10 +190,28 @@ export class MessageApp {
       h('header', { class: 'wh-head' }, h('a', { href: `https://space.bilibili.com/${s.talker}`, target: '_blank', rel: 'noopener' }, name), h('span', { class: 'eyebrow' }, `UID ${s.talker}`)),
       log, h('div', { class: 'wh-compose' }, input, send));
     const paint = (list: Awaited<ReturnType<typeof messages>>) => {
-      log.replaceChildren(...list.map((m) => h('div', { class: `wh-m${m.sender === this.me ? ' me' : ''}` },
-        m.image ? h('img', { src: `${m.image}@360w.webp`, alt: '', referrerpolicy: 'no-referrer' }) : null,
-        m.text ? h('p', {}, m.text) : null,
-        h('time', {}, fmtAgo(m.ts)))));
+      const face = s.person?.face ? `${s.person.face}@80w_80h_1c.webp` : '';
+      log.replaceChildren(...list.map((m, i) => {
+        const me = m.sender === this.me;
+        const c = m.card;
+        const card = c ? h(c.url ? 'a' : 'div', { class: 'wh-card', ...(c.url ? { href: c.url, target: '_blank', rel: 'noopener' } : {}) },
+          c.cover ? h('img', { class: 'wh-card-cover', src: c.cover.includes('hdslb.com') ? `${c.cover}@480w.webp` : c.cover, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : null,
+          h('div', { class: 'wh-card-b' },
+            c.title ? h('b', {}, c.title) : null,
+            c.desc ? h('span', { class: 'wh-card-d' }, c.desc) : null,
+            c.rows.length ? h('dl', {}, ...c.rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])) : null,
+            c.url ? h('span', { class: 'wh-card-go' }, c.action || '查看详情') : null)) : null;
+        // 对方的连续消息只在第一条前放头像（#2）
+        const showFace = !me && (i === 0 || list[i - 1].sender !== m.sender);
+        return h('div', { class: `wh-m${me ? ' me' : ''}${!me ? ' them' : ''}` },
+          !me ? h('a', { class: `wh-mface${showFace ? '' : ' ghost'}`, href: `https://space.bilibili.com/${s.talker}`, target: '_blank', rel: 'noopener', 'aria-label': `${name} 的个人空间`, tabindex: showFace ? '0' : '-1' },
+            showFace && face ? h('img', { src: face, alt: '', referrerpolicy: 'no-referrer' }) : null) : null,
+          h('div', { class: 'wh-mb' },
+            m.image ? h('img', { src: `${m.image}@360w.webp`, alt: '', referrerpolicy: 'no-referrer' }) : null,
+            m.text ? h('p', {}, m.text) : null,
+            card,
+            h('time', {}, fmtAgo(m.ts))));
+      }));
       log.scrollTop = log.scrollHeight;
     };
     try { paint(await messages(s.talker)); } catch (e) { log.replaceChildren(this.empty(`加载失败：${(e as Error).message}`)); }

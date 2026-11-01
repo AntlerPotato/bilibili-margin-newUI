@@ -80,22 +80,36 @@ export async function system(csrf: string, c: Page['cursor']): Promise<Page> {
 
 // ---- 私信 ----
 export interface Session { talker: number; unread: number; last: string; ts: number; person?: Person }
-export interface Msg { sender: number; type: number; text: string; image: string; ts: number; key: string }
+export interface MsgCard { title: string; desc: string; cover: string; url: string; rows: [string, string][]; action: string }
+export interface Msg { sender: number; type: number; text: string; image: string; ts: number; key: string; card?: MsgCard }
 
-export function msgText(type: number, raw: string): { text: string; image: string } {
+/* #2：私信里的卡片 / 通知 / 分享等特殊类型以前只显示标题，现在拆成卡片（标题、正文、封面、明细行、跳转） */
+const VIDEO_URL = (c: any) => (c.bvid ? `https://www.bilibili.com/video/${c.bvid}` : c.id && c.source === 5 ? `https://www.bilibili.com/video/av${c.id}` : '');
+export function msgText(type: number, raw: string): { text: string; image: string; card?: MsgCard } {
   let c: any = {};
   try { c = JSON.parse(raw); } catch { return { text: raw, image: '' }; }
   if (type === 1) return { text: c.content ?? '', image: '' };
   if (type === 2) return { text: '', image: https(c.url) };
   if (type === 5) return { text: '撤回了一条消息', image: '' };
-  return { text: c.title || c.text || c.content || '[卡片消息]', image: https(c.cover || c.thumb) };
+  if (type === 6) return { text: '', image: https(c.url) };
+  if (type === 18) return { text: String(c.content ?? c.text ?? '').replace(/#\{([^}]*)\}\{[^}]*\}/g, '$1'), image: '' };
+  const rows: [string, string][] = Array.isArray(c.modules) ? c.modules.map((m: any) => [String(m.title ?? ''), String(m.detail ?? m.text ?? '')] as [string, string]).filter((r: [string, string]) => r[0] || r[1]) : [];
+  const card: MsgCard = {
+    title: String(c.title ?? c.main_title ?? c.name ?? ''),
+    desc: String(c.text ?? c.summary ?? c.desc ?? c.sub_title ?? c.content ?? c.author ?? '').replace(/#\{([^}]*)\}\{[^}]*\}/g, '$1'),
+    cover: https(c.cover ?? c.thumb ?? c.pic_url ?? c.image_urls?.[0] ?? ''),
+    url: https(c.jump_uri ?? c.jump_url ?? c.url ?? c.uri ?? VIDEO_URL(c)),
+    rows, action: String(c.jump_text ?? c.jump_text_2 ?? ''),
+  };
+  if (!card.title && !card.desc && !card.cover) return { text: '[暂不支持的消息类型]', image: '' };
+  return { text: '', image: '', card };
 }
 
 export async function sessions(): Promise<Session[]> {
   const d = await get<any>('https://api.vc.bilibili.com/session_svr/v1/session_svr/get_sessions', { session_type: 1, group_fold: 1, unfollow_fold: 0, sort_rule: 2 });
   const list: Session[] = (d.session_list ?? []).filter((s: any) => s.session_type === 1).map((s: any) => ({
     talker: s.talker_id, unread: s.unread_count ?? 0, ts: s.session_ts ? Math.floor(s.session_ts / 1e6) : s.last_msg?.timestamp ?? 0,
-    last: s.last_msg ? msgText(s.last_msg.msg_type, s.last_msg.content).text || '[图片]' : '',
+    last: s.last_msg ? (() => { const t = msgText(s.last_msg.msg_type, s.last_msg.content); return t.text || (t.card ? `[卡片] ${t.card.title || t.card.desc}` : '[图片]'); })() : '',
   }));
   const ids = list.map((s) => s.talker).slice(0, 50);
   if (ids.length) {

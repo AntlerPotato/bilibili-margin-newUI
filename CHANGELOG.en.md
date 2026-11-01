@@ -2,6 +2,19 @@
 
 # Changelog
 
+## [v0.41.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.41.0) · 2026-11-01
+
+- Watch page "one card" (after 21st Post Card, shadcnui-blocks): player, danmaku bar, actions, description and tags share one surface.
+- Views · danmaku count chip inside the video, shown with the control dock.
+- Sending bar follows the theme again (reverts v0.40.1 dark body).
+- Feed: live notices and live-room shares render (cover, title, area, popularity, LIVE badge); season / bangumi / course / music / common cards no longer blank.
+- Hover preview on feed and space video covers; "Watch later" button on home, space and feed covers (block button moved top-left).
+- Feed sidebar fits the viewport and scrolls; all live users listed.
+- Whispers: card / notice / share messages shown in full, sender avatar, wider chat.
+- History: uploader name links to their space; new timeline / grid views.
+- Watch: restyled uploader hover card, centered rec thumbnails, quick menu focus line and top gap fixed.
+- Settings: manual weather city with candidates, or back to auto.
+
 ## [v0.40.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.40.1) · 2026-11-01
 
 - Danmaku sending bar merged into the player as one dark body in both themes; removed Bilibili's 1px white divider; translucent pill input and a separate pill send button.

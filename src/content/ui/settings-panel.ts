@@ -7,12 +7,14 @@ import { cachedThumb, shaderThumb } from '../bg/program';
 import { block, chipInput, rangeSlider, row, segmented, stepSlider, toast, toggle } from './controls';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { createSheet, type Sheet } from './sheet';
+import { clearLoc, geocodeList, savedLoc, setLoc as setLocWithName } from '../api/weather';
 
 export interface SettingsPanel { sheet: Sheet; sync(s: Settings): void }
 
 export function createSettingsPanel(get: () => Settings, currentShader: () => ShaderId | null): SettingsPanel {
   const sheet = createSheet({ title: '设置', eyebrow: 'Preferences', width: 420 });
   const save = (patch: Partial<Settings>) => saveSettings(patch);
+  const say = (t: string) => toast((sheet.el.closest('.app') as HTMLElement | null) ?? sheet.el, t);
   const s0 = get();
 
   const theme = segmented<Theme>([['auto', '跟随系统'], ['light', '亮色'], ['dark', '暗色']], s0.theme, (v) => save({ theme: v }));
@@ -21,6 +23,34 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
   const intro = toggle(s0.intro, '开场动画', (v) => save({ intro: v }));
   const foot = toggle(s0.footprint, '足迹热力图', (v) => save({ footprint: v }));
   const wxT = toggle(s0.weather, '天气', (v) => save({ weather: v }));
+  // 天气城市（#3）：输入后列出候选，点一个就固定；「自动」回到 IP 定位
+  const cityIn = h('input', { class: 'city-in', type: 'search', placeholder: '自动定位', 'aria-label': '天气城市', autocomplete: 'off' }) as HTMLInputElement;
+  const cityList = h('ul', { class: 'city-list', role: 'listbox', 'aria-label': '城市候选', hidden: '' });
+  const cityAuto = h('button', { class: 'city-auto', type: 'button' }, '自动');
+  const paintCity = () => { const l = savedLoc(); cityIn.value = l?.manual ? l.name : ''; cityAuto.hidden = !l?.manual; };
+  let cityT = 0, citySeq = 0;
+  cityIn.addEventListener('keydown', (e) => e.stopPropagation());
+  cityIn.addEventListener('input', () => {
+    clearTimeout(cityT);
+    const q = cityIn.value.trim();
+    if (!q) { cityList.hidden = true; return; }
+    cityT = window.setTimeout(async () => {
+      const seq = ++citySeq;
+      const list = await geocodeList(q).catch(() => []);
+      if (seq !== citySeq) return;
+      cityList.replaceChildren(...(list.length ? list.map((p) => {
+        const li = h('li', { role: 'option', tabindex: '0' }, h('b', {}, p.name), p.region ? h('small', {}, p.region) : null);
+        const pick = () => { setLocWithName(p); cityList.hidden = true; paintCity(); say(`天气城市：${p.name}`); };
+        li.addEventListener('click', pick);
+        li.addEventListener('keydown', (e) => { if (e.key === 'Enter') pick(); });
+        return li;
+      }) : [h('li', { class: 'empty' }, '没有找到这个城市')]));
+      cityList.hidden = false;
+    }, 300);
+  });
+  cityAuto.addEventListener('click', () => { clearLoc(); paintCity(); say('天气改回按 IP 自动定位'); });
+  paintCity();
+  const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
@@ -81,7 +111,6 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
   const upload = h('button', { type: 'button', class: 'ghost small', onclick: () => file.click() }, icon(ICONS.image), h('span', {}, '上传图片'));
 
   // ── 数据：导出 / 导入设置与足迹（JSON 文件，只在本机处理） ──
-  const say = (t: string) => toast((sheet.el.closest('.app') as HTMLElement | null) ?? sheet.el, t);
   const exportData = async () => {
     const v = await chrome.storage.local.get(ACTIVITY_KEY);
     const data = { app: 'margin', format: 1, version: chrome.runtime.getManifest().version, exportedAt: new Date().toISOString(), settings: get(), activity: v[ACTIVITY_KEY] ?? {} };
@@ -125,7 +154,8 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD)),
     h('section', { class: 'group' }, h('h3', {}, '首页顶部'),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
-      row('天气', '关掉后不再请求天气和城市定位', wxT)),
+      row('天气', '关掉后不再请求天气和城市定位', wxT),
+      block('天气城市', 'IP 定位不准时手动选一个；留空 = 自动定位', cityBox)),
     h('section', { class: 'group' }, h('h3', {}, '背景'),
       block('模式', '随机：每次打开换一款，不连续重复', mode),
       block('样式', null, swatches),

@@ -1,5 +1,6 @@
 import type { Dyn } from '../api/dyn';
 import { fmtAgo, fmtCount, h, icon, ICONS } from './dom';
+import { laterButton } from './later-btn';
 
 const img = (src: string, w: number, hgt?: number) => h('img', { src: src ? `${src}@${w}w${hgt ? `_${hgt}h_1c` : ''}.webp` : '', alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
 const ext = { target: '_blank', rel: 'noopener' };
@@ -9,7 +10,7 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
   const media: (Node | null)[] = [];
   if (d.video) {
     media.push(h('a', { class: 'dy-video', href: `https://www.bilibili.com/video/${d.video.bvid}`, ...ext },
-      h('span', { class: 'dy-vcover' }, img(d.video.cover, 480, 270), d.video.dur ? h('span', { class: 'dur' }, d.video.dur) : null),
+      h('span', { class: 'dy-vcover', 'data-bvid': d.video.bvid }, img(d.video.cover, 480, 270), d.video.dur ? h('span', { class: 'dur' }, d.video.dur) : null, laterButton(d.video.bvid)),
       h('span', { class: 'dy-vbody' },
         h('span', { class: 'dy-vtitle' }, d.video.title),
         d.video.desc ? h('span', { class: 'dy-vdesc' }, d.video.desc) : null,
@@ -24,6 +25,18 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
     media.push(h('a', { class: 'dy-article', href: d.article.url, ...ext },
       d.article.cover ? img(d.article.cover, 320, 200) : null,
       h('span', {}, h('b', {}, d.article.title), h('span', {}, d.article.desc))));
+  }
+  if (d.live) {
+    media.push(h('a', { class: 'dy-video dy-live', href: d.live.url, ...ext },
+      h('span', { class: 'dy-vcover' }, img(d.live.cover, 480, 270), h('span', { class: `dy-livebadge${d.live.on ? ' on' : ''}` }, d.live.on ? '直播中' : '直播')),
+      h('span', { class: 'dy-vbody' },
+        h('span', { class: 'dy-vtitle' }, d.live.title || '开播了'),
+        h('span', { class: 'dy-vmeta' }, d.live.meta || 'LIVE'))));
+  }
+  if (d.link) {
+    media.push(h('a', { class: 'dy-article', href: d.link.url, ...ext },
+      d.link.cover ? img(d.link.cover, 320, 200) : null,
+      h('span', {}, h('b', {}, d.link.title), h('span', {}, [d.link.kind, d.link.desc].filter(Boolean).join(' · ')))));
   }
   if (d.orig) media.push(h('div', { class: 'dy-orig' }, h('div', { class: 'dy-orig-by' }, `@${d.orig.author}`), dynCard(d.orig, true)));
 
@@ -54,6 +67,7 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
 
 function kindLabel(d: Dyn): string {
   if (d.orig) return 'REPOST';
+  if (d.live) return 'LIVE';
   if (d.video) return 'VIDEO';
   if (d.article) return 'ARTICLE';
   if (d.pics.length) return 'PHOTO';
