@@ -425,5 +425,47 @@ html.margin-watch .bpx-player-control-wrap .bpx-player-control-top { left: 16px 
 html.margin-watch .bpx-player-shadow-progress-area .bpx-player-progress-schedule-current { background: #fff !important; }
 html.margin-watch .bpx-player-shadow-progress-area .bpx-player-progress-schedule-buffer { background: rgb(255 255 255 / .28) !important; }
 /* 弹幕发送栏与坞同一语言：输入框胶囊、发送键圆角 */
-html.margin-watch .bpx-player-video-inputbar { border-radius: 999px !important; overflow: hidden; }
-html.margin-watch .bpx-player-dm-btn-send { border-radius: 0 999px 999px 0 !important; }
+
+/* v0.40.1 发送栏并入播放器：同一块深色机身（两套主题一致），视频下边直接接发送栏，
+   中间只留一根细分隔线；输入框和发送键做成机身里的胶囊，和控制坞同一套语言 */
+html.margin-watch .bpx-player-container[data-screen="normal"],
+html.margin-watch .bpx-player-container[data-screen="wide"] {
+  background: #0e0e10 !important; box-shadow: 0 0 0 1px rgb(255 255 255 / .06), var(--sh-md) !important;
+}
+html.margin-watch .bpx-player-sending-area {
+  background: #0e0e10 !important; border-top: 1px solid rgb(255 255 255 / .06);
+}
+html.margin-watch .bpx-player-sending-area .bpx-player-sending-bar { padding: 0 10px 0 14px !important; }
+html.margin-watch .bpx-player-sending-area .bpx-player-video-info,
+html.margin-watch .bpx-player-sending-area .bpx-player-video-info * { color: rgb(255 255 255 / .72) !important; }
+html.margin-watch .bpx-player-sending-area .bpx-player-dm-switch,
+html.margin-watch .bpx-player-sending-area .bpx-player-dm-setting,
+html.margin-watch .bpx-player-sending-area .bpx-player-dm-root svg { color: rgb(255 255 255 / .8) !important; fill: currentColor; }
+html.margin-watch .bpx-player-sending-area .bpx-player-dm-switch svg path,
+html.margin-watch .bpx-player-sending-area .bpx-player-dm-setting svg path { fill: rgb(255 255 255 / .8); }
+html.margin-watch .bpx-player-video-inputbar {
+  height: 34px !important; border-radius: 999px !important; overflow: hidden;
+  background: rgb(255 255 255 / .08) !important; border: 0 !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06);
+  transition: background 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+}
+html.margin-watch .bpx-player-video-inputbar:hover { background: rgb(255 255 255 / .11) !important; }
+html.margin-watch .bpx-player-video-inputbar:focus-within { background: rgb(255 255 255 / .12) !important; box-shadow: inset 0 0 0 1px rgb(0 174 236 / .55); }
+html.margin-watch .bpx-player-video-inputbar .bpx-player-dm-input { color: #ededee !important; background: transparent !important; }
+html.margin-watch .bpx-player-video-inputbar .bpx-player-dm-input::placeholder { color: rgb(255 255 255 / .45) !important; }
+html.margin-watch .bpx-player-video-inputbar .bpx-player-dm-hint,
+html.margin-watch .bpx-player-video-inputbar .bpx-player-dm-hint a,
+html.margin-watch .bpx-player-video-inputbar .bpx-player-dm-hint * { color: rgb(255 255 255 / .55) !important; }
+html.margin-watch .bpx-player-video-inputbar svg path { fill: rgb(255 255 255 / .6); }
+html.margin-watch .bpx-player-dm-btn-send {
+  height: 28px !important; line-height: 28px !important; margin: 3px 3px 3px 6px !important; padding: 0 !important; width: auto !important;
+  border-radius: 999px !important; min-width: 0 !important; background: #00aeec !important; color: #fff !important;
+  transition: transform 150ms var(--ease-out), background 150ms var(--ease-out);
+}
+html.margin-watch .bpx-player-dm-btn-send:hover { background: #1bb8f0 !important; }
+html.margin-watch .bpx-player-dm-btn-send:active { transform: scale(.96); }
+html.margin-watch .bpx-player-dm-btn-send .bui-area { padding: 0 16px !important; width: auto !important; min-width: 0 !important; background: transparent !important; border-radius: 999px !important; }
+/* 控制坞出现时，隐藏态的细进度条不要同时露出来贴在视频下沿 */
+html.margin-watch .bpx-player-container:not([data-ctrl-hidden="true"]) .bpx-player-shadow-progress-area { opacity: 0 !important; }
+/* B 站在发送栏 ::before 画了一根 #f4f4f4 的 1px 线，深色机身上就是视频下沿那道白边 */
+html.margin-watch .bpx-player-sending-area::before { display: none !important; }

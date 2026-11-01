@@ -2,6 +2,11 @@
 
 # Changelog
 
+## [v0.40.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.40.1) · 2026-11-01
+
+- Danmaku sending bar merged into the player as one dark body in both themes; removed Bilibili's 1px white divider; translucent pill input and a separate pill send button.
+- Thin bottom progress bar hides while the control dock is shown.
+
 ## [v0.40.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.40.0) · 2026-11-01
 
 - Player controls redesigned after 21st "Video Player" (chetanverma16): a floating rounded dark-glass dock inset 12px inside the video, white progress, spring in / blur out; all native controls kept.
