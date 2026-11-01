@@ -61,7 +61,7 @@ html.margin-search:has(.search-input-wrap:focus-within) body::after { opacity: 1
 
 /* 分类标签：衬线 + 底部细线指示 */
 html.margin-search .search-tabs { border-bottom: 1px solid var(--m-line); }
-html.margin-search .vui_tabs--nav-item { color: var(--m-muted) !important; font-size: 15px !important; }
+html.margin-search .vui_tabs--nav-item { color: var(--m-muted) !important; font-size: 14px !important; }
 html.margin-search .vui_tabs--nav-item:hover { color: var(--m-ink) !important; }
 html.margin-search .vui_tabs--nav-item-active { color: var(--m-ink) !important; font-weight: 600 !important; }
 html.margin-search .vui_tabs--nav-item-active .vui_tabs--nav-text, html.margin-search .vui_tabs--nav-item-active { font-family: var(--m-serif) !important; }

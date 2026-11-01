@@ -38,7 +38,6 @@ export class PageShell {
     this.head = createHeader({
       onTheme: () => this.toggleTheme(),
       tabs: [
-        { title: '首页', icon: ICONS.logo, href: 'https://www.bilibili.com/' },
         ...SITE_LINKS,
         'separator',
         { title: '收藏', icon: ICONS.fav, run: () => fav.open() },
