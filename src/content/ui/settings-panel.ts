@@ -51,6 +51,7 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
   cityAuto.addEventListener('click', () => { clearLoc(); paintCity(); say('天气改回按 IP 自动定位'); });
   paintCity();
   const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
+  const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 }));
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
@@ -151,6 +152,7 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
+      block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
       row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD)),
     h('section', { class: 'group' }, h('h3', {}, '首页顶部'),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
@@ -181,6 +183,7 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       foot.setAttribute('aria-checked', String(s.footprint));
       wxT.setAttribute('aria-checked', String(s.weather));
       favD.setAttribute('aria-checked', String(s.favDirect));
+      cols.set(String(s.cols));
       kw.set(s.filters.keywords);
       ups.set(s.filters.ups);
       mode.set(s.bg.mode);

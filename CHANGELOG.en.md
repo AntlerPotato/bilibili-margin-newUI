@@ -2,6 +2,14 @@
 
 # Changelog
 
+## [v0.42.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.0) · 2026-11-01
+
+- Player control bar back to Bilibili's original (v0.40.0 floating glass dock removed), in-video views · danmaku chip removed.
+- Video cards show danmaku count: uploader · views · danmaku · time; time hides first on narrow cards.
+- New setting "Videos per row" on home: auto (6–8 by width) / 4 / 5.
+- Favorites "play all" and watch-later playlists (/list/…) use the watch page styling.
+- Header hover popovers (live, messages, feed, history, favorites, watch later) open instantly, no 1.5s delay.
+
 ## [v0.41.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.41.0) · 2026-11-01
 
 - Watch page "one card" (after 21st Post Card, shadcnui-blocks): player, danmaku bar, actions, description and tags share one surface.

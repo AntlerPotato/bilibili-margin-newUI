@@ -57,44 +57,8 @@ export function startWatchCard(): void {
       const el = document.querySelector(sel);
       if (el && !watched.has(el)) { watched.add(el); ro!.observe(el); }
     }
-    stats();
+    document.querySelector('.bpx-player-video-area > .m-vstat')?.remove();
     place();
-  };
-
-  // 视频画面左上角：播放量 · 弹幕数（读标题下那行 B 站自己的文字，切集后跟着变）
-  let lastStat = '';
-  const stats = () => {
-    const area = document.querySelector<HTMLElement>('.bpx-player-video-area');
-    if (!area) return;
-    const view = document.querySelector('.video-info-detail-list .view-text, .view.item .view-text')?.textContent?.trim() ?? '';
-    const dm = document.querySelector('.video-info-detail-list .dm-text, .dm.item .dm-text')?.textContent?.trim() ?? '';
-    let chip = area.querySelector<HTMLElement>(':scope > .m-vstat');
-    if (!view && !dm) { chip?.remove(); return; }
-    const key = `${view}|${dm}`;
-    if (chip && key === lastStat) return;
-    lastStat = key;
-    if (!chip) {
-      chip = document.createElement('div');
-      chip.className = 'm-vstat';
-      chip.setAttribute('aria-hidden', 'true');
-      area.append(chip);
-    }
-    chip.replaceChildren();
-    const part = (icon: string, label: string, text: string) => {
-      if (!text) return;
-      const s = document.createElement('span');
-      s.className = 'm-vstat-i';
-      const i = document.createElement('i');
-      i.className = `m-vstat-ic ${icon}`;
-      const b = document.createElement('b');
-      b.textContent = text;
-      const u = document.createElement('em');
-      u.textContent = label;
-      s.append(i, b, u);
-      chip!.append(s);
-    };
-    part('play', '播放', view);
-    part('dm', '弹幕', dm);
   };
 
   new MutationObserver(() => requestAnimationFrame(place)).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });

@@ -36,6 +36,8 @@ export interface Settings {
   weather: boolean;
   /** 点收藏夹直接展开全部视频（关掉时先扇形弹出最近 4 个） */
   favDirect: boolean;
+  /** 首页每行几个视频：0 = 按窗口宽度自动，4 / 5 = 固定 */
+  cols: 0 | 4 | 5;
   filters: Filters;
   bg: Background;
 }
@@ -50,6 +52,7 @@ export const DEFAULTS: Settings = {
   footprint: true,
   weather: true,
   favDirect: false,
+  cols: 0,
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -95,6 +98,7 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   const out: Partial<Settings> = {};
   const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect');
+  if (r.cols === 0 || r.cols === 4 || r.cols === 5) out.cols = r.cols;
   if (r.theme === 'auto' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
   const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length <= 200).slice(0, 500) : undefined);
   const num = (v: unknown, max: number) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max ? v : undefined);

@@ -6,7 +6,8 @@ import { unread } from '../api/msg';
 import { h } from './dom';
 
 /** 悬停多久才弹出：只是路过顶栏时不打扰 */
-const OPEN_DELAY = 1500;
+// 用户 2026-11-01：悬停立即展开，不要等
+const OPEN_DELAY = 0;
 const CLOSE_DELAY = 220;
 
 /** 列表里的一行：头像或封面 + 两行文字，或一个计数 */
@@ -113,7 +114,7 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec): void {
   const enter = (e: Event) => {
     if ((e as PointerEvent).pointerType === 'touch') return;
     clearTimeout(closeT);
-    if (!open) { clearTimeout(openT); openT = window.setTimeout(show, OPEN_DELAY); }
+    if (!open) { clearTimeout(openT); if (OPEN_DELAY) openT = window.setTimeout(show, OPEN_DELAY); else show(); }
   };
   const leave = () => { clearTimeout(openT); clearTimeout(closeT); closeT = window.setTimeout(hide, CLOSE_DELAY); };
   btn.setAttribute('aria-haspopup', 'dialog');

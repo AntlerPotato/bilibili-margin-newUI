@@ -69,6 +69,7 @@ export class MarginApp {
       this.repaint();
     }
     if (prev.footprint !== s.footprint || prev.weather !== s.weather) this.syncDash();
+    this.app.dataset.cols = String(s.cols || "auto");
     if (prev.theme !== s.theme || prev.palette !== s.palette || JSON.stringify(prev.bg) !== JSON.stringify(s.bg)) this.applyTheme();
     this.panel.sync(s);
   }
@@ -83,6 +84,7 @@ export class MarginApp {
     this.app.dataset.theme = t;
     this.app.dataset.palette = this.settings.palette;
     this.app.dataset.bg = this.settings.bg.mode;
+    this.app.dataset.cols = String(this.settings.cols || 'auto');
     this.sunMoon.set(t);
     this.bg.apply(this.settings.bg, t, this.settings.palette).then(() => this.panel?.sync(this.settings));
   }
@@ -156,7 +158,7 @@ export class MarginApp {
     this.bg.setFocus(hero);
     const bar = h('div', { class: 'bar' }, h('div', { class: 'eyebrow' }, h('span', {}, todayLabel()), h('span', { class: 'en' }, 'For You'), h('span', { class: 'no' }, issueNo())), h('div', { class: 'bar-row' }, tabs, refresh));
 
-    this.grid = h('section', { class: 'grid', 'aria-live': 'polite' });
+    this.grid = h('section', { class: 'grid home-grid', 'aria-live': 'polite' });
     this.status = h('div', { class: 'status' });
     this.sentinel = h('div', { class: 'sentinel' });
     attachPreview(this.grid, () => this.settings.hoverPreview);
