@@ -103,7 +103,7 @@ export class MarginApp {
 
   private render(): void {
     this.panel = createSettingsPanel(() => this.settings, () => this.bg.shader);
-    this.fav = createFavorites((g) => attachPreview(g, () => this.settings.hoverPreview));
+    this.fav = createFavorites((g) => attachPreview(g, () => this.settings.hoverPreview), () => this.settings.favDirect);
     this.foot = createFootprintCard();
     this.dash = h('div', { class: 'dash' });
     this.syncDash();
@@ -198,7 +198,7 @@ export class MarginApp {
       this.bg.redraw();
       if (!scrollT) this.app.classList.add('scrolling');
       clearTimeout(scrollT);
-      scrollT = window.setTimeout(() => { scrollT = 0; this.app.classList.remove('scrolling'); }, 160);
+      scrollT = window.setTimeout(() => { scrollT = 0; this.app.classList.remove('scrolling'); this.fillIfShort(); }, 160);
     }, { passive: true });
     const lg = filtersIn(this.root);
     head.glass.forEach((g) => attachGlass(g, lg));
@@ -212,6 +212,15 @@ export class MarginApp {
     }, { root: this.app, rootMargin: '-72px 0px 0px 0px', threshold: 0 }).observe(barMark);
 
     new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) this.load(); }, { root: this.app, rootMargin: '900px 0px' }).observe(this.sentinel);
+    // 从个人空间等页面的入口跳回首页时直接打开对应面板：bilibili.com/#fav、#later
+    const hashOpen = () => {
+      const k = location.hash.slice(1);
+      if (k !== 'fav' && k !== 'later') return;
+      history.replaceState(null, '', location.pathname + location.search);
+      if (k === 'fav') this.fav.open(); else later.open();
+    };
+    hashOpen();
+    addEventListener('hashchange', hashOpen);
 
     this.load();
   }
@@ -265,9 +274,14 @@ export class MarginApp {
     toast(this.app, `已屏蔽「${v.author}」`, { label: '撤销', run: () => saveSettings({ filters: { ...this.settings.filters, ups: this.settings.filters.ups.filter((u) => u !== v.author) } }) });
   }
 
+  /** IntersectionObserver 只在「进入 / 离开」时触发：加载完哨兵还停在可视范围里、或被过滤掉一整批时不会再响，
+   *  所以加载结束和滚动停下后都按滚动容器的剩余高度再查一次（用户反馈：滚到底有概率不再刷新） */
   private fillIfShort(): void {
+    if (this.done || this.loading || !this.sentinel.isConnected) return;
+    const a = this.app;
+    const left = a.scrollHeight - a.scrollTop - a.clientHeight;
     const r = this.sentinel.getBoundingClientRect();
-    if (!this.done && !this.loading && r.top < innerHeight + 900) this.load();
+    if (left < 1200 || r.top < innerHeight + 900) this.load();
   }
 
   private async load(attempt = 0): Promise<void> {
@@ -304,6 +318,8 @@ export class MarginApp {
     } catch (err) {
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
+      // 推荐接口偶发风控 / 超时：先静默重试两次，再给出重试按钮
+      if (attempt < 2) { this.loading = false; window.setTimeout(() => { if (gen === this.gen) this.load(attempt + 1); }, 800 * (attempt + 1)); return; }
       this.status.replaceChildren(h('span', {}, `加载失败：${(err as Error).message}`), h('button', { class: 'ghost small', type: 'button', onclick: () => this.load() }, '重试'));
       return;
     } finally {
@@ -311,7 +327,11 @@ export class MarginApp {
     }
     // 被过滤掉太多时自动补一批
     if (gen === this.gen && added < 6 && attempt < 4) this.load(attempt + 1);
-    else requestAnimationFrame(() => this.fillIfShort());
+    else if (gen === this.gen) {
+      requestAnimationFrame(() => this.fillIfShort());
+      // 连续几批都被过滤或重复：稍等再补，不让列表停在底部
+      if (added === 0) window.setTimeout(() => { if (gen === this.gen) this.fillIfShort(); }, 1500);
+    }
   }
 }
 

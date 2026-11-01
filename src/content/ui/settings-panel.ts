@@ -21,6 +21,7 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
   const intro = toggle(s0.intro, '开场动画', (v) => save({ intro: v }));
   const foot = toggle(s0.footprint, '足迹热力图', (v) => save({ footprint: v }));
   const wxT = toggle(s0.weather, '天气', (v) => save({ weather: v }));
+  const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
   const ups = chipInput(s0.filters.ups, 'UP 主昵称或 MID', (v) => save({ filters: { ...get().filters, ups: v } }));
@@ -120,7 +121,8 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       block('明暗', null, theme),
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
-      row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch)),
+      row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
+      row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD)),
     h('section', { class: 'group' }, h('h3', {}, '首页顶部'),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT)),
@@ -148,6 +150,7 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       watch.setAttribute('aria-checked', String(s.watch));
       foot.setAttribute('aria-checked', String(s.footprint));
       wxT.setAttribute('aria-checked', String(s.weather));
+      favD.setAttribute('aria-checked', String(s.favDirect));
       kw.set(s.filters.keywords);
       ups.set(s.filters.ups);
       mode.set(s.bg.mode);

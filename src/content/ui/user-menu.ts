@@ -77,7 +77,8 @@ export function createUserMenu(a: Account): HTMLElement {
       h('div', { class: 'idcl-pillars' },
         h('span', {}, `LV${a.level}`), h('span', {}, `UID ${a.mid}`), h('i'))),
     h('div', { class: 'idcl-photo' },
-      h('img', { class: 'idcl-photo-bg', src: face(96), alt: '', referrerpolicy: 'no-referrer' }),
+      // 背景用 24px 小图放大，靠插值自然变糊，不再用 filter: blur（随卡片每帧旋转时 Firefox 要重新栅格化）
+      h('img', { class: 'idcl-photo-bg', src: face(24), alt: '', referrerpolicy: 'no-referrer' }),
       h('img', { class: 'idcl-photo-face', src: face(240), alt: '', referrerpolicy: 'no-referrer' }),
       a.vip ? h('span', { class: 'idcl-verified', title: role }, svgCheck()) : ''),
     name,
@@ -130,9 +131,9 @@ export function createUserMenu(a: Account): HTMLElement {
     h('div', { class: 'idcl-connect' },
       h('span', {}, '快捷入口'),
       h('div', { class: 'idcl-connect-icons' },
-        dot('收藏', ICONS.fav, `${space}/favlist`),
+        dot('收藏', ICONS.fav, 'https://www.bilibili.com/#fav'),
         dot('历史记录', ICONS.history, 'https://www.bilibili.com/account/history'),
-        dot('稍后再看', ICONS.later, 'https://www.bilibili.com/watchlater/#/list'),
+        dot('稍后再看', ICONS.later, 'https://www.bilibili.com/#later'),
         dot('动态', ICONS.moments, 'https://t.bilibili.com/'),
         dot('直播', ICONS.live, 'https://live.bilibili.com/'))),
     h('div', { class: 'idcl-sig' },
@@ -145,6 +146,7 @@ export function createUserMenu(a: Account): HTMLElement {
   const hint = h('div', { class: 'idcl-hint' }, h('span', {}, '拖动摇晃 · 点击翻面'));
   const canvas = h('canvas', { class: 'idcl-chain' }) as HTMLCanvasElement;
   const stage = h('div', { class: 'idcl-stage', hidden: '' }, card, canvas);
+  if (/firefox/i.test(navigator.userAgent)) stage.classList.add('idcl-lite');
   if (!localStorage.getItem(HINT_KEY)) card.append(hint);
 
   /* ── 物理（原组件逻辑） ─────────────────────────── */
@@ -164,6 +166,7 @@ export function createUserMenu(a: Account): HTMLElement {
     dpr = Math.min(2, devicePixelRatio || 1);
     canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr;
     canvas.style.width = `${innerWidth}px`; canvas.style.height = `${innerHeight}px`;
+    dirty = { l: 0, t: 0, r: innerWidth, b: innerHeight };
     // 珠链从头像底部垂下，穿进工牌顶上的孔；卡片太靠右会出视口，就让链子静止时往左斜一点
     anchor.x = r.left + r.width / 2;
     anchor.y = r.bottom - 3;
@@ -205,9 +208,11 @@ export function createUserMenu(a: Account): HTMLElement {
   };
   // 珠链：沿绳子每 4.4px 一颗金属小珠，珠子之间一根细连杆
   const BEAD_GAP = 4.4, BEAD_R = 1.9;
+  let dirty = { l: 0, t: 0, r: 0, b: 0 };
   const drawChain = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    // 只擦上一帧画过的范围（整屏 clearRect 在高分屏上每帧要清几百万像素）
+    ctx.clearRect(dirty.l, dirty.t, dirty.r - dirty.l, dirty.b - dirty.t);
     const dark = stage.closest('.app')?.getAttribute('data-theme') === 'dark';
     const beads: { x: number; y: number }[] = [];
     let carry = 0;
@@ -238,33 +243,41 @@ export function createUserMenu(a: Account): HTMLElement {
     ctx.beginPath(); ctx.ellipse(0, 1.5, 3.2, 4.6, 0, 0, Math.PI * 2);
     ctx.strokeStyle = dark ? '#d5d8dd' : '#7c8087'; ctx.lineWidth = 1.4; ctx.stroke();
     ctx.restore();
+    let l = Infinity, r = -Infinity, tp = Infinity, bt = -Infinity;
+    for (const p of points) { l = Math.min(l, p.x); r = Math.max(r, p.x); tp = Math.min(tp, p.y); bt = Math.max(bt, p.y); }
+    dirty = { l: l - 8, t: tp - 8, r: r + 8, b: bt + 10 };
   };
   const HOLE_Y = 20.5; // 孔中心离卡片顶部的距离（未缩放）
+  // 卡片几何缓存：以前每帧先写 left/top 再读 offsetLeft/offsetWidth，强制同步重排，Firefox 上尤其卡（用户反馈）
+  let cardW = 236, cardH = 460, cardX = 0, cardY = 0;
+  const measure = () => { cardW = card.offsetWidth || 236; cardH = card.offsetHeight || 460; };
   const positionCard = () => {
     const last = points[points.length - 1], prev = points[points.length - 2];
     // 减去静止时绳子的斜角，卡片静止时保持竖直，甩动时照常转
     const angle = Math.atan2(last.y - prev.y, last.x - prev.x) - Math.PI / 2 - restAngle;
-    card.style.left = `${last.x - card.offsetWidth / 2}px`;
-    card.style.top = `${last.y - HOLE_Y}px`;
-    card.style.transform = `rotate(${angle}rad) scale(${CARD_SCALE})`;
+    cardX = last.x - cardW / 2; cardY = last.y - HOLE_Y;
+    card.style.transform = `translate3d(${cardX.toFixed(2)}px,${cardY.toFixed(2)}px,0) rotate(${angle.toFixed(4)}rad) scale(${CARD_SCALE})`;
   };
+  let hovering = false, lastMx = '', lastMy = '';
   const updateTilt = () => {
     flipCurrent += (flipTarget - flipCurrent) * 0.16;
-    if (!dragging && mouse.x > -1000) {
-      const cx = card.offsetLeft + card.offsetWidth / 2, cy = card.offsetTop + card.offsetHeight / 2;
-      const dx = Math.max(-1, Math.min(1, (mouse.x - cx) / (card.offsetWidth / 2)));
-      const dy = Math.max(-1, Math.min(1, (mouse.y - cy) / (card.offsetHeight / 2)));
+    const over = !dragging && mouse.x > -1000;
+    if (over) {
+      const cx = cardX + cardW / 2, cy = cardY + cardH / 2;
+      const dx = Math.max(-1, Math.min(1, (mouse.x - cx) / (cardW / 2)));
+      const dy = Math.max(-1, Math.min(1, (mouse.y - cy) / (cardH / 2)));
       tiltTarget.y = dx * MAX_TILT; tiltTarget.x = -dy * MAX_TILT;
-      card.style.setProperty('--mx', `${Math.max(0, Math.min(100, ((mouse.x - card.offsetLeft) / card.offsetWidth) * 100))}%`);
-      card.style.setProperty('--my', `${Math.max(0, Math.min(100, ((mouse.y - card.offsetTop) / card.offsetHeight) * 100))}%`);
-      card.classList.add('idcl-hovering');
+      const mx = `${Math.round(Math.max(0, Math.min(100, ((mouse.x - cardX) / cardW) * 100)))}%`;
+      const my = `${Math.round(Math.max(0, Math.min(100, ((mouse.y - cardY) / cardH) * 100)))}%`;
+      if (mx !== lastMx) { card.style.setProperty('--mx', mx); lastMx = mx; }
+      if (my !== lastMy) { card.style.setProperty('--my', my); lastMy = my; }
     } else {
       tiltTarget.x = 0; tiltTarget.y = 0;
-      card.classList.remove('idcl-hovering');
     }
+    if (over !== hovering) { hovering = over; card.classList.toggle('idcl-hovering', over); }
     tiltCurrent.x += (tiltTarget.x - tiltCurrent.x) * 0.12;
     tiltCurrent.y += (tiltTarget.y - tiltCurrent.y) * 0.12;
-    flipper.style.transform = `rotateY(${flipCurrent + tiltCurrent.y}deg) rotateX(${tiltCurrent.x}deg)`;
+    flipper.style.transform = `rotateY(${(flipCurrent + tiltCurrent.y).toFixed(3)}deg) rotateX(${tiltCurrent.x.toFixed(3)}deg)`;
   };
   // 链子和卡片停稳后就不再每帧重算重画（以前打开期间一直 60fps 跑），指针一动或翻面再唤醒
   let still = 0;
@@ -358,6 +371,7 @@ export function createUserMenu(a: Account): HTMLElement {
     flipped = false; flipTarget = 0; flipCurrent = 0;
     stage.hidden = false;
     stage.classList.remove('idcl-leaving');
+    measure();
     addEventListener('pointermove', onMove);
     addEventListener('pointerup', onUp);
     addEventListener('resize', resize); addEventListener('resize', wake);

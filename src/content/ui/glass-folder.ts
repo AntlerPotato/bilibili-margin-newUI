@@ -24,6 +24,9 @@ export interface GFOptions {
   width?: number;
   appearDelay?: number;
   onOpenChange?: (open: boolean) => void;
+  /** 返回 true 时点击不弹出扇形文件，改为调用 onDirect（设置「收藏夹直接展开」） */
+  direct?: () => boolean;
+  onDirect?: () => void;
   onFileSelect?: (file: GFFile, index: number) => void;
 }
 export interface GlassFolderApi { el: HTMLElement; setFiles(files: GFFile[]): void; setOpen(open: boolean): void; isOpen(): boolean }
@@ -234,7 +237,7 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   });
   root.addEventListener('pointerleave', () => { tracking = false; if (!raf) raf = requestAnimationFrame(write); });
 
-  hit.addEventListener('click', () => { setMenu(false); setOpen(!open); });
+  hit.addEventListener('click', () => { setMenu(false); if (o.direct?.()) { if (open) setOpen(false); o.onDirect?.(); return; } setOpen(!open); });
   key.addEventListener('click', () => setMenu(!menuOpen));
   menu.addEventListener('keydown', (e) => {
     const items = [...menu.querySelectorAll<HTMLElement>('[role=menuitem]')];

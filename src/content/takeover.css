@@ -298,10 +298,15 @@ a.sp-stat:hover b { color: var(--accent); }
 .fd-up img, .fd-up-all { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--chip); box-shadow: var(--ring); transition: box-shadow .2s var(--ease-out); }
 .fd-up-all { display: grid; place-items: center; color: var(--ink); }
 .fd-up-all svg { width: 20px; height: 20px; }
-.fd-up span { max-width: 58px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-up-name { max-width: 58px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-up-face { position: relative; display: block; width: 44px; height: 44px; }
+/* 有新动态：头像外一圈强调色环 + 右上角小圆点（用户反馈：想一眼看到谁更新了） */
+.fd-up.fresh .fd-up-face img { box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px var(--accent); }
+.fd-up.fresh .fd-up-face::after { content: ""; position: absolute; top: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--canvas); }
+.fd-up.fresh .fd-up-name { color: var(--ink); }
 .fd-up:hover { color: var(--ink); }
 .fd-up[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
-.fd-up[aria-pressed="true"] img, .fd-up[aria-pressed="true"] .fd-up-all { box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px var(--accent); }
+.fd-up[aria-pressed="true"] img, .fd-up[aria-pressed="true"] .fd-up-all { box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px var(--ink); }
 .fd-up.fresh::after { content: ""; position: absolute; top: 6px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--canvas); }
 .fd-bar { margin-top: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .fd-tabs { gap: 24px; }

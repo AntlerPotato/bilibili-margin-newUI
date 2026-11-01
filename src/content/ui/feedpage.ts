@@ -63,6 +63,8 @@ export class FeedApp {
       this.list, this.status, this.sentinel);
     s.main.append(h('div', { class: 'fd' }, left, center, right));
     new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) this.load(); }, { root: s.app, rootMargin: '1200px 0px' }).observe(this.sentinel);
+    let st = 0;
+    s.app.addEventListener('scroll', () => { clearTimeout(st); st = window.setTimeout(() => this.fill(), 160); }, { passive: true });
 
     this.renderHot(right);
     nav().then((n) => {
@@ -107,7 +109,7 @@ export class FeedApp {
   private renderUps(ups: Up[]): void {
     if (!ups.length) return;
     const mk = (mid: number, name: string, img: Node, fresh = false) => {
-      const b = h('button', { class: 'fd-up', type: 'button', title: name, 'aria-pressed': String(mid === this.host) }, img, h('span', {}, name));
+      const b = h('button', { class: 'fd-up', type: 'button', title: fresh ? `${name} · 有新动态` : name, 'aria-pressed': String(mid === this.host) }, h('span', { class: 'fd-up-face' }, img), h('span', { class: 'fd-up-name' }, name));
       b.dataset.mid = String(mid);
       if (fresh) b.classList.add('fresh');
       b.addEventListener('click', () => {
@@ -120,7 +122,7 @@ export class FeedApp {
     };
     this.strip.replaceChildren(
       mk(0, '全部动态', h('span', { class: 'fd-up-all' }, icon(ICONS.moments))),
-      ...ups.slice(0, 24).map((u) => mk(u.mid, u.name, face(u.face, '', 96), u.fresh)));
+      ...[...ups].sort((x, y) => Number(y.fresh) - Number(x.fresh)).slice(0, 30).map((u) => mk(u.mid, u.name, face(u.face, '', 96), u.fresh)));
   }
 
   private async renderHot(right: HTMLElement): Promise<void> {
@@ -173,5 +175,13 @@ export class FeedApp {
     } finally {
       if (gen === this.gen) this.loading = false;
     }
+    if (gen === this.gen) requestAnimationFrame(() => this.fill());
+  }
+
+  /** 哨兵加载完仍在视口附近时 IntersectionObserver 不会再触发，按剩余高度补查 */
+  private fill(): void {
+    if (this.done || this.loading) return;
+    const a = this.shell.app;
+    if (a.scrollHeight - a.scrollTop - a.clientHeight < 1400) this.load();
   }
 }

@@ -9,6 +9,7 @@ import type { Video } from '../api/feed';
 import { cardData } from './card';
 import { attachPreview } from './preview';
 import { csrf, PageShell } from './shell';
+import { account } from '../api/account';
 
 type Tab = 'video' | 'dynamic';
 type Layout = 'grid' | 'list';
@@ -91,6 +92,19 @@ export class SpaceApp {
       const inner = [h('b', {}, fmtCount(n)), h('span', {}, label)];
       return href ? h('a', { class: 'sp-stat', href, target: '_blank', rel: 'noopener' }, ...inner) : h('div', { class: 'sp-stat' }, ...inner);
     };
+    const acts = h('div', { class: 'sp-acts' },
+      followBtn,
+      h('a', { class: 'sp-msg', href: `https://message.bilibili.com/#/whisper/mid${i.mid}`, target: '_blank', rel: 'noopener' }, icon(ICONS.message), '私信'));
+    // 自己的空间：关注 / 私信换成收藏夹、历史记录、稍后再看（用户反馈：不想每次去顶栏找）
+    account().then((me) => {
+      if (!me || me.mid !== i.mid) return;
+      const go = (label: string, ic: string, href: string) => h('a', { class: 'sp-msg', href, target: '_blank', rel: 'noopener' }, icon(ic), label);
+      acts.replaceChildren(
+        go('收藏夹', ICONS.fav, 'https://www.bilibili.com/#fav'),
+        go('历史记录', ICONS.history, 'https://www.bilibili.com/history'),
+        go('稍后再看', ICONS.later, 'https://www.bilibili.com/#later'));
+      acts.classList.add('sp-acts-self');
+    }).catch(() => {});
     return h('section', { class: 'sp-hero' },
       h('div', { class: `sp-banner${i.banner ? ' has' : ''}`, style: i.banner ? `--img:url("${i.banner}@1600w.webp")` : '' }),
       h('div', { class: 'sp-id' },
@@ -107,9 +121,7 @@ export class SpaceApp {
             stat(i.following, '关注', `https://space.bilibili.com/${i.mid}/fans/follow`),
             i.likes ? stat(i.likes, '获赞') : null,
             i.views ? stat(i.views, '播放') : null),
-          h('div', { class: 'sp-acts' },
-            followBtn,
-            h('a', { class: 'sp-msg', href: `https://message.bilibili.com/#/whisper/mid${i.mid}`, target: '_blank', rel: 'noopener' }, icon(ICONS.message), '私信')))),
+          acts)),
     );
   }
 

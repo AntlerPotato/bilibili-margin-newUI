@@ -1361,7 +1361,7 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 @keyframes idcl-in { from { opacity: 0; } }
 .idcl-stage * { box-sizing: border-box; }
 .idcl-chain { position: absolute; inset: 0; pointer-events: none; }
-.idcl-card { position: absolute; width: 236px; aspect-ratio: 236 / 460; perspective: 1400px; cursor: grab; touch-action: none; user-select: none; transform-origin: 50% 20.5px; pointer-events: auto; }
+.idcl-card { position: absolute; left: 0; top: 0; will-change: transform; width: 236px; aspect-ratio: 236 / 460; perspective: 1400px; cursor: grab; touch-action: none; user-select: none; transform-origin: 50% 20.5px; pointer-events: auto; }
 .idcl-card:active { cursor: grabbing; }
 .idcl-flipper { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
 .idcl-face { position: absolute; inset: 0; border-radius: 18px; padding: 16px 16px 14px; display: flex; flex-direction: column; backface-visibility: hidden; color: var(--idcl-card-ink);
@@ -1371,12 +1371,17 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .idcl-face::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.6), transparent 40%); mix-blend-mode: overlay; opacity: 0; transition: opacity .3s ease; }
 .idcl-card.idcl-hovering .idcl-face::after { opacity: 1; }
+/* Firefox：混合模式 + 3px 点阵在 3D 旋转的卡片上每帧重绘，换成不混合的等效层（用户反馈名牌卡顿） */
+.idcl-stage.idcl-lite .idcl-face::before { mix-blend-mode: normal; background: linear-gradient(180deg, rgba(255,255,255,.4) 0%, transparent 24%); opacity: .6; }
+.idcl-stage.idcl-lite .idcl-face::after { mix-blend-mode: normal; background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.28), transparent 40%); }
 .idcl-front { background: linear-gradient(165deg, var(--idcl-card), var(--idcl-card-2)); align-items: stretch; }
 .idcl-back { background: linear-gradient(165deg, var(--idcl-card-2), var(--idcl-card)); transform: rotateY(180deg); }
 .idcl-holo { position: absolute; top: 14px; bottom: 14px; right: 5px; width: 6px; border-radius: 5px;
   background: repeating-linear-gradient(125deg, #eef1f7 0%, #cfd6e4 10%, #b9c2d6 20%, #e7ebf3 30%, #eef1f7 40%); background-size: 220% 220%;
   animation: idcl-foil 7s linear infinite; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1), 0 0 6px rgba(255,255,255,.3); }
 @keyframes idcl-foil { to { background-position: 220% 0%; } }
+/* 镭射条只在鼠标停在卡上时流动；静止时一直重绘背景会让整张 3D 卡片每帧重新栅格化 */
+.idcl-card:not(.idcl-hovering) .idcl-holo, .idcl-stage.idcl-lite .idcl-holo { animation-play-state: paused; }
 .idcl-hole { width: 32px; height: 9px; background: var(--idcl-card-ink); border-radius: 5px; margin: 0 auto 10px; flex-shrink: 0; opacity: .85; }
 .idcl-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
 .idcl-brand { display: flex; align-items: flex-start; gap: 6px; }
@@ -1389,7 +1394,7 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .idcl-pillars i { width: 16px; height: 2px; background: var(--idcl-card-ink); margin-top: 3px; }
 .idcl-photo { position: relative; width: 100%; height: 112px; border-radius: 10px; background: #eae7de; overflow: visible; margin-bottom: 12px; flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), inset 0 2px 6px rgba(0,0,0,.12); }
-.idcl-photo-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; filter: blur(14px) saturate(1.3); opacity: .7; clip-path: inset(0 round 10px); }
+.idcl-photo-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; opacity: .7; overflow: hidden; }
 .idcl-photo-face { position: absolute; left: 50%; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px var(--idcl-card), 0 6px 16px rgba(0,0,0,.25); }
 .idcl-verified { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(160deg, #fb7299, #e0507a);
   display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.4), 0 0 0 3px var(--idcl-card); }

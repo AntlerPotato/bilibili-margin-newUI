@@ -7,7 +7,7 @@ import type { Video } from '../api/feed';
 import { createSheet, type Sheet } from './sheet';
 
 /** 收藏夹抽屉：玻璃文件夹 → 视频网格（无限加载） */
-export function createFavorites(onRender: (grid: HTMLElement) => void): Sheet {
+export function createFavorites(onRender: (grid: HTMLElement) => void, direct: () => boolean = () => false): Sheet {
   let loaded = false;
   const shelf = h('div', { class: 'shelf' });
   const grid = h('div', { class: 'grid fav-grid' });
@@ -62,6 +62,8 @@ export function createFavorites(onRender: (grid: HTMLElement) => void): Sheet {
       width: 236,
       appearDelay: i * 140,
       onOpenChange: (o) => { if (o) open(f); },
+      direct,
+      onDirect: () => { open(f); requestAnimationFrame(() => crumb.scrollIntoView({ behavior: 'smooth', block: 'start' })); },
       menu: [
         { label: '查看全部视频', onSelect: () => { open(f); crumb.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
         { label: '在 B 站打开', onSelect: () => window.open(`https://space.bilibili.com/${f.mid}/favlist?fid=${f.id}`, '_blank', 'noopener') },

@@ -34,6 +34,8 @@ export interface Settings {
   footprint: boolean;
   /** 首页顶部天气卡（关掉就不请求天气和定位） */
   weather: boolean;
+  /** 点收藏夹直接展开全部视频（关掉时先扇形弹出最近 4 个） */
+  favDirect: boolean;
   filters: Filters;
   bg: Background;
 }
@@ -47,6 +49,7 @@ export const DEFAULTS: Settings = {
   intro: true,
   footprint: true,
   weather: true,
+  favDirect: false,
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -90,8 +93,8 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
-  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather');
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect');
   if (r.theme === 'auto' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
   const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length <= 200).slice(0, 500) : undefined);
   const num = (v: unknown, max: number) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max ? v : undefined);
