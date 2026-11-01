@@ -2,6 +2,10 @@
 
 # Changelog
 
+## [v0.37.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.2) · 2026-11-01
+
+- Fixed watch page recommendation covers where the hover preview spilled past the rounded frame and showed a black bar: the inline preview and frame preview now fill the cover and are clipped to its radius.
+
 ## [v0.37.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.1) · 2026-11-01
 
 - Watch page quick menu moved from bottom-center to the bottom-left corner. Collapsed it is a small translucent round button (fully visible on hover), so it no longer covers the video or comments; it still expands into the same panel.
