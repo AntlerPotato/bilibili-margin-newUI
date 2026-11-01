@@ -231,4 +231,13 @@ function disabledAfterMute(): void {
   location.reload();
 }
 
+/** 标题字体（v0.46）：在 html 上设一个继承变量，首页 / 接管页（Shadow DOM）和换皮页的衬线变量都先读它 */
+const SANS_TITLE = '"Geist", "Margin Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif';
+function applyFont(s: Settings): void {
+  const de = document.documentElement;
+  if (s.enabled && s.titleFont === 'sans') de.style.setProperty('--margin-title', SANS_TITLE);
+  else de.style.removeProperty('--margin-title');
+}
+if (!offByUrl()) { loadSettings().then(applyFont).catch(() => {}); onSettingsChange((n) => applyFont(n)); }
+
 start().catch((e) => console.error("[MARGIN]", e));

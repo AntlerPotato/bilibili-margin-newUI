@@ -57,7 +57,7 @@ export function createWeather(): HTMLElement {
     const app = el.closest('.app');
     if (!wx || !visible || reduced.matches || document.hidden) return;
     stop = every(FRAME, () => {
-      if (app?.classList.contains('scrolling') || introActive()) return;
+      if (app?.classList.contains('scrolling') || app?.classList.contains('sheeted') || introActive()) return;
       tick++; paint();
       if (tick % 60 === 0) clockEl.textContent = clock();
     });

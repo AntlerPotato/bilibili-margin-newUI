@@ -1,3 +1,4 @@
+import { loadSettings, onSettingsChange } from '../../shared/settings';
 import { account, accountStat, dynamicUpdates, logout, resetDynamicBaseline, unreadTotal, type Account } from '../api/account';
 import { fmtCount, h, icon, ICONS, setMarkup } from './dom';
 
@@ -49,6 +50,11 @@ function barcode(mid: number): HTMLElement {
   }
   return el;
 }
+
+// 设置「账号卡片可拖拽」（v0.46，B 站评论建议）：关掉后卡片固定挂着，只能点击翻面
+let idDrag = true;
+loadSettings().then((s) => { idDrag = s.idDrag; }).catch(() => {});
+onSettingsChange((s) => { idDrag = s.idDrag; });
 
 export function createUserMenu(a: Account): HTMLElement {
   const face = (px: number) => `${a.face}@${px}w_${px}h_1c.webp`;
@@ -164,7 +170,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
   const canvas = h('canvas', { class: 'idcl-chain' }) as HTMLCanvasElement;
   const stage = h('div', { class: 'idcl-stage', hidden: '' }, card, canvas);
   if (/firefox/i.test(navigator.userAgent)) stage.classList.add('idcl-lite');
-  if (!localStorage.getItem(HINT_KEY)) card.append(hint);
+  if (idDrag && !localStorage.getItem(HINT_KEY)) card.append(hint);
 
   /* ── 物理（原组件逻辑） ─────────────────────────── */
   const ctx = canvas.getContext('2d')!;
@@ -315,6 +321,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
   card.addEventListener('pointerdown', (e) => {
     if ((e.target as HTMLElement).closest('a, button')) return;
     e.preventDefault();
+    if (!idDrag) { downPos = pos(e); tapDown = true; return; }
     dragging = true; wake();
     if (!interacted) { interacted = true; hint.classList.add('idcl-hint-hidden'); localStorage.setItem(HINT_KEY, '1'); }
     card.setPointerCapture(e.pointerId);
@@ -333,7 +340,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
     for (const p of points) { l = Math.min(l, p.x); r = Math.max(r, p.x); t = Math.min(t, p.y); b = Math.max(b, p.y); }
     return x >= l - 28 && x <= r + 28 && y >= t - 28 && y <= b + 4;
   };
-  let away = false;
+  let away = false, tapDown = false;
   let grab = { x: 0, y: 0 };
   const onMove = (e: PointerEvent) => {
     if (!e.isTrusted) return; // 页面脚本派发的合成事件不算
@@ -351,6 +358,12 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
     lastPointer = p; pointer = p;
   };
   const onUp = (e: PointerEvent) => {
+    if (tapDown) {
+      tapDown = false;
+      const p = pos(e);
+      if (Math.hypot(p.x - downPos.x, p.y - downPos.y) < TAP_THRESHOLD) { flipped = !flipped; flipTarget = flipped ? 180 : 0; wake(); }
+      return;
+    }
     if (!dragging) return;
     dragging = false;
     const p = pos(e);
@@ -382,12 +395,14 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
       const dx = restX - anchor.x, dy = Math.sqrt(Math.max(0, REST_LENGTH ** 2 - dx * dx));
       for (let i = 0; i < NUM_POINTS; i++) {
         const k = i / (NUM_POINTS - 1), x = anchor.x + dx * k, y = anchor.y + dy * k;
-        points.push({ x, y, oldx: x + k * 1.5, oldy: y, pinned: i === 0 });
+        points.push({ x, y, oldx: idDrag ? x + k * 1.5 : x, oldy: y, pinned: i === 0 });
       }
     }
     flipped = false; flipTarget = 0; flipCurrent = 0;
     stage.hidden = false;
     stage.classList.remove('idcl-leaving');
+    stage.classList.toggle('idcl-fixed', !idDrag);
+    if (!idDrag) hint.remove();
     measure();
     addEventListener('pointermove', onMove);
     addEventListener('pointerup', onUp);

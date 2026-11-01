@@ -64,6 +64,9 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
   account().then((a) => {
     if (!a) return;
     userSlot.replaceWith(createUserMenu(a));
+    // 消息中心里点开消息后（v0.46）重新拉一次未读，顶栏角标立刻跟上
+    let unreadT = 0;
+    addEventListener('margin:unread', () => { clearTimeout(unreadT); unreadT = window.setTimeout(() => unreadTotal().then((n) => tabsNav.badge('msg', n)).catch(() => {}), 600); });
     // 未读角标：页面可见时每 2 分钟问一次；切回标签页时立即刷新
     let polled = 0;
     const poll = () => {

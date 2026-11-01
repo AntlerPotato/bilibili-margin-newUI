@@ -48,6 +48,10 @@ export interface Settings {
   cols: 0 | 4 | 5;
   /** 首页隐藏的部件；空 = 全部显示 */
   homeHide: HomeBit[];
+  /** 标题字体（v0.46，B 站评论建议）：衬线 = 宋体系，无衬线 = 黑体系 */
+  titleFont: 'serif' | 'sans';
+  /** 账号卡片可以拖拽甩动（v0.46）：关掉后卡片固定挂着，只能点击翻面 */
+  idDrag: boolean;
   filters: Filters;
   bg: Background;
 }
@@ -66,6 +70,8 @@ export const DEFAULTS: Settings = {
   webScroll: true,
   cols: 0,
   homeHide: [],
+  titleFont: 'serif',
+  idDrag: true,
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -81,6 +87,8 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     filters: { ...DEFAULTS.filters, ...(r.filters ?? {}) },
     bg: { ...DEFAULTS.bg, ...(r.bg ?? {}) },
     homeHide: Array.isArray(r.homeHide) ? HOME_BITS.filter((b) => r.homeHide!.includes(b)) : [],
+    titleFont: r.titleFont === 'sans' ? 'sans' : 'serif',
+    idDrag: r.idDrag !== false,
     palette: 'classic', // 旧版存过 mist，统一回到经典
   };
 }
@@ -110,8 +118,9 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
-  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll');
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'idDrag') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('idDrag');
+  if (r.titleFont === 'serif' || r.titleFont === 'sans') out.titleFont = r.titleFont;
   if (r.cols === 0 || r.cols === 4 || r.cols === 5) out.cols = r.cols;
   if (Array.isArray(r.homeHide)) out.homeHide = HOME_BITS.filter((b) => (r.homeHide as unknown[]).includes(b));
   if (r.theme === 'auto' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;

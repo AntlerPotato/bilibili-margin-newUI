@@ -2,6 +2,22 @@
 
 # Changelog
 
+## [v0.46.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.46.0) · 2026-11-01
+
+- "Not interested" on home cards: hover × or the context menu fades the card out and reports it through Bilibili's own home-feed feedback endpoint, with undo (which cancels the feedback). "Block uploader" also tells Bilibili "don't show this uploader".
+- Fix message center unread dots not clearing until refresh: opening a whisper sends the read ack (update_ack); opening replies / @ / likes / system clears the sidebar count and advances the system read cursor; the header badge refreshes right away.
+- The "Grain" background no longer looks like TV static: grain is now fixed to screen pixels instead of re-randomised every frame, at half strength (frame-to-frame flicker 1.03 → 0.07).
+- New appearance setting "Title font": serif (default) or sans, applied to home, takeover and skinned pages.
+- New appearance setting "Draggable account card": off keeps the card hanging still; click still flips it.
+- Card hover buttons drop their backdrop blur for a solid translucent fill.
+
+## [v0.45.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.45.0) · 2026-11-01
+
+- Much lighter favorites sheet: compositor time per frame while scrolling drops from ~13 ms to ~4.5 ms, hovering folders ~16 ms → ~10 ms, and on the watch page ~18 ms → ~8 ms. The biggest cost was the sheet's own backdrop-filter: every frame of the animated background or the playing video behind it forced an 820 px-wide area to be re-blurred. The favorites sheet and sheets on the watch page are now solid (they were already 90% opaque, so the look barely changes).
+- While any sheet (settings, favorites) is open, the animated background and weather animation freeze.
+- Folder hover parallax no longer rewrites CSS variables on the folder root (which restyled the whole folder including its blurred copy); it moves the few layers directly, and the highlight translates instead of repainting its gradient. Hover style recalculation roughly halves.
+- Approach informed by similar fixes on GitHub: Slush97/grimoire#264, vuejs/vitepress#1049, nextcloud/server#45452.
+
 ## [v0.44.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.44.0) · 2026-11-01
 
 - Faster load: MARGIN's own script time on the watch page drops from ~650 ms to ~240 ms, home from ~450 ms to ~340 ms. Removed forced reflows during load: the sun/moon switch's first paint (~160 ms), segmented controls measuring inside the closed settings sheet (~110 ms), QR codes now drawn when idle, liquid-glass maps computed once per size.

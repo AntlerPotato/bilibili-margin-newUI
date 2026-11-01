@@ -78,6 +78,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   paintCity();
   const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
   const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 }));
+  const fontS = segmented<'serif' | 'sans'>([['serif', '衬线'], ['sans', '无衬线']], s0.titleFont, (v) => save({ titleFont: v }));
+  const idD = toggle(s0.idDrag, '账号卡片可拖拽', (v) => save({ idDrag: v }));
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
   const autoW = toggle(s0.autoWeb, '自动网页全屏', (v) => save({ autoWeb: v }));
   const webS = toggle(s0.webScroll, '网页全屏可滚动', (v) => save({ webScroll: v }));
@@ -177,11 +179,13 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   sheet.body.append(
     h('section', { class: 'group' }, h('h3', {}, '外观'),
       block('明暗', null, theme),
+      block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
       block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
-      row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD)),
+      row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
+      row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD)),
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
       row('自动网页全屏', '打开视频后直接铺满浏览器窗口，按 Esc 退出', autoW),
       row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS)),
@@ -225,6 +229,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       autoW.setAttribute('aria-checked', String(s.autoWeb));
       webS.setAttribute('aria-checked', String(s.webScroll));
       cols.set(String(s.cols));
+      fontS.set(s.titleFont);
+      idD.setAttribute('aria-checked', String(s.idDrag));
       kw.set(s.filters.keywords);
       ups.set(s.filters.ups);
       mode.set(s.bg.mode);

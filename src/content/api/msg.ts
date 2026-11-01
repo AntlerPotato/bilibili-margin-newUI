@@ -16,7 +16,7 @@ export interface Notice {
   users: Person[]; more: number; time: number;
   verb: string; content: string; quote: string; title: string; image: string; url: string;
 }
-export interface Page { list: Notice[]; cursor: { id: number; time: number } | null }
+export interface Page { list: Notice[]; cursor: { id: number; time: number } | null; top?: number }
 export interface Unread { reply: number; at: number; like: number; system: number; chat: number }
 
 const person = (u: any): Person => ({ mid: u?.mid ?? 0, name: u?.nickname ?? u?.name ?? '', face: https(u?.avatar ?? u?.face) });
@@ -75,13 +75,25 @@ export async function system(csrf: string, c: Page['cursor']): Promise<Page> {
     verb: '', content: String(x.content ?? '').replace(/#\{([^}]*)\}\{"?[^}]*"?\}/g, '$1'), quote: '', title: x.title ?? '', image: '', url: '',
   }));
   const last = list[list.length - 1];
-  return { list, cursor: list.length >= 20 && last ? { id: last.id, time: last.time } : null };
+  const first = d.system_notify_list?.[0];
+  return { list, cursor: list.length >= 20 && last ? { id: last.id, time: last.time } : null, top: Number(first?.cursor ?? first?.id ?? 0) };
+}
+
+/** 系统通知标为已读（v0.46，与 B 站消息中心同一个接口：把已读游标推到最新一条） */
+export async function systemRead(cursor: number, csrf: string): Promise<void> {
+  if (cursor) await get('https://message.bilibili.com/x/sys-msg/update_cursor', { cursor, has_up: 0, csrf });
+}
+
+/** 私信会话标为已读（v0.46）：B 站网页版打开会话时发的 update_ack */
+export async function ackSession(talker: number, seq: number, csrf: string): Promise<void> {
+  const body = new URLSearchParams({ talker_id: String(talker), session_type: '1', ack_seqno: String(seq), build: '0', mobi_app: 'web', csrf_token: csrf, csrf });
+  await fetch('https://api.vc.bilibili.com/session_svr/v1/session_svr/update_ack', { method: 'POST', credentials: 'include', body });
 }
 
 // ---- 私信 ----
 export interface Session { talker: number; unread: number; last: string; ts: number; person?: Person }
 export interface MsgCard { title: string; desc: string; cover: string; url: string; rows: [string, string][]; action: string }
-export interface Msg { sender: number; type: number; text: string; image: string; ts: number; key: string; card?: MsgCard }
+export interface Msg { sender: number; type: number; text: string; image: string; ts: number; key: string; seq: number; card?: MsgCard }
 
 /* #2：私信里的卡片 / 通知 / 分享等特殊类型以前只显示标题，现在拆成卡片（标题、正文、封面、明细行、跳转） */
 const VIDEO_URL = (c: any) => (c.bvid ? `https://www.bilibili.com/video/${c.bvid}` : c.id && c.source === 5 ? `https://www.bilibili.com/video/av${c.id}` : '');
@@ -122,7 +134,7 @@ export async function sessions(): Promise<Session[]> {
 
 export async function messages(talker: number): Promise<Msg[]> {
   const d = await get<any>('https://api.vc.bilibili.com/svr_sync/v1/svr_sync/fetch_session_msgs', { talker_id: talker, session_type: 1, size: 30 });
-  return (d.messages ?? []).map((m: any): Msg => ({ sender: m.sender_uid, type: m.msg_type, ...msgText(m.msg_type, m.content), ts: m.timestamp, key: String(m.msg_key) })).reverse();
+  return (d.messages ?? []).map((m: any): Msg => ({ sender: m.sender_uid, type: m.msg_type, ...msgText(m.msg_type, m.content), ts: m.timestamp, key: String(m.msg_key), seq: Number(m.msg_seqno) || 0 })).reverse();
 }
 
 export async function sendText(me: number, to: number, text: string, csrf: string): Promise<boolean> {

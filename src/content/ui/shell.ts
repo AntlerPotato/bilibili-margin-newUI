@@ -53,6 +53,8 @@ export class PageShell {
       h('footer', { class: 'foot tk-foot' }, exit, h('span', {}, '映间 MARGIN · 非 B 站官方')),
       this.panel.sheet.el, fav.el, later.el,
     );
+    // 侧板开着时背景定格：侧板的毛玻璃（backdrop-filter）只有在底下画面变化时才需要每帧重算（v0.45）
+    this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); this.bg.hold('sheet', on); });
     this.root.append(this.app);
     const lg = filtersIn(this.root);
     this.head.glass.forEach((g) => attachGlass(g, lg));

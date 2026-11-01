@@ -7,6 +7,8 @@ export const cardData = new WeakMap<Element, Video>();
 
 export interface CardOpts {
   onBlock?: (v: Video) => void; compact?: boolean;
+  /** 「不感兴趣」（v0.46）：只有推荐流的卡片有 */
+  onDislike?: (v: Video, card: HTMLElement) => void;
   /** 首页「卡片信息」里关掉的项（v0.43）：author / views / danmaku / ago / dur / reason */
   hide?: ReadonlySet<string>;
 }
@@ -18,12 +20,20 @@ export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLEle
     v.duration && !opts.hide?.has('dur') ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
     laterButton(v.bvid),
   );
+  const acts: HTMLElement[] = [];
+  if (opts.onDislike && v.trackId) {
+    acts.push(h('button', {
+      class: 'card-nope', type: 'button', title: '不感兴趣：以后少推这类视频', 'aria-label': `不感兴趣：${v.title}`,
+      onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); opts.onDislike!(v, el); },
+    }, icon(ICONS.close), h('span', {}, '不感兴趣')));
+  }
   if (opts.onBlock) {
-    cover.append(h('button', {
+    acts.push(h('button', {
       class: 'card-block', type: 'button', title: `不看 ${v.author} 的视频`, 'aria-label': `屏蔽 UP 主 ${v.author}`,
       onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); opts.onBlock!(v); },
     }, icon(ICONS.block), h('span', {}, '屏蔽 UP')));
   }
+  if (acts.length) cover.append(h('div', { class: 'card-acts' }, ...acts));
   const el = h('article', { class: `card${opts.compact ? ' compact' : ''}`, style: `--i:${index % 12}` },
     cover,
     h('div', { class: 'body' },

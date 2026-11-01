@@ -105,6 +105,8 @@ export class WatchSkin {
       { label: '收藏夹', en: 'Favorites', run: () => this.fav.open() },
     ]) : null;
     this.app = h('div', { class: 'app wt', 'data-bg': 'off' }, this.head.el, quick?.el ?? null, createScrollRuler(), this.panel.sheet.el, this.fav.el, palette.el, later.el, cm.el);
+    // 侧板开着时背景定格：侧板的毛玻璃（backdrop-filter）只有在底下画面变化时才需要每帧重算（v0.45）
+    this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); this.bg.hold('sheet', on); });
     root.append(this.app);
     if (isWatch) skinComments();
     const lg = filtersIn(root);

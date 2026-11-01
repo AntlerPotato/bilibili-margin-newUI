@@ -1,6 +1,6 @@
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
-import { ats, likes, messages, replies, sendText, sessions, system, unread, type Notice, type Page, type Session } from '../api/msg';
+import { ackSession, ats, likes, messages, replies, sendText, sessions, system, systemRead, unread, type Notice, type Page, type Session } from '../api/msg';
 import { dayBucket, fmtAgo, h, icon, ICONS, svg } from './dom';
 import { toast } from './controls';
 import { csrf, PageShell } from './shell';
@@ -55,7 +55,17 @@ export class MessageApp {
     const u = await unread().catch(() => null);
     if (!u) return;
     const n: Record<View, number> = { whisper: u.chat, reply: u.reply, at: u.at, like: u.like, system: u.system };
-    this.nav.querySelectorAll<HTMLElement>('.ms-item').forEach((b) => { const c = n[b.dataset.view as View]; b.querySelector('.ms-n')!.textContent = c ? (c > 99 ? '99+' : String(c)) : ''; });
+    this.nav.querySelectorAll<HTMLElement>('.ms-item').forEach((b) => { const v = b.dataset.view as View; const c = v === this.view && v !== 'whisper' ? 0 : n[v]; b.querySelector('.ms-n')!.textContent = c ? (c > 99 ? '99+' : String(c)) : ''; });
+  }
+
+  /** 左侧分类的未读数（v0.46：点开后立刻清掉 / 减掉，顶栏消息角标跟着刷新，不用等刷新页面） */
+  private setCount(v: View, f: (n: number) => number): void {
+    const el = this.nav.querySelector<HTMLElement>(`.ms-item[data-view="${v}"] .ms-n`);
+    if (!el) return;
+    const cur = el.textContent === '99+' ? 100 : Number(el.textContent) || 0;
+    const n = Math.max(0, f(cur));
+    el.textContent = n ? (n > 99 ? '99+' : String(n)) : '';
+    dispatchEvent(new CustomEvent('margin:unread'));
   }
 
   private go(v: View): void {
@@ -99,6 +109,12 @@ export class MessageApp {
           if (b !== bucket) { bucket = b; list.append(h('div', { class: 'ms-day' }, h('span', {}, b))); }
           list.append(this.row(n));
         });
+        if (!cursor) {
+          // 第一页拉到就算看过了：B 站在拉列表时已经记了已读，系统通知还要把游标推到最新
+          const v = this.view;
+          if (v === 'system' && p.top) systemRead(p.top, csrf()).catch(() => {}).finally(() => this.setCount(v, () => 0));
+          else this.setCount(v, () => 0);
+        }
         cursor = p.cursor;
         more.hidden = !cursor;
         if (!list.children.length) list.append(this.empty('这里还空着'));
@@ -214,7 +230,13 @@ export class MessageApp {
       }));
       log.scrollTop = log.scrollHeight;
     };
-    try { paint(await messages(s.talker)); } catch (e) { log.replaceChildren(this.empty(`加载失败：${(e as Error).message}`)); }
+    try {
+      const list = await messages(s.talker);
+      paint(list);
+      const seq = list.reduce((m, x) => Math.max(m, x.seq), 0);
+      if (seq) ackSession(s.talker, seq, csrf()).catch(() => {});
+      if (s.unread) { const n = s.unread; s.unread = 0; this.setCount('whisper', (c) => c - n); }
+    } catch (e) { log.replaceChildren(this.empty(`加载失败：${(e as Error).message}`)); }
     const go = async () => {
       const text = input.value.trim();
       if (!text) return;

@@ -98,10 +98,11 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   // 图片从玻璃里漏出来。改成把后板和视频复制一份放进前板里，用普通 filter 模糊这份副本
   // （与液态玻璃的「副本折射」同一思路），所有浏览器表现一致。
   const frost = h('div', { class: 'gf-frost', 'aria-hidden': 'true' });
+  const specEl = h('div', { class: 'gf-spec', 'aria-hidden': 'true' });
   const front = h('div', { class: 'gf-front', style: `clip-path:path('${FRONT_PATH}')` },
     frost,
     h('div', { class: 'gf-tint', 'aria-hidden': 'true' }),
-    h('div', { class: 'gf-spec', 'aria-hidden': 'true' }),
+    specEl,
     svg('gf-rim gf-front-rim', W, FRONT_H, FRONT_PATH, `url(#${uid}-rim)`, grad),
     hit,
     h('div', { class: 'gf-label' }, h('span', { class: 'gf-title' }, o.label), metaEl),
@@ -121,7 +122,8 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   key.append(glyph);
   const menu = h('div', { class: 'gf-menu', role: 'menu', id: `${uid}-menu`, 'aria-label': `${o.label} 选项` });
 
-  tilt.append(h('div', { class: 'gf-shadow', 'aria-hidden': 'true' }), back, svg('gf-rim gf-back-rim', W, H, BACK_PATH), front, filesEl, key, menu);
+  const shadowEl = h('div', { class: 'gf-shadow', 'aria-hidden': 'true' });
+  tilt.append(shadowEl, back, svg('gf-rim gf-back-rim', W, H, BACK_PATH), front, filesEl, key, menu);
   stage.append(tilt);
   root.append(stage);
 
@@ -228,7 +230,13 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
       px = ((pointerX - r.left) / r.width) * 2 - 1;
       py = ((pointerY - r.top) / r.height) * 2 - 1;
     } else px = py = 0;
-    root.style.setProperty('--gf-px', px.toFixed(3)); root.style.setProperty('--gf-py', py.toFixed(3));
+    // v0.45：直接写这几层的 transform，不再改根上的 CSS 变量（那会让整棵子树连同模糊副本一起重算样式，
+    // 光斑也不再改渐变位置而是平移，免得每次移动都重绘）
+    tilt.style.transform = px || py ? `translate(${(px * 3).toFixed(2)}px, ${(py * 2).toFixed(2)}px)` : '';
+    shadowEl.style.transform = px ? `translateX(${(px * -8).toFixed(2)}px)` : '';
+    const art = px || py ? `translate(${(px * -7).toFixed(2)}px, ${(py * -6).toFixed(2)}px) scale(1.02)` : '';
+    root.querySelectorAll<HTMLElement>('.gf-art').forEach((a) => { a.style.transform = art; });
+    specEl.style.transform = px || py ? `translate(${(px * W * 0.46).toFixed(1)}px, ${(py * FRONT_H * 0.4).toFixed(1)}px)` : '';
   };
   root.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch') return;

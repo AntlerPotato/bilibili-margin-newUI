@@ -1,4 +1,4 @@
-import { popular, recommended, type Video } from '../api/feed';
+import { dislike, popular, recommended, type Video } from '../api/feed';
 import type { Settings } from '../../shared/settings';
 import { saveSettings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
@@ -98,7 +98,24 @@ export class MarginApp {
     this.dash.hidden = !s.footprint && !s.weather;
   }
 
-  private cardOpts() { return { onBlock: (x: Video) => this.blockUp(x), hide: new Set<string>(this.settings.homeHide) }; }
+  private cardOpts() { return { onBlock: (x: Video) => this.blockUp(x), onDislike: (x: Video, el: HTMLElement) => this.nope(x, el), hide: new Set<string>(this.settings.homeHide) }; }
+
+  /** 不感兴趣（v0.46）：先从网格里淡出，再把反馈发给 B 站推荐；撤销会一并取消反馈 */
+  private async nope(v: Video, el: HTMLElement): Promise<void> {
+    const at = this.items.indexOf(v);
+    if (at >= 0) this.items.splice(at, 1);
+    el.classList.add('gone');
+    window.setTimeout(() => { el.remove(); this.fillIfShort(); }, 220);
+    try {
+      await dislike(v, 1);
+      toast(this.app, '好的，以后少推这类视频', { label: '撤销', run: async () => {
+        await dislike(v, 1, true).catch(() => {});
+        if (!this.items.includes(v)) { this.items.splice(Math.max(0, at), 0, v); this.repaint(); }
+      } });
+    } catch (e) {
+      toast(this.app, `没能告诉 B 站：${(e as Error).message || '请先登录'}，这张卡片只在本次隐藏`);
+    }
+  }
   private headEl!: HTMLElement;
   private heroEl!: HTMLElement;
   /** 首页部件显隐（v0.43）：只切 data-hide，CSS 负责藏；搜索框藏起来时顶栏的小搜索框回来 */
@@ -197,6 +214,8 @@ export class MarginApp {
       later.el,
       cm.el,
     );
+    // 侧板开着时背景定格：侧板的毛玻璃（backdrop-filter）只有在底下画面变化时才需要每帧重算（v0.45）
+    this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); this.bg.hold('sheet', on); });
     this.root.append(this.app);
     // 汇流背景的点线汇向首页搜索栏（搜索框隐藏时汇向屏幕中心）
     this.syncHide();
@@ -225,7 +244,7 @@ export class MarginApp {
     head.glass.forEach((g) => attachGlass(g, lg));
     attachGlass(head.thumb, lg, { blur: 2, strength: 0.4 });
     attachGlass(tabs, lg); attachGlass(refresh, lg);
-    bindCardMenu(this.grid, cm, () => this.app, { onBlock: (x) => this.blockUp(x), onLater: () => later.open() });
+    bindCardMenu(this.grid, cm, () => this.app, { onBlock: (x) => this.blockUp(x), onLater: () => later.open(), onDislike: (x, el) => this.nope(x, el) });
     const favGrid = this.fav.el.querySelector('.fav-grid') as HTMLElement | null;
     if (favGrid) bindCardMenu(favGrid, cm, () => this.app, { onLater: () => later.open() });
     new IntersectionObserver(([e]) => {
@@ -292,6 +311,8 @@ export class MarginApp {
     const before = this.settings.filters.ups;
     if (before.includes(v.author) || before.includes(String(v.mid))) return;
     await saveSettings({ filters: { ...this.settings.filters, ups: [...before, v.author] } });
+    // 顺便告诉 B 站推荐「不想看此 UP 主」（失败不影响本地屏蔽）
+    if (v.trackId) dislike(v, 4).catch(() => {});
     toast(this.app, `已屏蔽「${v.author}」`, { label: '撤销', run: () => saveSettings({ filters: { ...this.settings.filters, ups: this.settings.filters.ups.filter((u) => u !== v.author) } }) });
   }
 
