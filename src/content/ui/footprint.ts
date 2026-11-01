@@ -119,7 +119,8 @@ export function createFootprintCard(): HTMLElement {
     const legend = h('span', { class: 'fp-legend' }, '少', ...[0, 1, 2, 3, 4].map((l) => { const c = h('i', { class: 'fp-cell' }); c.dataset.l = String(l); return c; }), '多');
     const graph = h('div', { class: 'fp-graph' },
       h('div', { class: 'fp-months', style: `width:calc(${weeks} * (var(--c) + var(--gp)))` },
-        ...months.map(([w, m]) => h('span', { style: `left:calc(${w} * (var(--c) + var(--gp)))` }, `${m}月`))),
+        // 最后两周开头的月份标签放不下一个「11月」宽度，改为贴右对齐，否则会被挤成两行压到格子上
+        ...months.map(([w, m]) => h('span', { style: weeks - w < 2 ? 'right:0' : `left:calc(${w} * (var(--c) + var(--gp)))` }, `${m}月`))),
       h('div', { class: 'fp-days' }, ...['', '一', '', '三', '', '五', ''].map((x) => h('span', {}, x))),
       h('div', { class: 'fp-cells' }, ...cells),
     );

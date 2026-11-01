@@ -2,6 +2,11 @@
 
 # Changelog
 
+## [v0.42.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.2) · 2026-11-01
+
+- Fix the footprint heatmap's last month label (e.g. "11月") wrapping onto today's cell.
+- "All favorites" in the header favorites popover opens the favorites panel in place instead of a new tab.
+
 ## [v0.42.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.1) · 2026-11-01
 
 - Fix web-fullscreen player being covered by the right column (uploader card, danmaku list, recommendations); header hides in web fullscreen.

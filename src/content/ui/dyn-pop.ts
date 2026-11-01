@@ -52,14 +52,26 @@ function row(r: PopRow): HTMLElement {
 }
 
 /**
- * 顶栏入口的悬停列表：指针在按钮上停满 1.5 秒才弹出，
+ * 顶栏入口的悬停列表：指针一放上去就弹出，
  * 移进面板可继续浏览，离开后稍等再收起；Esc 或点按钮本身也会收起。
  */
+/** 「全部 →」链接：收藏夹在本页打开面板（没有面板就在当前页跳回首页 #fav），其余新标签页 */
+function allLink(spec: PopSpec): HTMLElement {
+  const local = spec.all.href.endsWith('/#fav');
+  const a = h('a', local ? { href: spec.all.href } : { href: spec.all.href, target: '_blank', rel: 'noopener' }, `${spec.all.label} →`);
+  if (local) a.addEventListener('click', (e) => {
+    const ev = new Event('margin:open-fav', { cancelable: true });
+    dispatchEvent(ev);
+    if (ev.defaultPrevented) { e.preventDefault(); a.closest('.dp')?.dispatchEvent(new Event('dp-close')); }
+  });
+  return a;
+}
+
 export function attachHoverList(btn: HTMLElement, spec: PopSpec): void {
   const pop = h('div', { class: 'dp' + (spec.compact ? ' compact' : ''), role: 'dialog', 'aria-label': spec.title, hidden: '' });
   const list = h('div', { class: 'dp-list' });
   pop.append(
-    h('div', { class: 'dp-head' }, h('span', {}, spec.title), h('a', { href: spec.all.href, target: '_blank', rel: 'noopener' }, `${spec.all.label} →`)),
+    h('div', { class: 'dp-head' }, h('span', {}, spec.title), allLink(spec)),
     list,
   );
   let openT = 0, closeT = 0, loadedAt = 0, open = false;

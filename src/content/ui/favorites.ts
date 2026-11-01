@@ -181,5 +181,7 @@ export function createFavorites(onRender: (grid: HTMLElement) => void, direct: (
   }
 
   new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) load(); }, { root: sheet.body, rootMargin: '600px 0px' }).observe(sentinel);
+  // 顶栏「收藏夹」弹窗里的「全部收藏」：本页有收藏夹面板就直接打开，不再新开标签页
+  addEventListener('margin:open-fav', (e) => { e.preventDefault(); sheet.open(); });
   return sheet;
 }
