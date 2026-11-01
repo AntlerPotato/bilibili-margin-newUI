@@ -2,6 +2,10 @@
 
 # 更新日志
 
+## [v0.37.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.1) · 2026-11-01
+
+- 播放页「快捷」浮动菜单从底部正中挪到左下角，收起时只是一颗半透明小圆钮（鼠标靠近才完全显示），不再压在视频和评论上；展开后从左下角向上长成原来的面板，功能不变。
+
 ## [v0.37.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.0) · 2026-11-01
 
 按 B 站评论区的反馈修了一轮。

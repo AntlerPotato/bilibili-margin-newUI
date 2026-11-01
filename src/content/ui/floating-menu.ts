@@ -41,7 +41,7 @@ export function createFloatingMenu(items: MenuItem[], label = '快捷'): Floatin
   const open = () => { el.dataset.open = 'true'; };
   const list = h('div', { class: 'fm-list' }, ...items.map((it, i) => rollButton(it, i, close)));
   const burger = h('span', { class: 'fm-burger', 'aria-hidden': 'true' }, h('i', {}), h('i', {}));
-  const bar = h('button', { class: 'fm-bar', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, h('span', { class: 'fm-label' }, label), burger);
+  const bar = h('button', { class: 'fm-bar', type: 'button', title: `${label}菜单`, 'aria-label': `${label}菜单`, 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, h('span', { class: 'fm-label' }, label), burger);
   box.append(h('span', { class: 'fm-fill' }), h('span', { class: 'fm-ink' }), list, bar);
   el.append(box);
 

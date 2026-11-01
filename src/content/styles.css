@@ -902,13 +902,18 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 }
 
 /* ── 漂浮快捷菜单（21st Floating Menu 移植） ── */
-.fm { --fm-ease: cubic-bezier(.22, 1, .36, 1); position: fixed; left: 50%; bottom: 32px; z-index: 30; transform: translateX(-50%); animation: fm-in .4s var(--fm-ease) both; }
-@keyframes fm-in { from { opacity: 0; transform: translate(-50%, 20px); } }
+/* 放在左下角、收起时只是一颗 46px 的圆钮（以前居中压在视频和评论上，用户反馈挡视野）；
+   左下角是播放页两侧留白，B 站自带的回顶 / 客服在右下角，互不重叠。展开时从左下角向上长成面板 */
+.fm { --fm-ease: cubic-bezier(.22, 1, .36, 1); position: fixed; left: 16px; bottom: 16px; z-index: 30; animation: fm-in .4s var(--fm-ease) both; }
+/* 收起时半透明，鼠标靠近或键盘聚焦再完全显示 */
+.fm[data-open="false"] .fm-box { opacity: .55; }
+.fm[data-open="false"] .fm-box:hover, .fm[data-open="false"] .fm-box:focus-within { opacity: 1; }
+@keyframes fm-in { from { opacity: 0; transform: translateY(20px); } }
 .fm-box {
   position: relative; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
-  width: 136px; height: 46px; border-radius: 72px; cursor: pointer; font-family: var(--sans);
+  width: 46px; height: 46px; border-radius: 72px; cursor: pointer; font-family: var(--sans);
   box-shadow: var(--sh-sm);
-  transition: width .8s var(--fm-ease), height .15s var(--fm-ease), border-radius .8s var(--fm-ease), transform .3s var(--fm-ease);
+  transition: width .8s var(--fm-ease), height .15s var(--fm-ease), border-radius .8s var(--fm-ease), transform .3s var(--fm-ease), opacity .2s var(--ease-out);
 }
 .fm[data-open="false"] .fm-box:hover { transform: scale(1.05); }
 .fm[data-open="true"] .fm-box { width: 248px; border-radius: 30px; cursor: default; transition: width .8s var(--fm-ease), height .8s var(--fm-ease), border-radius .8s var(--fm-ease); }
@@ -927,9 +932,11 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .fm-col { display: flex; flex-direction: column; transform: translateY(0); transition: transform 0s var(--ease-out); }
 .fm-col > span { display: block; height: 1.3em; line-height: 1.3em; }
 .fm-item.hover .fm-col { transform: translateY(-50%); transition: transform .8s var(--fm-ease) var(--d); }
-.fm-bar { all: unset; position: relative; z-index: 1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 46px; flex-shrink: 0; padding: 0 20px; cursor: pointer; transition: padding .8s var(--fm-ease); }
+.fm-bar { all: unset; position: relative; z-index: 1; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; height: 46px; flex-shrink: 0; padding: 0; cursor: pointer; transition: padding .8s var(--fm-ease); }
+.fm[data-open="false"] .fm-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.fm[data-open="true"] .fm-bar { justify-content: space-between; }
 .fm[data-open="true"] .fm-bar { padding: 0 24px; }
-.fm-label { font: 500 14px/1 "Margin Sans SC", var(--sans); letter-spacing: .08em; color: var(--ink); transition: color .3s var(--fm-ease); }
+.fm-label { white-space: nowrap; font: 500 14px/1 "Margin Sans SC", var(--sans); letter-spacing: .08em; color: var(--ink); transition: color .3s var(--fm-ease); }
 .fm[data-open="true"] .fm-label { color: var(--canvas); }
 .fm-burger { position: relative; width: 24px; height: 24px; }
 .fm-burger i { position: absolute; left: 3px; top: 11px; width: 18px; height: 2px; border-radius: 2px; background: var(--ink); transition: transform .4s var(--fm-ease), background .4s var(--fm-ease); }
