@@ -456,3 +456,9 @@ html.margin-watch .usercard-wrap .latest-archives__item--current .latest-archive
 html.margin-watch .usercard-wrap .latest-archives__meta { color: var(--m-faint) !important; font: 500 11px/16px var(--m-mono) !important; }
 html.margin-watch .usercard-wrap .latest-archives__duration { border-radius: 6px !important; font-family: var(--m-mono) !important; }
 @media (prefers-reduced-motion: reduce) { html.margin-watch .usercard-wrap .user-card-m-exp { animation: none; } }
+
+/* 网页全屏 / 全屏：B 站把播放器 fixed 铺满，但 .left-container 的 isolation 会把它困在自己的层里，
+   右栏（UP 卡、推荐）就盖到播放器上面。全屏时撤掉隔离和卡片底板，顶栏等浮层也让开 */
+html.margin-watch .left-container:has(.bpx-player-container:is([data-screen="web"], [data-screen="full"])) { isolation: auto; }
+html.margin-watch .left-container:has(.bpx-player-container:is([data-screen="web"], [data-screen="full"])) > .m-wcard { display: none; }
+html.margin-watch:has(.bpx-player-container[data-screen="web"]) #margin-watch-top { display: none; }

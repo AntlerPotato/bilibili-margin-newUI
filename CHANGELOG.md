@@ -2,6 +2,10 @@
 
 # 更新日志
 
+## [v0.42.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.1) · 2026-11-01
+
+- 修复网页全屏时右栏（UP 主卡片、弹幕列表、推荐视频）盖在播放器上面；网页全屏下顶栏也会让开。
+
 ## [v0.42.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.0) · 2026-11-01
 
 - 播放器控制栏恢复 B 站原版（撤回 v0.40.0 的浮动玻璃控制坞），画面里的播放量 · 弹幕数胶囊一并去掉。
