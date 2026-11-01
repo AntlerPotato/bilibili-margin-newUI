@@ -2,6 +2,10 @@
 
 # Changelog
 
+## [v0.38.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.38.0) · 2026-11-01
+
+- Header "动态" (Moments) hover list: rest the pointer on the button for 1.5 s to open the latest 8 followed posts (avatar, uploader, time, type, title, cover). Move into the panel to keep browsing; leaving or Esc closes it, and opening clears the unread badge. Passing over the header does not trigger it.
+
 ## [v0.37.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.2) · 2026-11-01
 
 - Fixed watch page recommendation covers where the hover preview spilled past the rounded frame and showed a black bar: the inline preview and frame preview now fill the cover and are clipped to its radius.
