@@ -37,6 +37,7 @@ export class WatchSkin {
   private head: Header;
   private panel: SettingsPanel;
   private fav: Sheet;
+  private screenSync?: () => void;
   private media = matchMedia('(prefers-color-scheme: dark)');
 
   constructor(private settings: Settings, private kind: SkinKind = 'watch') {
@@ -121,6 +122,7 @@ export class WatchSkin {
   update(s: Settings): void {
     const prev = this.settings;
     this.settings = s;
+    if (prev.webScroll !== s.webScroll) this.screenSync?.();
     if (prev.theme !== s.theme || JSON.stringify(prev.bg) !== JSON.stringify(s.bg)) this.applyTheme(false);
     this.panel.sync(s);
   }
@@ -158,6 +160,8 @@ export class WatchSkin {
       const screen = p?.getAttribute('data-screen') ?? 'normal';
       const hide = screen === 'web' || screen === 'full' || !!document.fullscreenElement;
       this.host.toggleAttribute('hidden', hide);
+      webScroll(screen === 'web' && !document.fullscreenElement && this.settings.webScroll);
+      this.bg.hold('screen', hide);
       document.documentElement.classList.toggle('margin-webscreen', hide);
       wide(screen === 'wide');
     };
@@ -181,7 +185,58 @@ export class WatchSkin {
         if (pl) ro.observe(pl);
       } else { ro?.disconnect(); de.style.removeProperty('--m-wide-pad'); }
     };
+    // v0.43 网页全屏可滚动：播放器改成贴在文档顶端的 absolute，下面的评论接着排
+    const webScroll = (on: boolean) => {
+      if (!on) {
+        if (de.classList.contains('margin-webscroll')) { de.classList.remove('margin-webscroll'); for (const k of ['y', 'x', 'w', 'h']) de.style.removeProperty(`--m-ws-${k}`); }
+        return;
+      }
+      const wrap = document.querySelector<HTMLElement>('.player-wrap');
+      if (!wrap) return;
+      const was = de.classList.contains('margin-webscroll');
+      requestAnimationFrame(() => {
+        if (!was) de.classList.add('margin-webscroll');
+        // 先按 0 偏移算 player-wrap 的文档坐标，再把播放器拉回文档左上角
+        de.style.setProperty('--m-ws-h', 'auto');
+        const r = wrap.getBoundingClientRect();
+        const top = r.top + scrollY, left = r.left + scrollX;
+        de.style.setProperty('--m-ws-y', `${-top}px`);
+        de.style.setProperty('--m-ws-x', `${-left}px`);
+        de.style.setProperty('--m-ws-w', `${de.clientWidth}px`);
+        de.style.setProperty('--m-ws-h', `${Math.max(0, innerHeight - top)}px`);
+        if (!was) scrollTo({ top: 0 });
+      });
+    };
+    this.screenSync = sync;
+    addEventListener('resize', () => { if (de.classList.contains('margin-webscroll')) webScroll(true); });
     new MutationObserver(sync).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-screen'] });
+    // v0.43 自动网页全屏：每个视频进来一次，播放器就绪后点「网页全屏」；用户自己退出后同一视频不再强开
+    let doneBv = '';
+    every(800, () => {
+      if (!this.settings.autoWeb) return;
+      const bv = location.pathname.match(/BV\w+|ep\d+|ss\d+/)?.[0] ?? location.search;
+      if (bv === doneBv) return;
+      const p = document.querySelector('.bpx-player-container');
+      const btn = document.querySelector<HTMLElement>('.bpx-player-ctrl-web');
+      const v = document.querySelector<HTMLVideoElement>('.bpx-player-video-wrap video, .bpx-player-video-wrap bwp-video');
+      if (!p || !btn || !v || (v as HTMLVideoElement).readyState < 1) return;
+      doneBv = bv;
+      if ((p.getAttribute('data-screen') ?? 'normal') === 'normal' && !document.fullscreenElement) btn.click();
+    });
+    // v0.43 卡顿：视频播放时背景定格，GPU 留给解码和弹幕；暂停后接着动
+    const playSync = (e: Event) => {
+      const v = e.target as (Element & { paused?: boolean; ended?: boolean }) | null;
+      // bwp-video（B 站自己的 MSE 播放器元素）不是 HTMLMediaElement，但同样有 paused/ended
+      if (!(v instanceof Element) || typeof v.paused !== 'boolean' || !v.closest('.bpx-player-container, #bilibili-player')) return;
+      this.bg.hold('play', !v.paused && !v.ended);
+    };
+    for (const t of ['play', 'playing', 'pause', 'ended', 'emptied']) document.addEventListener(t, playSync, true);
+    let st = 0;
+    addEventListener('scroll', () => {
+      if (!st) this.bg.hold('scroll', true);
+      clearTimeout(st);
+      st = window.setTimeout(() => { st = 0; this.bg.hold('scroll', false); }, 160);
+    }, { passive: true });
     document.addEventListener('fullscreenchange', sync);
     sync();
   }

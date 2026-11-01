@@ -70,6 +70,7 @@ export class MarginApp {
     }
     if (prev.footprint !== s.footprint || prev.weather !== s.weather) this.syncDash();
     this.app.dataset.cols = String(s.cols || "auto");
+    if (prev.homeHide.join() !== s.homeHide.join()) { this.syncHide(); this.repaint(); }
     if (prev.theme !== s.theme || prev.palette !== s.palette || JSON.stringify(prev.bg) !== JSON.stringify(s.bg)) this.applyTheme();
     this.panel.sync(s);
   }
@@ -95,6 +96,18 @@ export class MarginApp {
     if (s.footprint) { if (!this.foot.isConnected) this.dash.prepend(this.foot); } else this.foot.remove();
     if (s.weather) { this.wx ??= createWeather(); if (!this.wx.isConnected) this.dash.append(this.wx); } else this.wx?.remove();
     this.dash.hidden = !s.footprint && !s.weather;
+  }
+
+  private cardOpts() { return { onBlock: (x: Video) => this.blockUp(x), hide: new Set<string>(this.settings.homeHide) }; }
+  private headEl!: HTMLElement;
+  private heroEl!: HTMLElement;
+  /** 首页部件显隐（v0.43）：只切 data-hide，CSS 负责藏；搜索框藏起来时顶栏的小搜索框回来 */
+  private syncHide(): void {
+    const hide = this.settings.homeHide;
+    this.app.dataset.hide = hide.join(' ');
+    const noHero = hide.includes('search');
+    this.headEl.classList.toggle('no-search', !noHero);
+    this.bg.setFocus(noHero ? null : this.heroEl);
   }
 
   private showFoot(): void {
@@ -154,8 +167,7 @@ export class MarginApp {
     // 首页主搜索：居中大胶囊（和搜索页同款），顶栏的小搜索框在首页隐藏，避免两个入口
     const heroS = createHeroSearch(() => this.app);
     const hero = heroS.el;
-    // 汇流背景的点线汇向首页搜索栏
-    this.bg.setFocus(hero);
+    this.headEl = head.el; this.heroEl = hero;
     const bar = h('div', { class: 'bar' }, h('div', { class: 'eyebrow' }, h('span', {}, todayLabel()), h('span', { class: 'en' }, 'For You'), h('span', { class: 'no' }, issueNo())), h('div', { class: 'bar-row' }, tabs, refresh));
 
     this.grid = h('section', { class: 'grid home-grid', 'aria-live': 'polite' });
@@ -186,6 +198,8 @@ export class MarginApp {
       cm.el,
     );
     this.root.append(this.app);
+    // 汇流背景的点线汇向首页搜索栏（搜索框隐藏时汇向屏幕中心）
+    this.syncHide();
     if (shouldPlayIntro(this.settings.intro)) {
       // 开场引擎（WebGL，约 37KB）按需加载；加载前先用同色底板盖住首页，避免闪一下
       const theme = this.resolvedTheme();
@@ -198,9 +212,14 @@ export class MarginApp {
     let scrollT = 0;
     this.app.addEventListener('scroll', () => {
       this.bg.redraw();
-      if (!scrollT) this.app.classList.add('scrolling');
+      if (!scrollT) { this.app.classList.add('scrolling'); this.bg.hold('scroll', true); }
       clearTimeout(scrollT);
-      scrollT = window.setTimeout(() => { scrollT = 0; this.app.classList.remove('scrolling'); this.fillIfShort(); }, 160);
+      scrollT = window.setTimeout(() => {
+        scrollT = 0; this.app.classList.remove('scrolling'); this.bg.hold('scroll', false);
+        // 滚过首屏后背景基本被卡片盖住，30 帧就够
+        this.bg.cap(this.app.scrollTop > innerHeight * 0.8 ? 30 : 0);
+        this.fillIfShort();
+      }, 160);
     }, { passive: true });
     const lg = filtersIn(this.root);
     head.glass.forEach((g) => attachGlass(g, lg));
@@ -264,7 +283,7 @@ export class MarginApp {
   /** 过滤条件变化后，用已加载的数据重画网格 */
   private repaint(): void {
     const shown = this.items.filter(this.keep);
-    this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, { onBlock: (x) => this.blockUp(x) })));
+    this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, this.cardOpts())));
     this.grid.querySelectorAll('.card').forEach((c) => c.classList.add('still'));
     this.fillIfShort();
   }
@@ -314,7 +333,7 @@ export class MarginApp {
         this.seen.add(v.bvid);
         this.items.push(v);
         if (!this.keep(v)) continue;
-        this.grid.append(videoCard(v, start + added++, { onBlock: (x) => this.blockUp(x) }));
+        this.grid.append(videoCard(v, start + added++, this.cardOpts()));
       }
       if (this.done) this.status.replaceChildren(h('span', {}, '没有更多了'));
     } catch (err) {

@@ -77,6 +77,7 @@ export const ICONS = {
   top: '<path d="M6 15l6-6 6 6"/><path d="M5 5h14"/>',
   command: '<path d="M9 6.5a2.5 2.5 0 1 0-2.5 2.5H9V6.5Zm0 0v11m0-11h6m-6 11a2.5 2.5 0 1 1-2.5-2.5H9v2.5Zm0 0h6m0-11a2.5 2.5 0 1 1 2.5 2.5H15V6.5Zm0 0v11m0 0a2.5 2.5 0 1 0 2.5-2.5H15v2.5ZM9 9h6v6H9z"/>',
   palette: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 12h17" opacity=".0"/><path d="M15.5 8.5a5 5 0 0 0-7 7"/>',
+  zone: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><circle cx="17" cy="17" r="3.5"/>',
   live: '<rect x="3.5" y="7" width="17" height="12.5" rx="2.5"/><path d="m8.5 3.5 3.5 3.5 3.5-3.5"/><circle cx="12" cy="13.25" r="2.25"/>',
   vip: '<path d="M4 8.5l4 3.5 4-6 4 6 4-3.5-1.6 9.5H5.6z"/>',
   creator: '<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',

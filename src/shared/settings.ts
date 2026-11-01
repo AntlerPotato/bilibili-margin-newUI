@@ -4,6 +4,10 @@ export type Palette = 'classic';
 export type ShaderId = 'aurora' | 'silk' | 'mesh' | 'grain' | 'ice' | 'veil' | 'smoke' | 'neuro' | 'flow' | 'rays' | 'blend' | 'flux' | 'gate';
 export type BgMode = 'random' | 'fixed' | 'image' | 'off';
 
+/** 首页可以隐藏的部件（v0.43）：首页顶部的搜索框、日期栏、换一批按钮，以及卡片上的各项信息 */
+export type HomeBit = 'search' | 'date' | 'refresh' | 'author' | 'views' | 'danmaku' | 'ago' | 'dur' | 'reason';
+export const HOME_BITS: HomeBit[] = ['search', 'date', 'refresh', 'author', 'views', 'danmaku', 'ago', 'dur', 'reason'];
+
 export interface Filters {
   /** 标题关键词；写成 /正则/ 时按正则匹配 */
   keywords: string[];
@@ -36,8 +40,14 @@ export interface Settings {
   weather: boolean;
   /** 点收藏夹直接展开全部视频（关掉时先扇形弹出最近 4 个） */
   favDirect: boolean;
+  /** 播放页打开后自动进入网页全屏 */
+  autoWeb: boolean;
+  /** 网页全屏时可以往下滚动看评论（播放器跟着滚走） */
+  webScroll: boolean;
   /** 首页每行几个视频：0 = 按窗口宽度自动，4 / 5 = 固定 */
   cols: 0 | 4 | 5;
+  /** 首页隐藏的部件；空 = 全部显示 */
+  homeHide: HomeBit[];
   filters: Filters;
   bg: Background;
 }
@@ -52,7 +62,10 @@ export const DEFAULTS: Settings = {
   footprint: true,
   weather: true,
   favDirect: false,
+  autoWeb: false,
+  webScroll: true,
   cols: 0,
+  homeHide: [],
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -67,6 +80,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     ...r,
     filters: { ...DEFAULTS.filters, ...(r.filters ?? {}) },
     bg: { ...DEFAULTS.bg, ...(r.bg ?? {}) },
+    homeHide: Array.isArray(r.homeHide) ? HOME_BITS.filter((b) => r.homeHide!.includes(b)) : [],
     palette: 'classic', // 旧版存过 mist，统一回到经典
   };
 }
@@ -96,9 +110,10 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
-  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect');
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll');
   if (r.cols === 0 || r.cols === 4 || r.cols === 5) out.cols = r.cols;
+  if (Array.isArray(r.homeHide)) out.homeHide = HOME_BITS.filter((b) => (r.homeHide as unknown[]).includes(b));
   if (r.theme === 'auto' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
   const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length <= 200).slice(0, 500) : undefined);
   const num = (v: unknown, max: number) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max ? v : undefined);

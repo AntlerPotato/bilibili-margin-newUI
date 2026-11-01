@@ -275,8 +275,22 @@ export class BackgroundLayer {
   private slow = 0;
   private fastRun = 0;
 
+  /**
+   * 暂停原因（v0.43）：播放视频、全屏、滚动中……只要还有一个原因在，背景就停在当前帧。
+   * 背景停着，上面那些毛玻璃也就不用每帧重算模糊。
+   */
+  private holds = new Set<string>();
+  hold(reason: string, on: boolean): void {
+    if (on === this.holds.has(reason)) return;
+    if (on) { this.holds.add(reason); this.stop(); }
+    else { this.holds.delete(reason); this.loop(); }
+  }
+  /** 帧率上限（v0.43）：首屏之外背景大多被卡片盖住，降到 30fps */
+  private capMs = 0;
+  cap(fps: number): void { this.capMs = fps > 0 ? 1000 / fps : 0; }
+
   private loop = (): void => {
-    if (this.soft) return;
+    if (this.soft || this.holds.size) return;
     if (this.raf || !this.cfg || (this.cfg.mode !== 'random' && this.cfg.mode !== 'fixed') || document.hidden) return;
     if (this.reduced.matches && !this.kT0) return;
     const tick = (now: number) => {
@@ -295,8 +309,9 @@ export class BackgroundLayer {
         else this.fastRun = 0;
         // Advance the deadline instead of restarting the interval on each drawn frame.
         // Restarting rounds 60fps down to 48fps on 144Hz displays.
-        if (!this.nextFrame || now - this.nextFrame > this.frameMs * 2) this.nextFrame = now;
-        this.nextFrame += this.frameMs;
+        const fm = Math.max(this.frameMs, this.capMs);
+        if (!this.nextFrame || now - this.nextFrame > fm * 2) this.nextFrame = now;
+        this.nextFrame += fm;
       }
       if (this.reduced.matches && !this.kT0) return;
       this.raf = requestAnimationFrame(tick);

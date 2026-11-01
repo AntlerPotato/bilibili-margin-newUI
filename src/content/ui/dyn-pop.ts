@@ -21,6 +21,8 @@ export interface PopSpec {
   onOpen?: () => void;
   /** 每行只有一行文字的紧凑样式（消息分类） */
   compact?: boolean;
+  /** 多列图标网格（分区） */
+  grid?: boolean;
 }
 
 export function ago(ts: number, fallback = ''): string {
@@ -68,7 +70,7 @@ function allLink(spec: PopSpec): HTMLElement {
 }
 
 export function attachHoverList(btn: HTMLElement, spec: PopSpec): void {
-  const pop = h('div', { class: 'dp' + (spec.compact ? ' compact' : ''), role: 'dialog', 'aria-label': spec.title, hidden: '' });
+  const pop = h('div', { class: 'dp' + (spec.compact ? ' compact' : '') + (spec.grid ? ' grid' : ''), role: 'dialog', 'aria-label': spec.title, hidden: '' });
   const list = h('div', { class: 'dp-list' });
   pop.append(
     h('div', { class: 'dp-head' }, h('span', {}, spec.title), allLink(spec)),
@@ -155,7 +157,19 @@ function dynSummary(d: Dyn): { line: string; cover: string; kind: string } {
 
 const dur = (s: number) => { const m = Math.floor(s / 60); return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`; };
 
+/** B 站分区：番剧影视走频道页，其余走 /c/ 分区页 */
+const ZONES: [string, string][] = [
+  ['番剧', 'anime/'], ['国创', 'guochuang/'], ['电影', 'movie/'], ['电视剧', 'tv/'], ['纪录片', 'documentary/'], ['综艺', 'variety/'],
+  ['动画', 'c/douga/'], ['游戏', 'c/game/'], ['鬼畜', 'c/kichiku/'], ['音乐', 'c/music/'], ['舞蹈', 'c/dance/'], ['影视', 'c/cinephile/'],
+  ['娱乐', 'c/ent/'], ['知识', 'c/knowledge/'], ['科技', 'c/tech/'], ['资讯', 'c/information/'], ['美食', 'c/food/'], ['生活', 'c/life/'],
+  ['汽车', 'c/car/'], ['时尚', 'c/fashion/'], ['运动', 'c/sports/'], ['动物圈', 'c/animal/'], ['课堂', 'cheese/'], ['排行榜', 'v/popular/rank/all'],
+];
+
 export const POPS: Record<string, (o: { onDyn?: () => void }) => PopSpec> = {
+  分区: () => ({
+    title: '分区', all: { href: 'https://www.bilibili.com/v/popular/all', label: '热门' }, empty: '', grid: true,
+    load: async () => ZONES.map(([t, path]) => ({ href: `https://www.bilibili.com/${path}`, title: t })),
+  }),
   直播: () => ({
     title: '正在直播', all: { href: 'https://link.bilibili.com/p/center/index#/user-center/follow/1', label: '我的关注' }, empty: '关注的主播都还没开播',
     load: async () => (await portal()).live.slice(0, 8).map((u) => ({ href: u.url, face: u.face, live: true, who: u.name, sub: '直播中', title: u.title || '正在直播' })),

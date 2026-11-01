@@ -462,3 +462,11 @@ html.margin-watch .usercard-wrap .latest-archives__duration { border-radius: 6px
 html.margin-watch .left-container:has(.bpx-player-container:is([data-screen="web"], [data-screen="full"])) { isolation: auto; }
 html.margin-watch .left-container:has(.bpx-player-container:is([data-screen="web"], [data-screen="full"])) > .m-wcard { display: none; }
 html.margin-watch:has(.bpx-player-container[data-screen="web"]) #margin-watch-top { display: none; }
+
+/* v0.43 网页全屏可滚动：解除 B 站给 body 的 position:fixed，
+   播放器改为 absolute 贴在文档顶端（坐标由 JS 写入），页面照常滚动，评论接在播放器下面 */
+html.margin-webscroll body.webscreen-fix { position: static !important; overflow: visible !important; }
+html.margin-webscroll .player-wrap { height: var(--m-ws-h) !important; }
+html.margin-webscroll .mode-webscreen { position: absolute !important; top: var(--m-ws-y) !important; left: var(--m-ws-x) !important;
+  width: var(--m-ws-w) !important; height: 100vh !important; right: auto !important; bottom: auto !important; }
+html.margin-webscroll.margin-watch .left-container > .m-wcard:not([hidden]) { display: block !important; }

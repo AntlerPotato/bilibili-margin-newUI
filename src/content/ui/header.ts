@@ -16,6 +16,7 @@ export interface Header { el: HTMLElement; input: HTMLInputElement; sunMoon: Sun
 
 /** B 站原版顶栏的那组入口：直播、大会员、消息、动态、历史、创作中心（消息和动态带未读角标） */
 export const SITE_LINKS: TabSpec[] = [
+  { title: '分区', icon: ICONS.zone, href: 'https://www.bilibili.com/anime/' },
   { title: '直播', icon: ICONS.live, href: 'https://live.bilibili.com/' },
   { title: '大会员', icon: ICONS.vip, href: 'https://account.bilibili.com/big' },
   { title: '消息', icon: ICONS.message, href: 'https://message.bilibili.com/', id: 'msg' },

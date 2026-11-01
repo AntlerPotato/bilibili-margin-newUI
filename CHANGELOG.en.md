@@ -2,6 +2,14 @@
 
 # Changelog
 
+## [v0.43.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.43.0) · 2026-11-01
+
+- Settings "Home top" becomes "Home components": hide the search box, date row or refresh button individually; hiding the big search brings back the header search.
+- New "Card info": toggle uploader, views, danmaku, publish time, duration and recommendation reason on home video cards; separators follow automatically.
+- Less stutter: the animated background freezes while a video plays and in web/full screen, pauses while scrolling, and drops to 30 fps below the first screen; the weather card drops its blur while scrolling; closed settings/favorites sheets no longer take part in compositing.
+- New header "Zones" entry: hover for 24 Bilibili zones (anime, guochuang, movies, animation, games, knowledge…).
+- New "Watch page" settings: auto web fullscreen (off by default); scrollable web fullscreen (on by default) — scroll down to the comments while the player scrolls away, Esc exits.
+
 ## [v0.42.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.2) · 2026-11-01
 
 - Fix the footprint heatmap's last month label (e.g. "11月") wrapping onto today's cell.

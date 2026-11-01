@@ -19,14 +19,15 @@ export function startWatchCard(): void {
     if (!host || !card) return;
     const de = document.documentElement;
     const screen = document.querySelector('.bpx-player-container')?.getAttribute('data-screen') ?? 'normal';
-    if (screen === 'web' || screen === 'full') { card.hidden = true; return; }
+    const ws = screen === 'web' && de.classList.contains('margin-webscroll');
+    if ((screen === 'web' && !ws) || screen === 'full') { card.hidden = true; return; }
     const base = host.getBoundingClientRect();
     const pw = document.querySelector('#playerWrap');
     const tb = document.querySelector('.video-toolbar-container');
     const last = document.querySelector('.video-tag-container') ?? document.querySelector('.video-desc-container') ?? tb;
     if (!last) { card.hidden = true; return; }
     const wide = de.classList.contains('margin-wide');
-    const startEl = !wide && pw && host.contains(pw) ? pw : tb;
+    const startEl = !wide && !ws && pw && host.contains(pw) ? pw : tb;
     if (!startEl) { card.hidden = true; return; }
     const top = startEl.getBoundingClientRect().top - base.top - PAD;
     const bottom = last.getBoundingClientRect().bottom - base.top;

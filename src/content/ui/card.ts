@@ -5,13 +5,17 @@ import { laterButton } from './later-btn';
 const thumb = (url: string) => (url ? `${url}@672w_378h_1c.webp` : '');
 export const cardData = new WeakMap<Element, Video>();
 
-export interface CardOpts { onBlock?: (v: Video) => void; compact?: boolean }
+export interface CardOpts {
+  onBlock?: (v: Video) => void; compact?: boolean;
+  /** 首页「卡片信息」里关掉的项（v0.43）：author / views / danmaku / ago / dur / reason */
+  hide?: ReadonlySet<string>;
+}
 
 export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLElement {
   const href = `https://www.bilibili.com/video/${v.bvid}`;
   const cover = h('a', { class: 'cover', href, target: '_blank', rel: 'noopener', title: v.title },
     h('img', { src: thumb(v.cover), alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }),
-    v.duration ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
+    v.duration && !opts.hide?.has('dur') ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
     laterButton(v.bvid),
   );
   if (opts.onBlock) {
@@ -24,20 +28,26 @@ export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLEle
     cover,
     h('div', { class: 'body' },
       h('a', { class: 'title', href, target: '_blank', rel: 'noopener' }, v.title),
-      h('div', { class: 'meta' },
-        h('a', { class: 'author', href: `https://space.bilibili.com/${v.mid}`, target: '_blank', rel: 'noopener' }, v.author),
-        h('span', { class: 'dot' }, '·'),
-        h('span', {}, `${fmtCount(v.views)} 播放`),
-        v.danmaku ? h('span', { class: 'dot' }, '·') : null,
-        v.danmaku ? h('span', {}, `${fmtCount(v.danmaku)} 弹幕`) : null,
-        v.pubdate && !opts.compact ? h('span', { class: 'dot m-ago' }, '·') : null,
-        v.pubdate && !opts.compact ? h('span', { class: 'm-ago' }, fmtAgo(v.pubdate)) : null,
-      ),
-      v.reason ? h('span', { class: 'reason' }, v.reason) : null,
+      metaRow(v, opts),
+      v.reason && !opts.hide?.has('reason') ? h('span', { class: 'reason' }, v.reason) : null,
     ),
   );
   cardData.set(el, v);
   return el;
+}
+
+/** 卡片信息行：只放没关掉的项，分隔点跟在前一项后面，不会出现打头的「·」 */
+function metaRow(v: Video, opts: CardOpts): HTMLElement {
+  const off = (k: string) => !!opts.hide?.has(k);
+  const parts: [HTMLElement, string][] = [];
+  if (!off('author')) parts.push([h('a', { class: 'author', href: `https://space.bilibili.com/${v.mid}`, target: '_blank', rel: 'noopener' }, v.author), '']);
+  if (!off('views')) parts.push([h('span', {}, `${fmtCount(v.views)} 播放`), '']);
+  if (v.danmaku && !off('danmaku')) parts.push([h('span', {}, `${fmtCount(v.danmaku)} 弹幕`), '']);
+  if (v.pubdate && !opts.compact && !off('ago')) parts.push([h('span', { class: 'm-ago' }, fmtAgo(v.pubdate)), 'm-ago']);
+  const meta = h('div', { class: 'meta' });
+  parts.forEach(([el, cls], i) => { if (i) meta.append(h('span', { class: cls ? `dot ${cls}` : 'dot' }, '·')); meta.append(el); });
+  if (!parts.length) meta.style.display = 'none';
+  return meta;
 }
 
 export function skeleton(n: number): DocumentFragment {

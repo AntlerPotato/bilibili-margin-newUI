@@ -102,3 +102,20 @@ export function toast(root: HTMLElement, text: string, action?: { label: string;
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 4200);
 }
+
+/** 多选小胶囊：每个都能单独开关（首页「卡片信息」用）。value 是打开的项 */
+export function pillToggles<T extends string>(options: [T, string][], value: T[], onChange: (on: T[]) => void): HTMLElement & { set(on: T[]): void } {
+  const wrap = h('div', { class: 'pills', role: 'group' }) as unknown as HTMLElement & { set(on: T[]): void };
+  const btns = options.map(([v, label]) => {
+    const b = h('button', { type: 'button', class: 'pill', 'aria-pressed': 'false', onclick: () => {
+      b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'));
+      onChange(btns.filter((x) => x.getAttribute('aria-pressed') === 'true').map((x) => x.dataset.v as T));
+    } }, label);
+    b.dataset.v = v;
+    wrap.append(b);
+    return b;
+  });
+  wrap.set = (on: T[]) => btns.forEach((b) => b.setAttribute('aria-pressed', String(on.includes(b.dataset.v as T))));
+  wrap.set(value);
+  return wrap;
+}

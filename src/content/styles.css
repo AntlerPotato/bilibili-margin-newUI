@@ -1561,3 +1561,28 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .app.home[data-cols="5"] { --cols: 5; }
 @media (max-width: 1099px) { .app.home[data-cols="5"] { --cols: 4; } }
 @media (max-width: 900px) { .app.home:is([data-cols="4"], [data-cols="5"]) { --cols: 3; } }
+
+/* ===== v0.43 卡顿 ===== */
+/* 关着的侧板（设置 / 收藏夹）不参与合成，也不再在屏幕外算毛玻璃 */
+.sheet-layer:not([data-open="true"]) .sheet { visibility: hidden; transition: transform .4s var(--ease-out), visibility 0s linear .4s; }
+.sheet-layer[data-open="true"] .sheet { visibility: visible; transition: transform .4s var(--ease-out), visibility 0s; }
+.app.scrolling .wx { backdrop-filter: none; }
+
+/* ===== v0.43 首页部件显隐（设置 → 首页组件） ===== */
+.app.home[data-hide~="search"] :is(.hs-slot, .hero-search, .hs-scrim) { display: none; }
+.app.home[data-hide~="date"] .bar .eyebrow { display: none; }
+.app.home[data-hide~="refresh"] .bar .refresh { display: none; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { height: 32px; padding: 0 12px; border-radius: 10px; font-size: 13px; color: var(--muted); background: var(--chip); box-shadow: inset 0 0 0 1px transparent;
+  transition: color .15s var(--ease-out), background-color .2s var(--ease-out), box-shadow .2s var(--ease-out), scale .15s var(--ease-out); }
+.pill:hover { color: var(--ink); }
+.pill:active { scale: .96; }
+.pill[aria-pressed="true"] { color: var(--accent-text, var(--accent)); background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+.pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* v0.43 分区：四列文字网格 */
+.dp.grid { width: 336px; }
+.dp.grid .dp-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0 12px 12px; }
+.dp.grid .dp-row { justify-content: center; padding: 8px 4px; border-radius: 10px; }
+.dp.grid .dp-line { text-align: center; font-size: 13px; line-height: 20px; }
+.dp.grid .dp-skel { height: 36px; margin: 0; border-radius: 10px; }

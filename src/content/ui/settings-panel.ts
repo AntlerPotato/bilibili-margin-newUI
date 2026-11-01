@@ -1,10 +1,10 @@
-import type { BgMode, Settings, ShaderId, Theme } from '../../shared/settings';
-import { BG_IMAGE_KEY, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
+import type { BgMode, HomeBit, Settings, ShaderId, Theme } from '../../shared/settings';
+import { BG_IMAGE_KEY, HOME_BITS, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
 import { ACTIVITY_KEY, sanitizeActivity, type FpMessage } from '../../shared/activity';
 import { compressImage } from '../bg/background';
 import { SHADER_IDS, SHADER_NAMES } from '../bg/shaders';
 import { cachedThumb, shaderThumb } from '../bg/program';
-import { block, chipInput, rangeSlider, row, segmented, stepSlider, toast, toggle } from './controls';
+import { block, chipInput, pillToggles, rangeSlider, row, segmented, stepSlider, toast, toggle } from './controls';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { createSheet, type Sheet } from './sheet';
 import { clearLoc, geocodeList, savedLoc, setLoc as setLocWithName } from '../api/weather';
@@ -23,6 +23,23 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
   const intro = toggle(s0.intro, '开场动画', (v) => save({ intro: v }));
   const foot = toggle(s0.footprint, '足迹热力图', (v) => save({ footprint: v }));
   const wxT = toggle(s0.weather, '天气', (v) => save({ weather: v }));
+  // v0.43 首页组件开关：存的是「隐藏了哪些」，界面上是「显示哪些」
+  const hideSet = (k: HomeBit, show: boolean) => {
+    const cur = new Set(get().homeHide);
+    if (show) cur.delete(k); else cur.add(k);
+    return save({ homeHide: HOME_BITS.filter((b) => cur.has(b)) });
+  };
+  const partT = (k: HomeBit, label: string) => toggle(!s0.homeHide.includes(k), label, (v) => hideSet(k, v));
+  const searchT = partT('search', '搜索框');
+  const dateT = partT('date', '日期栏');
+  const refreshT = partT('refresh', '换一批');
+  const CARD_BITS: [HomeBit, string][] = [['author', 'UP 主'], ['views', '播放'], ['danmaku', '弹幕'], ['ago', '发布时间'], ['dur', '时长'], ['reason', '推荐理由']];
+  const shownCard = (hide: HomeBit[]) => CARD_BITS.map(([k]) => k).filter((k) => !hide.includes(k));
+  const cardBits = pillToggles<HomeBit>(CARD_BITS, shownCard(s0.homeHide), (on) => {
+    const keep = get().homeHide.filter((k) => !CARD_BITS.some(([c]) => c === k));
+    const off = CARD_BITS.map(([k]) => k).filter((k) => !on.includes(k));
+    return save({ homeHide: HOME_BITS.filter((b) => keep.includes(b) || off.includes(b)) });
+  });
   // 天气城市（#3）：输入后列出候选，点一个就固定；「自动」回到 IP 定位
   const cityIn = h('input', { class: 'city-in', type: 'search', placeholder: '自动定位', 'aria-label': '天气城市', autocomplete: 'off' }) as HTMLInputElement;
   const cityList = h('ul', { class: 'city-list', role: 'listbox', 'aria-label': '城市候选', hidden: '' });
@@ -53,6 +70,8 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
   const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
   const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 }));
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
+  const autoW = toggle(s0.autoWeb, '自动网页全屏', (v) => save({ autoWeb: v }));
+  const webS = toggle(s0.webScroll, '网页全屏可滚动', (v) => save({ webScroll: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
   const ups = chipInput(s0.filters.ups, 'UP 主昵称或 MID', (v) => save({ filters: { ...get().filters, ups: v } }));
@@ -154,10 +173,17 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
       block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
       row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD)),
-    h('section', { class: 'group' }, h('h3', {}, '首页顶部'),
+    h('section', { class: 'group' }, h('h3', {}, '播放页'),
+      row('自动网页全屏', '打开视频后直接铺满浏览器窗口，按 Esc 退出', autoW),
+      row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS)),
+    h('section', { class: 'group' }, h('h3', {}, '首页组件'),
+      row('搜索框', '关掉后用顶栏的小搜索框', searchT),
+      row('日期栏', '推荐上方的日期和「For You」', dateT),
+      row('换一批按钮', null, refreshT),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT),
-      block('天气城市', 'IP 定位不准时手动选一个；留空 = 自动定位', cityBox)),
+      block('天气城市', 'IP 定位不准时手动选一个；留空 = 自动定位', cityBox),
+      block('卡片信息', '首页视频卡片下面显示哪些，点一下开关', cardBits)),
     h('section', { class: 'group' }, h('h3', {}, '背景'),
       block('模式', '随机：每次打开换一款，不连续重复', mode),
       block('样式', null, swatches),
@@ -182,7 +208,13 @@ export function createSettingsPanel(get: () => Settings, currentShader: () => Sh
       watch.setAttribute('aria-checked', String(s.watch));
       foot.setAttribute('aria-checked', String(s.footprint));
       wxT.setAttribute('aria-checked', String(s.weather));
+      searchT.setAttribute('aria-checked', String(!s.homeHide.includes('search')));
+      dateT.setAttribute('aria-checked', String(!s.homeHide.includes('date')));
+      refreshT.setAttribute('aria-checked', String(!s.homeHide.includes('refresh')));
+      cardBits.set(shownCard(s.homeHide));
       favD.setAttribute('aria-checked', String(s.favDirect));
+      autoW.setAttribute('aria-checked', String(s.autoWeb));
+      webS.setAttribute('aria-checked', String(s.webScroll));
       cols.set(String(s.cols));
       kw.set(s.filters.keywords);
       ups.set(s.filters.ups);

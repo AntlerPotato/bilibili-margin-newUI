@@ -59,6 +59,15 @@ export class PageShell {
     attachGlass(this.head.thumb, lg, { blur: 2, strength: 0.4 });
     this.applyTheme();
     this.media.addEventListener('change', () => this.applyTheme());
+    // 滚动时背景停一停，毛玻璃不用每帧重算（v0.43）
+    let st = 0;
+    const onScroll = () => {
+      if (!st) this.bg.hold('scroll', true);
+      clearTimeout(st);
+      st = window.setTimeout(() => { st = 0; this.bg.hold('scroll', false); }, 160);
+    };
+    this.app.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 
   /** 页面里的胶囊控件也做成液态玻璃 */
