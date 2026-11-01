@@ -2,6 +2,10 @@
 
 # Changelog
 
+## [v0.39.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.2) · 2026-11-01
+
+- Typography pass two (references: W3C clreq, Vercel Geist, Linear): comments go from Bilibili's 12/18px to 14/24px with Geist + Source Han Sans (watch and detail pages); automatic CJK–Latin spacing (text-autospace); tabular numerals everywhere; peer titles share one spec (space list titles 18px/1.45 like history), text-wrap pretty/balance; weights limited to 400/500/600; native-page secondary text now meets 4.5:1.
+
 ## [v0.39.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.1) · 2026-11-01
 
 - Style consistency pass (first round, for the "UI feels inconsistent" feedback): header gets a progressive blur + stronger fade when content scrolls under it; standalone pages drop the redundant Home button so every header has the same entries; stray radii (5/7/9/11px) snapped to 6/8/10/12px, one pink (#fb7299), search tab text back on the type scale (14px).

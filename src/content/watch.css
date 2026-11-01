@@ -19,10 +19,11 @@ html.margin-skin[data-margin-theme="dark"] {
    再整理版式。不改原生播放器、弹幕、评论、账号操作的任何行为。 */
 
 html.margin-skin {
-  --m-canvas: #f5f4f1; --m-surface: #ffffff; --m-ink: #17181a; --m-muted: #6f7177; --m-faint: #a3a5aa;
+  --m-canvas: #f5f4f1; --m-surface: #ffffff; --m-ink: #17181a; --m-muted: #5f6167; --m-faint: #66686d;
   --m-line: rgb(23 24 26 / .09); --m-chip: rgb(23 24 26 / .05); --m-accent: #00aeec;
   --m-serif: "Instrument Serif", "Margin Serif SC", "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
   --m-mono: "Geist Mono", "Margin Sans SC", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --m-sans: "Geist", "Margin Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --m-radius: 16px;
 
   --bg1: #ffffff; --bg2: #f5f4f1; --bg3: #efeeea; --bg1_float: #ffffff; --bg2_float: #f1f0ec;
@@ -36,7 +37,7 @@ html.margin-skin {
   background: var(--m-canvas) !important;
 }
 html.margin-skin[data-margin-theme="dark"] {
-  --m-canvas: #111112; --m-surface: #1a1a1c; --m-ink: #ededee; --m-muted: #9a9ba0; --m-faint: #64656a;
+  --m-canvas: #111112; --m-surface: #1a1a1c; --m-ink: #ededee; --m-muted: #b0b1b6; --m-faint: #8a8b90;
   --m-line: rgb(255 255 255 / .08); --m-chip: rgb(255 255 255 / .06);
 
   --bg1: #1a1a1c; --bg2: #111112; --bg3: #232326; --bg1_float: #1f1f22; --bg2_float: #2a2a2d;
@@ -127,6 +128,17 @@ html.margin-watch .tag-link {
 }
 html.margin-watch .tag-link:hover { color: var(--m-accent) !important; }
 html.margin-watch #commentapp { margin-top: 20px; padding: 24px 24px 24px; }
+/* 评论排版（v0.39.2）：B 站评论组件在多层 Shadow DOM 里，正文默认 12px/18px 太挤；
+ * 它读这些自定义属性（可穿透 Shadow DOM 继承），在宿主上统一成 14px/24px（约 1.7 倍行高，clreq 推荐区间）、思源黑体，昵称 13px */
+html.margin-skin #commentapp, html.margin-skin bili-comments {
+  --bili-font-family: var(--m-sans);
+  --bili-comments-font-size-content: 14px; --bili-comments-line-height-content: 24px;
+  --bili-rich-text-font-size: 14px; --bili-rich-text-line-height: 24px;
+  --brt-font-size: 14px; --brt-line-height: 24px;
+  --bili-comments-font-size-name: 13px; --bili-comments-font-size-title: 20px;
+  --bili-comments-font-size-count: 13px; --bili-comments-font-size-sort: 13px;
+  --bili-comment-textarea-font-size: 14px;
+}
 
 /* 右栏：UP 主卡片、弹幕列表、推荐列表 */
 html.margin-watch .up-panel-container {
@@ -362,3 +374,7 @@ html.margin-watch .video-pod__list .simple-base-item .playing-gif { flex: none; 
 /* 封面模式（view-mode 切到图文）不套编号栅格 */
 html.margin-watch .video-pod__list:not(.list) .simple-base-item { display: flex !important; height: auto !important; }
 html.margin-watch .video-pod__list:not(.list) .simple-base-item::before { content: none; }
+
+/* 排版细则（v0.39.2）：原生页面同样中西文自动间隙 + 等宽数字 */
+html.margin-skin body { text-autospace: normal; font-variant-numeric: tabular-nums; }
+html.margin-skin .video-title, html.margin-skin .title-txt { text-wrap: pretty; }

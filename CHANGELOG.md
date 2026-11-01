@@ -2,6 +2,15 @@
 
 # 更新日志
 
+## [v0.39.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.2) · 2026-11-01
+
+- 排版第二轮（参考 W3C 中文排版需求 clreq、Vercel Geist、Linear 的字体规则）：
+  - 评论区：正文从 B 站默认的 12px/18px 改为 14px/24px（约 1.7 倍行高），昵称 13px，统一用 Geist + 思源黑体；播放页和详情页都生效。
+  - 中西文之间自动留出 1/8 字宽间隙（text-autospace），「BLG 复仇 HLE」不再贴在一起。
+  - 数字统一等宽（播放量、时长、计数上下对齐）。
+  - 同角色同规格：空间页列表标题从 20px 改为与历史页一致的 18px/1.45；多行标题避免孤字，大标题均衡断行。
+  - 字重收敛到 400/500/600；原生页次要文字颜色改为与扩展一致的 ≥4.5:1 对比度。
+
 ## [v0.39.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.1) · 2026-11-01
 
 - 风格统一（针对评论「UI 不协调」的第一轮审计）：

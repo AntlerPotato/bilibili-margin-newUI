@@ -445,7 +445,7 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
-  font-weight: 560;
+  font-weight: 600;
   letter-spacing: -.005em;
   color: #18181b;
 }
@@ -673,7 +673,7 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
   padding: 8px 12px;
   border-radius: 10px;
   font-size: 14px;
-  font-weight: 450;
+  font-weight: 500;
   color: #18181b;
   cursor: pointer;
 }
@@ -1516,3 +1516,11 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 @keyframes dp-pulse { to { opacity: .45; } }
 .dp-empty { margin: 0; padding: 24px 16px 28px; text-align: center; font-size: 13px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .dp { transition: opacity .15s linear; translate: none; scale: none; } .dp-skel { animation: none; } }
+
+/* 排版细则（v0.39.2，参考 W3C clreq、Vercel Geist / Linear 的类型规则）：
+ * 1. 中西文之间自动留 1/8em 间隙（text-autospace），不再手敲空格也不贴脸；
+ * 2. 数字一律等宽（tabular-nums），播放量、时长、计数在列表里上下对齐；
+ * 3. 同角色同规格：列表里的视频标题统一 18px/1.45 衬线，卡片标题 14px/1.5；多行标题避免孤字（text-wrap: pretty），大标题均衡断行。 */
+.app { text-autospace: normal; font-variant-numeric: tabular-nums; }
+.title, .hi-title, .vr-title, .ms-title, .dp-title, .dy-title { text-wrap: pretty; }
+.sp-who h1, .ms-h1, .hi-h1, .fd-h1, .sheet-head h2 { text-wrap: balance; }
