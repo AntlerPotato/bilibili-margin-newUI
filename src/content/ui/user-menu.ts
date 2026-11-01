@@ -27,14 +27,16 @@ type Pt = { x: number; y: number; oldx: number; oldy: number; pinned: boolean };
 function qr(text: string, small = false): HTMLElement {
   const el = h('div', { class: small ? 'idcl-qr idcl-small' : 'idcl-qr', title: text });
   // 二维码库（约 44KB）按需加载：卡片挂上后才画
-  import('qrcode-generator').then(({ default: qrcode }) => {
+  // 空闲时再画（首页加载时生成两张码约 40ms，v0.44）
+  const idle = (globalThis.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500))) as (f: () => void, o?: { timeout: number }) => void;
+  idle(() => import('qrcode-generator').then(({ default: qrcode }) => {
     const q = qrcode(0, 'M');
     q.addData(text); q.make();
     const n = q.getModuleCount();
     let d = '';
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
     setMarkup(el, `<svg viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" aria-hidden="true"><path d="${d}"/></svg>`);
-  }).catch(() => {});
+  }).catch(() => {}), { timeout: 4000 });
   return el;
 }
 
@@ -53,7 +55,22 @@ export function createUserMenu(a: Account): HTMLElement {
   const trigger = h('a', { class: 'user in', href: `https://space.bilibili.com/${a.mid}`, target: '_blank', rel: 'noopener', 'aria-haspopup': 'dialog', 'aria-label': a.name },
     h('img', { src: face(80), alt: '', referrerpolicy: 'no-referrer' }));
   const wrap = h('div', { class: 'um-wrap' }, trigger);
+  // 账号卡片（约 150 个节点 + 两张大头像 + 物理画布）等第一次悬停 / 聚焦时才建（v0.44：页面加载省约 40ms 和两张图片请求）
+  let built = false;
+  const first = (e: Event) => {
+    if (built) return;
+    built = true;
+    wrap.removeEventListener('pointerenter', first);
+    wrap.removeEventListener('focusin', first);
+    mountCard(a, wrap, trigger, face);
+    wrap.dispatchEvent(e.type === 'focusin' ? new FocusEvent('focusin', e as FocusEvent) : new PointerEvent('pointerenter', e as PointerEvent));
+  };
+  wrap.addEventListener('pointerenter', first);
+  wrap.addEventListener('focusin', first);
+  return wrap;
+}
 
+function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (px: number) => string): void {
   /* ── 卡面 ───────────────────────────────────────── */
   const space = `https://space.bilibili.com/${a.mid}`;
   const n = (v: string) => h('b', {}, v);
@@ -410,7 +427,6 @@ export function createUserMenu(a: Account): HTMLElement {
   const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && isOpen) { dragging = false; close(); trigger.focus(); } };
   wrap.addEventListener('keydown', esc);
   card.addEventListener('keydown', esc);
-  return wrap;
 }
 
 function svgCheck(): SVGElement {

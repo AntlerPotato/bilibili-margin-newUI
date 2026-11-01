@@ -16,9 +16,20 @@ export function segmented<T extends string>(options: [T, string][], value: T, on
     thumb.style.width = `${on.offsetWidth}px`;
     thumb.style.transform = `translateX(${on.offsetLeft - 3}px)`;
   };
-  wrap.set = (v: T) => { btns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === v))); place(); };
-  new ResizeObserver(place).observe(wrap);
+  // ResizeObserver / IntersectionObserver 都在布局完成后回调，这时读 offsetWidth 不会强制重排；
+  // 只有用户切换选项时才在下一帧量一次（v0.44：页面加载时在 rAF 里量会把整页排版提前，空间页约 500ms）
+  let queued = 0, ready = false;
+  const visible = () => wrap.checkVisibility?.({ visibilityProperty: true }) ?? true;
+  const now = () => { if (visible()) place(); };
+  wrap.set = (v: T) => {
+    const cur = btns.find((b) => b.getAttribute('aria-checked') === 'true')?.dataset.v;
+    btns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === v)));
+    if (ready && cur !== v && !queued) queued = requestAnimationFrame(() => { queued = 0; now(); });
+  };
+  new ResizeObserver(now).observe(wrap);
+  new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) now(); }).observe(wrap);
   wrap.set(value);
+  ready = true;
   return wrap;
 }
 

@@ -36,11 +36,13 @@ export function createSunMoon(onToggle: () => void, duration = 500): SunMoon {
       el.title = label; el.setAttribute('aria-label', label);
       el.setAttribute('aria-checked', String(t === 'dark'));
       if (t === theme) return;
-      const instant = !theme || !animate;
+      // 第一次设置时元素还没有旧样式，本来就不会过渡，不用强制刷新布局（播放页加载时这一下约 160ms，v0.44）
+      const first = !theme, instant = !first && !animate;
       theme = t;
-      if (instant) el.classList.add('ts-still');
+      if (first || instant) el.classList.add('ts-still');
       el.dataset.state = t;
-      if (instant) { void el.offsetWidth; requestAnimationFrame(() => el.classList.remove('ts-still')); }
+      if (instant) void getComputedStyle(el).opacity;
+      if (first || instant) requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('ts-still')));
     },
   };
 }

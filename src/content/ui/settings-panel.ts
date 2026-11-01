@@ -11,8 +11,17 @@ import { clearLoc, geocodeList, savedLoc, setLoc as setLocWithName } from '../ap
 
 export interface SettingsPanel { sheet: Sheet; sync(s: Settings): void }
 
+/** 设置面板第一次打开时才建内容（约 220 个节点、几十个控件），页面加载时只放一个空抽屉（v0.44） */
 export function createSettingsPanel(get: () => Settings, currentShader: () => ShaderId | null): SettingsPanel {
-  const sheet = createSheet({ title: '设置', eyebrow: 'Preferences', width: 420 });
+  let inner: SettingsPanel | null = null;
+  const sheet: Sheet = createSheet({ title: '设置', eyebrow: 'Preferences', width: 420, onOpen: () => {
+    if (!inner) inner = buildSettingsPanel(sheet, get, currentShader);
+    else inner.sync(get());
+  } });
+  return { sheet, sync(s) { inner?.sync(s); } };
+}
+
+function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: () => ShaderId | null): SettingsPanel {
   const save = (patch: Partial<Settings>) => saveSettings(patch);
   const say = (t: string) => toast((sheet.el.closest('.app') as HTMLElement | null) ?? sheet.el, t);
   const s0 = get();

@@ -2,6 +2,13 @@
 
 # Changelog
 
+## [v0.44.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.44.0) · 2026-11-01
+
+- Faster load: MARGIN's own script time on the watch page drops from ~650 ms to ~240 ms, home from ~450 ms to ~340 ms. Removed forced reflows during load: the sun/moon switch's first paint (~160 ms), segmented controls measuring inside the closed settings sheet (~110 ms), QR codes now drawn when idle, liquid-glass maps computed once per size.
+- Smoother scrolling: script time while scrolling the watch page drops from ~440 ms to ~150 ms. The header TV eyes no longer read layout on every pointer move and frame; the scroll ruler stops reading page height inside scroll events and only updates the ticks that change; the watch card underlay no longer re-measures every 1.5 s.
+- Background canvas and footprint heatmap sizes now come from ResizeObserver instead of extra layout reads.
+- Lighter loads on other pages too: MARGIN script time on space ~2.1 s → 0.5 s, feed ~1.5 s → 0.45 s, history ~1.3 s → 0.45 s, search ~1.2 s → 0.6 s (relative, sandbox software rendering). The settings sheet is built on first open (~220 nodes); the account card is built on first avatar hover and no longer downloads two large avatars at load; segmented controls measure only in post-layout callbacks; the header TV reads its color after layout; icons are parsed once and cloned.
+
 ## [v0.43.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.43.0) · 2026-11-01
 
 - Settings "Home top" becomes "Home components": hide the search box, date row or refresh button individually; hiding the big search brings back the header search.

@@ -142,11 +142,12 @@ export function createFootprintCard(): HTMLElement {
       tip,
     );
     const fit = () => {
-      tip.hidden = true;
       const w = (graph.parentElement as HTMLElement).clientWidth;
+      tip.hidden = true;
       const cs = Math.max(8, Math.min(18, Math.floor((w - 34) / weeks) - 3));
       graph.style.setProperty('--c', `${cs}px`);
-      graph.scrollLeft = graph.scrollWidth;
+      // 滚到最右放到下一帧：改完格子尺寸立刻读 scrollWidth 会在同一帧里再排一次版（v0.44）
+      requestAnimationFrame(() => { graph.scrollLeft = graph.scrollWidth; });
     };
     ro?.disconnect();
     if (view === 'year') { requestAnimationFrame(fit); ro = new ResizeObserver(fit); ro.observe(el); }

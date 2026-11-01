@@ -51,18 +51,20 @@ export function startWatchCard(): void {
       card.setAttribute('aria-hidden', 'true');
       lc.append(card);
       ro?.disconnect();
-      ro = new ResizeObserver(() => requestAnimationFrame(place));
+      // ResizeObserver 在布局之后回调，这时读位置不会强制布局；不再绕一圈 rAF（v0.44）
+      ro = new ResizeObserver(() => place());
     }
     if (card && !card.isConnected) lc.append(card);
+    // 新挂上的元素 observe 时 ResizeObserver 会先回调一次，不用每 1.5 秒主动量一遍（那会在 B 站页面变化时强制布局）
     for (const sel of ['.left-container', '#playerWrap', '.video-toolbar-container', '.video-desc-container', '.video-tag-container']) {
       const el = document.querySelector(sel);
       if (el && !watched.has(el)) { watched.add(el); ro!.observe(el); }
     }
-    document.querySelector('.bpx-player-video-area > .m-vstat')?.remove();
-    place();
   };
 
-  new MutationObserver(() => requestAnimationFrame(place)).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-  window.addEventListener('resize', () => requestAnimationFrame(place), { passive: true });
+  let q = 0;
+  const soon = () => { if (!q) q = requestAnimationFrame(() => { q = 0; place(); }); };
+  new MutationObserver(soon).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', soon, { passive: true });
   every(1500, bind);
 }

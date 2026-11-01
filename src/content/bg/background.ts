@@ -32,7 +32,7 @@ export class BackgroundLayer {
   constructor() {
     this.el.append(this.canvas, this.img, h('div', { class: 'bg-scrim' }));
     document.addEventListener('visibilitychange', () => (document.hidden ? this.stop() : this.loop()));
-    new ResizeObserver(() => this.resize()).observe(this.el);
+    new ResizeObserver(([e]) => { this.size = { w: e.contentRect.width, h: e.contentRect.height }; this.resize(); }).observe(this.el);
     this.reduced.addEventListener('change', () => {
       this.stop();
       if (this.cfg?.mode === 'random' || this.cfg?.mode === 'fixed') { this.draw(performance.now()); this.loop(); }
@@ -127,12 +127,15 @@ export class BackgroundLayer {
     this.resize();
   }
 
+  /** 由 ResizeObserver 写入；还没回调时按视口算（背景铺满视口），避免读布局（v0.44） */
+  private size: { w: number; h: number } | null = null;
   private resize(): void {
-    const r = this.el.getBoundingClientRect();
+    const r = { width: this.size?.w || innerWidth, height: this.size?.h || innerHeight };
     // 背景本身很柔和：缓冲区最宽 640px，再由 CSS 放大，肉眼看不出差别，GPU 负担小很多
     const scale = Math.min(0.5, 640 / Math.max(1, r.width));
-    this.canvas.width = Math.max(1, Math.round(r.width * scale));
-    this.canvas.height = Math.max(1, Math.round(r.height * scale));
+    const W = Math.max(1, Math.round(r.width * scale)), H = Math.max(1, Math.round(r.height * scale));
+    if (this.canvas.width !== W) this.canvas.width = W;
+    if (this.canvas.height !== H) this.canvas.height = H;
     this.gl?.viewport(0, 0, this.canvas.width, this.canvas.height);
     this.gate?.resize(r.width, r.height);
     this.draw(performance.now());

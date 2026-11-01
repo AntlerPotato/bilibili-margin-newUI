@@ -50,7 +50,13 @@ export function svg(markup: string): Node {
   return nodes(markup.trim(), false)[0];
 }
 
-export const icon = (paths: string) => svg(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`);
+// 同一个图标只解析一次，之后克隆（v0.44：首页每张卡片都要建几个图标，DOMParser 很贵）
+const iconCache = new Map<string, Node>();
+export const icon = (paths: string) => {
+  let t = iconCache.get(paths);
+  if (!t) { t = svg(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`); iconCache.set(paths, t); }
+  return t.cloneNode(true);
+};
 
 export const ICONS = {
   logo: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 5v14M16 5v14M3 12h18"/>',
