@@ -7,7 +7,7 @@ import { createSunMoon, type SunMoon } from './sun-moon';
 import { attachTooltips } from './tooltip';
 import { BILI_TIGHT } from './intro/logo';
 import { liveTv } from './tv-eyes';
-import { attachDynPopover } from './dyn-pop';
+import { attachHoverList, POPS } from './dyn-pop';
 
 /** 顶栏左上角的小电视：开场动画结束时图标就飞落到这里 */
 function tv(): HTMLElement { const s = h('span', { class: 'tv', 'aria-hidden': 'true' }); setMarkup(s, BILI_TIGHT); liveTv(s); return s; }
@@ -48,8 +48,11 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
   }
 
   const tabsNav = createExpandableTabs(o.tabs);
-  const dynBtn = tabsNav.buttons.find((b) => b.getAttribute('href') === 'https://t.bilibili.com/');
-  if (dynBtn) attachDynPopover(dynBtn, () => { resetDynamicBaseline(); tabsNav.badge('dyn', 0); });
+  // 直播 / 消息 / 动态 / 历史 / 收藏 / 稍后：停留 1.5 秒弹出悬停列表
+  for (const b of tabsNav.buttons) {
+    const mk = POPS[b.getAttribute('aria-label') ?? ''];
+    if (mk) attachHoverList(b, mk({ onDyn: () => { resetDynamicBaseline(); tabsNav.badge('dyn', 0); } }));
+  }
   const sunMoon = createSunMoon(o.onTheme);
   const el = h('header', { class: 'top' },
     h('a', { class: 'brand', href: 'https://www.bilibili.com/', title: '首页', 'aria-label': '首页' }, tv()),

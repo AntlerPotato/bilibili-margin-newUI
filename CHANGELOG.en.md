@@ -2,6 +2,10 @@
 
 # Changelog
 
+## [v0.39.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.0) · 2026-11-01
+
+- Header hover lists now cover more entries (same 1.5 s rest delay, one open at a time): Live (followed streamers on air), Messages (unread per category), History (last 8 with progress and device), Favorites (folders with counts; clicking still opens the drawer), Watch later (with duration and progress).
+
 ## [v0.38.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.38.0) · 2026-11-01
 
 - Header "动态" (Moments) hover list: rest the pointer on the button for 1.5 s to open the latest 8 followed posts (avatar, uploader, time, type, title, cover). Move into the panel to keep browsing; leaving or Esc closes it, and opening clears the unread badge. Passing over the header does not trigger it.
