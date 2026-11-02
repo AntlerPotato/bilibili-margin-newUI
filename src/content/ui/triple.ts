@@ -1,5 +1,6 @@
 
-import { setMarkup } from './dom';/**
+import { setMarkup } from './dom';
+import { reducedMotion } from '../motion';/**
  * 映间自己的「三连」动画，盖掉 B 站原版的长按动效。
  * 长按点赞：点赞 → 投币 → 收藏三个胶囊的描边依次被强调色填满（松手就倒退回去）；
  * B 站确认三连后（投币、收藏变成 .on），三个胶囊依次弹起，向外散出一圈碎光，
@@ -38,7 +39,7 @@ function ring(el: HTMLElement): SVGRectElement {
 }
 
 function burst(els: HTMLElement[]): void {
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce = reducedMotion();
   els.forEach((el, i) => {
     el.classList.add('mt-done');
     if (reduce) return;

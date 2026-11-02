@@ -1,10 +1,13 @@
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
-import { ackSession, ats, likes, messages, replies, sendText, sessions, system, systemRead, unread, type Notice, type Page, type Session } from '../api/msg';
+import { ackSession, ats, likes, messages, replies, sendText, sessions, system, systemRead, unread, type MsgCard, type Notice, type Page, type Session } from '../api/msg';
 import { dayBucket, fmtAgo, h, icon, ICONS, svg } from './dom';
 import { openLightbox } from './lightbox';
 import { toast } from './controls';
 import { csrf, PageShell } from './shell';
+import { targetOfMsgCard } from '../filter-targets';
+
+const msgCardData = new WeakMap<Element, MsgCard>();
 
 type View = 'whisper' | 'reply' | 'at' | 'like' | 'system';
 const VIEWS: [View, string, string][] = [
@@ -27,7 +30,16 @@ export class MessageApp {
     this.shell = new PageShell(settings, 'msg');
     const m = location.hash.match(/^#\/?(\w+)/);
     this.view = HASH[m?.[1] ?? ''] ?? 'reply';
+    this.shell.filter.onChange(() => this.applyFilters());
     this.render();
+  }
+
+  /** 只标记私信里的分享卡片，不动聊天文字、通知行和时间 */
+  private applyFilters(): void {
+    this.shell.main.querySelectorAll<HTMLElement>('.wh-card').forEach((card) => {
+      const c = msgCardData.get(card);
+      if (c) card.toggleAttribute('data-margin-filtered', !this.shell.filter.allows(targetOfMsgCard(c)));
+    });
   }
 
   update(s: Settings): void { this.shell.update(s); }
@@ -218,6 +230,10 @@ export class MessageApp {
             c.desc ? h('span', { class: 'wh-card-d' }, c.desc) : null,
             c.rows.length ? h('dl', {}, ...c.rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])) : null,
             c.url ? h('span', { class: 'wh-card-go' }, c.action || '查看详情') : null)) : null;
+        if (card && c) {
+          msgCardData.set(card, c);
+          card.toggleAttribute('data-margin-filtered', !this.shell.filter.allows(targetOfMsgCard(c)));
+        }
         // 对方的连续消息只在第一条前放头像（#2）
         const showFace = !me && (i === 0 || list[i - 1].sender !== m.sender);
         return h('div', { class: `wh-m${me ? ' me' : ''}${!me ? ' them' : ''}` },
