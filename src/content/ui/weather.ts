@@ -52,16 +52,30 @@ export function createWeather(): HTMLElement {
     }
   };
   const clockEl = h('span', { class: 'wx-clock' });
+  // 时钟单独一个 15 秒的周期任务（v0.47，评论区：右上角时间停在打开页面那一刻）：
+  // 以前跟着天空动画走，滚动中、打开面板、系统开了「减少动画」时动画暂停，时钟也跟着不动了。
+  // 「减少动画」时天空不逐帧动，但太阳 / 月亮位置仍按当地时间每 15 秒重画一次。
+  let stopClock: (() => void) | null = null;
+  let fetchedAt = 0;
+  const minute = () => {
+    clockEl.textContent = clock();
+    if (reduced.matches) paint();
+    if (Date.now() - fetchedAt > 30 * 60_000) { fetchedAt = Date.now(); load(true); } // 天气数据半小时刷新一次
+  };
   const run = () => {
     stop?.(); stop = null;
+    stopClock?.(); stopClock = null;
     const app = el.closest('.app');
-    if (!wx || !visible || reduced.matches || document.hidden) return;
+    if (!wx || !visible || document.hidden) return;
+    minute();
+    stopClock = every(15_000, minute);
+    if (reduced.matches) return;
     stop = every(FRAME, () => {
       if (app?.classList.contains('scrolling') || app?.classList.contains('sheeted') || introActive()) return;
       tick++; paint();
-      if (tick % 60 === 0) clockEl.textContent = clock();
     });
   };
+  reduced.addEventListener?.('change', run);
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; run(); }).observe(el);
   document.addEventListener('visibilitychange', run);
   addEventListener('margin:wx-loc', () => load());
@@ -139,9 +153,11 @@ export function createWeather(): HTMLElement {
   };
 
   let tries = 0;
-  const load = () => {
+  const load = (quiet = false) => {
+    if (!quiet) fetchedAt = Date.now();
     weather().then((x) => { wx = x; render(); }).catch((err) => {
       console.warn('[margin] weather', err);
+      if (quiet && wx) return; // 后台刷新失败：保留旧数据
       if (tries++ < 2) { setTimeout(load, 4000 * tries); return; }
       el.replaceChildren(h('p', { class: 'wx-empty', title: String(err) }, `天气暂时取不到${savedLoc()?.name ? `（${savedLoc()!.name}）` : ''}`));
     });

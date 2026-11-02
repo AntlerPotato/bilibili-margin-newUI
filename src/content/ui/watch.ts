@@ -22,7 +22,7 @@ import { BackgroundLayer } from '../bg/background';
 import { startTriple } from './triple';
 import { startWatchCard } from './watch-card';
 
-export type SkinKind = 'watch' | 'search' | 'page';
+export type SkinKind = 'watch' | 'search' | 'page' | 'live';
 
 /**
  * 播放页：不替换 B 站原生播放器、弹幕、评论，只做两件事——

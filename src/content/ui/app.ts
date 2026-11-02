@@ -1,4 +1,6 @@
 import { dislike, popular, recommended, type Video } from '../api/feed';
+import { followClassics, resetClassics } from '../api/space';
+import { account } from '../api/account';
 import type { Settings } from '../../shared/settings';
 import { saveSettings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
@@ -23,7 +25,7 @@ import { bindCardMenu } from './card-menu';
 import { createLaterDrawer } from './drawer';
 import css from '../styles.css?inline';
 
-type Tab = 'rcmd' | 'popular';
+type Tab = 'rcmd' | 'popular' | 'classic';
 
 export class MarginApp {
   readonly host: HTMLElement;
@@ -144,6 +146,7 @@ export class MarginApp {
     const palette = createCommandPalette([
       { id: 'refresh', title: '换一批推荐', cat: '操作', icon: ICONS.refresh, keys: ['刷新', 'refresh'], run: () => this.reload() },
       { id: 'rcmd', title: '看推荐', cat: '跳转', icon: ICONS.moments, keys: ['首页'], run: () => (this.app.querySelector('.tab[data-tab=rcmd]') as HTMLElement)?.click() },
+      { id: 'classic', title: '看关注的 UP 的老视频', cat: '跳转', icon: ICONS.history, keys: ['老片', 'classic'], run: () => (this.app.querySelector('.tab[data-tab=classic]') as HTMLElement)?.click() },
       { id: 'popular', title: '看热门', cat: '跳转', icon: ICONS.heat, keys: ['popular', '排行'], run: () => (this.app.querySelector('.tab[data-tab=popular]') as HTMLElement)?.click() },
       { id: 'fav', title: '打开收藏夹', cat: '操作', icon: ICONS.fav, keys: ['收藏'], run: () => this.fav.open() },
       { id: 'foot', title: '看足迹', desc: '一年的 B 站热力图', cat: '跳转', icon: ICONS.heat, keys: ['热力图', '足迹'], run: () => this.showFoot() },
@@ -175,7 +178,7 @@ export class MarginApp {
       b.dataset.tab = id;
       return b;
     };
-    tabs.append(mkTab('rcmd', '推荐'), mkTab('popular', '热门'));
+    tabs.append(mkTab('rcmd', '推荐'), mkTab('popular', '热门'), mkTab('classic', '关注老片'));
     const refresh = h('button', { class: 'ghost refresh', type: 'button', title: '换一批', onclick: () => this.reload() }, icon(ICONS.refresh), h('span', {}, '换一批'));
 
     // 吸顶时分类栏变成液态玻璃胶囊，日期行收起
@@ -250,6 +253,10 @@ export class MarginApp {
     new IntersectionObserver(([e]) => {
       bar.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 80);
     }, { root: this.app, rootMargin: '-72px 0px 0px 0px', threshold: 0 }).observe(barMark);
+    // 大搜索框滚出视野后，顶栏的小搜索框淡入（v0.47，评论区：往下滑时搜索栏能跟着走）
+    new IntersectionObserver(([e]) => {
+      head.el.classList.toggle('hs-away', !e.isIntersecting && e.boundingClientRect.top < 80);
+    }, { root: this.app, rootMargin: '-72px 0px 0px 0px', threshold: 0 }).observe(hero);
 
     new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) this.load(); }, { root: this.app, rootMargin: '900px 0px' }).observe(this.sentinel);
     // 从个人空间等页面的入口跳回首页时直接打开对应面板：bilibili.com/#fav、#later
@@ -295,6 +302,7 @@ export class MarginApp {
     this.loading = false;
     this.page = 1;
     this.round++;
+    resetClassics();
     this.app.scrollTo({ top: 0 });
     this.load();
   }
@@ -341,6 +349,12 @@ export class MarginApp {
         const batches = await Promise.all([recommended(this.round), recommended(this.round + 1)]);
         this.round += 2;
         list = batches.flat();
+      } else if (this.tab === 'classic') {
+        const me = (await account())?.mid;
+        if (!me) throw new Error('登录后才能看关注的 UP 主');
+        const r = await followClassics(me);
+        list = r.list;
+        this.done = r.done;
       } else {
         const r = await popular(this.page++);
         list = r.list;

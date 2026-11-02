@@ -2,6 +2,45 @@
 
 # Changelog
 
+## [v0.47.3](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.3) · 2026-11-02
+
+GitHub issues:
+- #6 Watch-later / playlist pages: title no longer hidden under the header; after switching to the native page a "Back to MARGIN" pill appears.
+- #9 Header "Dynamics" popover loads more on scroll instead of a fixed 8.
+- #8 Feed: in-page image viewer with ← → and thumbnails, long posts fold, whole card opens the detail, keyword / uploader blocklist applies to the feed, comment sort tabs on detail pages no longer touch the tab bar.
+
+## [v0.47.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.2) · 2026-11-02
+
+- Live room skin: MARGIN header, canvas background instead of the room skin, rounded player and chat cards, light / dark aware. Playback, danmaku, gifts and chat untouched; full-page event templates stay native.
+- Video CDN node picker with latency test (Settings › Watch page). Only the stream host is rewritten and the original URLs stay as backups. Idea from bilisail.
+- New home tab "Classics": the most-played videos older than 90 days from random followed uploaders.
+- Ctrl+K can be turned off (Settings › Header); / still opens the command palette.
+
+## [v0.47.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.2) · 2026-11-02
+
+- Live room skin: MARGIN header, canvas background instead of the room skin, rounded player and chat cards, light / dark aware. Playback, danmaku, gifts and chat untouched; full-page event templates stay native.
+- Video CDN node picker with latency test (Settings › Watch page). Only the stream host is rewritten and the original URLs stay as backups. Idea from bilisail.
+- New home tab "Classics": the most-played videos older than 90 days from random followed uploaders.
+- Ctrl+K can be turned off (Settings › Header); / still opens the command palette.
+
+## [v0.47.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.1) · 2026-11-02
+
+- Header shortcuts are customizable: toggle each entry in Settings › Header and reorder the Bilibili links with arrows; Settings always stays, with a reset button.
+- Content zoom 100% / 110% / 120% for home, space, messages, history and feed; sticky tabs keep their offset.
+- Space page tabs and tools become a sticky pill bar instead of sitting on top of video covers.
+
+## [v0.47.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.0) · 2026-11-02
+
+- Fix "Message" on the watch-page uploader card opening Replies instead of the chat: Bilibili links use `#whisper/mid…` (no slash); both forms now open that conversation.
+- Space page: search within the uploader's videos (box next to the Videos tab, Esc clears).
+- Space page: "Recent coins" and "Recent likes" tabs, shown only when the user made them public.
+- Fix missing space banner: complete legacy host-less `bfs/space/…` paths; fall back to `web-interface/card` for name, avatar and banner when acc/info is risk-controlled (-352).
+- Weather clock runs on its own 15 s task instead of the sky animation, so it no longer freezes while scrolling, with a sheet open, or under reduced motion (the sun/moon still move with local time). Weather data refreshes every 30 minutes.
+- Watch-page scroll ruler can be dragged, not just clicked.
+- Home: the header search fades in once the big search box scrolls out of view.
+- Settings › Appearance: "Body font" (any installed font name; also used for titles when set to Sans) and a "Monospace numbers" toggle.
+- Warn once when BewlyBewly (or a similar full-site extension) is also running, since the two take over the same pages (reported: only the search page restyled on Edge).
+
 ## [v0.46.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.46.0) · 2026-11-01
 
 - "Not interested" on home cards: hover × or the context menu fades the card out and reports it through Bilibili's own home-feed feedback endpoint, with undo (which cancels the feedback). "Block uploader" also tells Bilibili "don't show this uploader".

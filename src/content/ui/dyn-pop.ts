@@ -23,6 +23,8 @@ export interface PopSpec {
   compact?: boolean;
   /** 多列图标网格（分区） */
   grid?: boolean;
+  /** 滚到底继续加载（v0.47.2，GitHub #9：动态弹窗固定 8 条，往下拉不会继续读）；返回空数组表示没有更多 */
+  more?: () => Promise<PopRow[]>;
 }
 
 export function ago(ts: number, fallback = ''): string {
@@ -76,7 +78,26 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec): void {
     h('div', { class: 'dp-head' }, h('span', {}, spec.title), allLink(spec)),
     list,
   );
-  let openT = 0, closeT = 0, loadedAt = 0, open = false;
+  let openT = 0, closeT = 0, loadedAt = 0, open = false, done = true, busy = false;
+  // 分页：滚到离底部 120px 内追加下一页；列表不够高时一直补到出现滚动条
+  // 用 IntersectionObserver 看列表末尾的哨兵，滚动时不读布局
+  const tail = h('i', { class: 'dp-tail', 'aria-hidden': 'true' });
+  let tailSeen = false;
+  const fill = () => {
+    if (done || busy || !spec.more || !open) return;
+    if (!tail.isConnected) list.append(tail);
+    if (!tailSeen) return;
+    busy = true;
+    const sk = h('div', { class: 'dp-skel' });
+    tail.before(sk);
+    spec.more().then((rows) => {
+      sk.remove();
+      if (!rows.length) { done = true; tail.before(h('p', { class: 'dp-end' }, '没有更多了')); return; }
+      tail.before(...rows.map(row));
+    }).catch(() => { sk.remove(); done = true; })
+      .finally(() => { busy = false; requestAnimationFrame(fill); });
+  };
+  if (spec.more) new IntersectionObserver((es) => { tailSeen = es[es.length - 1].isIntersecting; if (tailSeen) fill(); }, { root: list, rootMargin: '0px 0px 160px 0px' }).observe(tail);
 
   const load = () => {
     if (Date.now() - loadedAt < 60_000 && list.querySelector('.dp-row')) return;
@@ -85,6 +106,8 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec): void {
     spec.load().then((rows) => {
       if (rows === null) { loadedAt = 0; list.replaceChildren(h('p', { class: 'dp-empty' }, `登录后可在这里看到${spec.title}`)); return; }
       list.replaceChildren(...(rows.length ? rows.map(row) : [h('p', { class: 'dp-empty' }, spec.empty)]));
+      done = !spec.more || !rows.length;
+      requestAnimationFrame(fill);
     }).catch(() => {
       loadedAt = 0;
       list.replaceChildren(h('p', { class: 'dp-empty' }, '暂时没取到，稍后再试'));
@@ -188,13 +211,24 @@ export const POPS: Record<string, (o: { onDyn?: () => void }) => PopSpec> = {
       ];
     },
   }),
-  动态: (o) => ({
-    title: '最新动态', all: { href: 'https://t.bilibili.com/', label: '全部动态' }, empty: '还没有新动态', onOpen: o.onDyn,
-    load: async () => (await followFeed('all', '')).list.slice(0, 8).map((d) => {
+  动态: (o) => {
+    let offset = '', more = true;
+    const toRow = (d: Dyn): PopRow => {
       const s = dynSummary(d);
       return { href: d.url, face: d.face, who: d.author, sub: `${ago(d.ts, d.time)} · ${s.kind}`, title: s.line, cover: s.cover || undefined };
-    }),
-  }),
+    };
+    const page = async (first: boolean) => {
+      if (first) { offset = ''; more = true; }
+      if (!more) return [];
+      const r = await followFeed('all', offset);
+      offset = r.offset; more = r.more && !!r.offset;
+      return r.list.map(toRow);
+    };
+    return {
+      title: '最新动态', all: { href: 'https://t.bilibili.com/', label: '全部动态' }, empty: '还没有新动态', onOpen: o.onDyn,
+      load: () => page(true), more: () => page(false),
+    };
+  },
   历史: () => ({
     title: '最近看过', all: { href: 'https://www.bilibili.com/history', label: '全部历史' }, empty: '还没有观看记录',
     load: async () => (await historyList('all', null)).list.slice(0, 8).map((x) => ({

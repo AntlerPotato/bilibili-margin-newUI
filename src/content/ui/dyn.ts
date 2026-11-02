@@ -1,6 +1,7 @@
 import type { Dyn } from '../api/dyn';
 import { fmtAgo, fmtCount, h, icon, ICONS } from './dom';
 import { laterButton } from './later-btn';
+import { openLightbox } from './lightbox';
 
 const img = (src: string, w: number, hgt?: number) => h('img', { src: src ? `${src}@${w}w${hgt ? `_${hgt}h_1c` : ''}.webp` : '', alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
 const ext = { target: '_blank', rel: 'noopener' };
@@ -19,7 +20,13 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
   if (d.pics.length) {
     const n = Math.min(d.pics.length, 9);
     media.push(h('div', { class: `dy-pics n${n === 1 ? 1 : n <= 4 && n !== 3 ? 2 : 3}` },
-      ...d.pics.slice(0, 9).map((p, i) => h('a', { href: p, 'aria-label': `查看第 ${i + 1} 张图`, ...ext }, img(p, n === 1 ? 720 : 360, n === 1 ? undefined : 360)))));
+      ...d.pics.slice(0, 9).map((p, i) => {
+        // 点小图在页内打开图组查看器（GitHub #8）；中键 / Ctrl 点仍按链接新标签打开原图
+        const a = h('a', { href: p, 'aria-label': `查看第 ${i + 1} 张图`, ...ext }, img(p, n === 1 ? 720 : 360, n === 1 ? undefined : 360),
+          i === 8 && d.pics.length > 9 ? h('span', { class: 'dy-pics-more' }, `+${d.pics.length - 9}`) : null);
+        a.addEventListener('click', (e) => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); e.stopPropagation(); openLightbox(d.pics, i, a.getRootNode()); });
+        return a;
+      })));
   }
   if (d.article) {
     media.push(h('a', { class: 'dy-article', href: d.article.url, ...ext },
@@ -40,11 +47,20 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
   }
   if (d.orig) media.push(h('div', { class: 'dy-orig' }, h('div', { class: 'dy-orig-by' }, `@${d.orig.author}`), dynCard(d.orig, true)));
 
+  // 长文折叠（GitHub #8）：按字数 / 行数判断，不读布局
+  const long = !!d.text && (d.text.length > 240 || d.text.split('\n').length > 8);
+  const text = d.text ? h('p', { class: long ? 'dy-text fold' : 'dy-text' }, d.text) : null;
+  const more = long ? h('button', { type: 'button', class: 'dy-more', 'aria-expanded': 'false', onclick: (e: Event) => {
+    e.stopPropagation();
+    const on = text!.classList.toggle('fold');
+    more!.textContent = on ? '展开全文' : '收起';
+    more!.setAttribute('aria-expanded', String(!on));
+  } }, '展开全文') : null;
   const body = h('div', { class: 'dy-body' },
     d.title ? h('h3', { class: 'dy-title' }, d.title) : null,
-    d.text ? h('p', { class: 'dy-text' }, d.text) : null,
+    text, more,
     ...media);
-  if (nested) return h('div', { class: 'dy nested' }, body);
+  if (nested) return clickable(h('div', { class: 'dy nested' }, body), d.url);
   const open = () => h('a', { class: 'dy-open', href: d.url, ...ext, title: '查看详情' }, icon(ICONS.arrow));
   // 动态首页：21st SocialPostCard 的作者行（头像 · 名字 · 时间/类型），空间页作者固定所以只留眉标
   const by = withAuthor ? h('div', { class: 'dy-by' },
@@ -53,7 +69,7 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
       h('a', { class: 'dy-by-name', href: `https://space.bilibili.com/${d.mid}`, ...ext }, d.author),
       h('div', { class: 'dy-eyebrow' }, h('span', {}, d.ts ? fmtAgo(d.ts) : d.time), h('span', { class: 'dy-kind' }, kindLabel(d)))),
     open()) : null;
-  return h('article', { class: withAuthor ? 'dy with-by' : 'dy' },
+  return clickable(h('article', { class: withAuthor ? 'dy with-by' : 'dy' },
     by ?? h('div', { class: 'dy-eyebrow' },
       h('span', {}, d.ts ? fmtAgo(d.ts) : d.time),
       h('span', { class: 'dy-kind' }, kindLabel(d)),
@@ -62,7 +78,25 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
     h('div', { class: 'dy-stat' },
       h('span', {}, `转发 ${fmtCount(d.stat.forward)}`),
       h('span', {}, `评论 ${fmtCount(d.stat.comment)}`),
-      h('span', {}, `赞 ${fmtCount(d.stat.like)}`)));
+      h('span', {}, `赞 ${fmtCount(d.stat.like)}`))), d.url);
+}
+
+/**
+ * 整张卡片可点进详情（GitHub #8：「查看详情」按钮太小）。卡片里的链接、按钮照常；
+ * 选中文字时不跳转；转发里的原动态点进原动态。Ctrl / 中键也是新标签。
+ */
+function clickable(el: HTMLElement, url: string): HTMLElement {
+  if (!url) return el;
+  el.dataset.href = url;
+  const go = (e: MouseEvent) => {
+    if ((e.target as HTMLElement).closest('a, button, input, textarea, video')) return;
+    if (String(getSelection() ?? '').trim()) return;
+    e.stopPropagation();
+    window.open(url, '_blank', 'noopener');
+  };
+  el.addEventListener('click', go);
+  el.addEventListener('auxclick', (e) => { if (e.button === 1) go(e); });
+  return el;
 }
 
 function kindLabel(d: Dyn): string {

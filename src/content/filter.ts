@@ -30,3 +30,23 @@ export function compileFilter(f: Filters): Predicate {
     v.views >= f.minViews &&
     (f.minDuration <= 0 || !v.duration || v.duration >= f.minDuration);
 }
+
+/**
+ * 动态过滤（v0.47.2，GitHub #8：装了扩展后油猴的动态净化用不了）：
+ * 沿用设置里首页的「屏蔽关键词 / 屏蔽 UP」，匹配动态正文、标题、视频标题和转发的原动态。
+ */
+export interface DynLike { author: string; mid: number; title?: string; text?: string; video?: { title: string } | null; article?: { title: string } | null; orig?: DynLike | null }
+export function compileDynFilter(f: Filters): (d: DynLike) => boolean {
+  const kws = f.keywords.map(keywordTest).filter(Boolean) as ((s: string) => boolean)[];
+  const mids = new Set<number>();
+  const names = new Set<string>();
+  for (const u of f.ups) {
+    const t = u.trim();
+    if (/^\d+$/.test(t)) mids.add(Number(t));
+    else if (t) names.add(t.toLowerCase());
+  }
+  if (!kws.length && !mids.size && !names.size) return () => true;
+  const hay = (d: DynLike): string => [d.title, d.text, d.video?.title, d.article?.title, d.orig ? hay(d.orig) : ''].filter(Boolean).join('\n');
+  const upOk = (d: DynLike) => !mids.has(d.mid) && !names.has(String(d.author).toLowerCase());
+  return (d) => upOk(d) && (!d.orig || upOk(d.orig)) && !kws.some((k) => k(hay(d)));
+}

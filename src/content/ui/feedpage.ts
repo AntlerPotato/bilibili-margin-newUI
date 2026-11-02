@@ -5,6 +5,7 @@ import { account, accountStat } from '../api/account';
 import { followFeed, portal, type FeedType, type LiveUp, type Up } from '../api/dyn';
 import { hotSearch } from '../api/search';
 import { dynCard } from './dyn';
+import { compileDynFilter } from '../filter';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { PageShell } from './shell';
 
@@ -164,7 +165,8 @@ export class FeedApp {
       const r = await followFeed(this.host ? 'all' : this.type, this.offset, this.host);
       if (gen !== this.gen) return;
       sk.forEach((n) => n.remove());
-      r.list.forEach((d) => this.list.append(dynCard(d, false, true)));
+      const keep = compileDynFilter(this.shell.settings.filters);
+      r.list.filter(keep).forEach((d) => this.list.append(dynCard(d, false, true)));
       this.offset = r.offset;
       this.done = !r.more || !r.offset;
       if (!this.list.children.length) this.list.append(h('div', { class: 'ms-empty' }, h('p', {}, '这里还空着')));

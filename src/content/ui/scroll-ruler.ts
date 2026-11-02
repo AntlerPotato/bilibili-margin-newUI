@@ -4,7 +4,7 @@ import { h } from './dom';
  * 刻度尺滚动进度：21st「Scroll Bars」（radiumcoders）竖向版的原生移植。
  * 51 根刻度、每 5 根一根长刻度，刻度入场是弹簧（damping 12 / stiffness 120）逐根长出；
  * 指示条跟随滚动进度，弹簧 stiffness 200 / damping 20。
- * 只在滚动时和悬停时出现；点刻度跳到那个位置。
+ * 只在滚动时和悬停时出现；点刻度跳到那个位置，按住可以上下拖。
  */
 const COUNT = 51, MAJOR = 5, GAP = 5;
 
@@ -57,11 +57,30 @@ export function createScrollRuler(): HTMLElement {
   addEventListener('scroll', () => { if (!pend) pend = requestAnimationFrame(onScroll); }, { passive: true });
   el.addEventListener('pointerenter', () => { clearTimeout(idle); el.dataset.on = 'true'; });
   el.addEventListener('pointerleave', () => show());
-  track.addEventListener('click', (e) => {
-    const r = track.getBoundingClientRect();
-    const p = Math.min(1, Math.max(0, (e.clientY - r.top - 0) / H));
-    scrollTo({ top: p * (document.documentElement.scrollHeight - innerHeight), behavior: 'smooth' });
+  // 点刻度跳过去；按住上下拖动连续滚动（v0.47，评论区：刻度条只能单点不能拖）
+  const at = (clientY: number, r: DOMRect) => Math.min(1, Math.max(0, (clientY - r.top) / H));
+  let drag: DOMRect | null = null, moved = false;
+  track.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    drag = track.getBoundingClientRect(); moved = false;
+    track.setPointerCapture(e.pointerId);
+    el.dataset.drag = 'true';
+    e.preventDefault();
   });
+  track.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    moved = true;
+    scrollTo({ top: at(e.clientY, drag) * max, behavior: 'instant' as ScrollBehavior });
+  });
+  const end = (e: PointerEvent) => {
+    if (!drag) return;
+    const r = drag; drag = null;
+    delete el.dataset.drag;
+    if (!moved) scrollTo({ top: at(e.clientY, r) * max, behavior: 'smooth' });
+    show();
+  };
+  track.addEventListener('pointerup', end);
+  track.addEventListener('pointercancel', (e) => { drag = null; delete el.dataset.drag; void e; });
   update();
   return el;
 }

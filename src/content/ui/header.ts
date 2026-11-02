@@ -1,4 +1,5 @@
 import { every } from '../sched';
+import { loadSettings, onSettingsChange, type Settings } from '../../shared/settings';
 import { account, dynamicUpdates, resetDynamicBaseline, unreadTotal } from '../api/account';
 import { h, icon, ICONS, setMarkup } from './dom';
 import { createExpandableTabs, type TabItem, type TabSpec } from './expandable-tabs';
@@ -54,6 +55,20 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     const mk = POPS[b.getAttribute('aria-label') ?? ''];
     if (mk) attachHoverList(b, mk({ onDyn: () => { resetDynamicBaseline(); tabsNav.badge('dyn', 0); } }));
   }
+  // 顶栏入口自定义（v0.47.1）：隐藏的入口 hidden；B 站入口按设置里的顺序用 CSS order 排，分隔线和个人入口固定在后面
+  const applyPrefs = (st: Settings) => {
+    const siteIdx = new Map(SITE_LINKS.map((l, i) => [l.title, i]));
+    const order = [...st.headOrder.filter((t) => siteIdx.has(t)), ...SITE_LINKS.map((l) => l.title).filter((t) => !st.headOrder.includes(t))];
+    for (const b of tabsNav.buttons) {
+      const t = b.querySelector('span')?.textContent ?? '';
+      b.hidden = t !== '设置' && st.headHide.includes(t);
+      b.style.order = siteIdx.has(t) ? String(order.indexOf(t)) : '30';
+    }
+    tabsNav.el.querySelectorAll<HTMLElement>('.et-sep').forEach((x) => { x.style.order = '20'; x.hidden = tabsNav.buttons.every((b) => b.hidden || !siteIdx.has(b.querySelector('span')?.textContent ?? '')); });
+    tabsNav.el.querySelector<HTMLElement>('.et-thumb')?.style.setProperty('order', '-1');
+  };
+  loadSettings().then(applyPrefs).catch(() => {});
+  onSettingsChange((n, p) => { if (n.headHide.join() !== p.headHide.join() || n.headOrder.join() !== p.headOrder.join()) applyPrefs(n); });
   const sunMoon = createSunMoon(o.onTheme);
   const el = h('header', { class: 'top' },
     h('a', { class: 'brand', href: 'https://www.bilibili.com/', title: '首页', 'aria-label': '首页' }, tv()),

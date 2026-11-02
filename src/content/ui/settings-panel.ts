@@ -1,5 +1,5 @@
 import type { BgMode, HomeBit, Settings, ShaderId, Theme } from '../../shared/settings';
-import { BG_IMAGE_KEY, HOME_BITS, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
+import { BG_IMAGE_KEY, cleanFont, HOME_BITS, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
 import { ACTIVITY_KEY, sanitizeActivity, type FpMessage } from '../../shared/activity';
 import { compressImage } from '../bg/background';
 import { SHADER_IDS, SHADER_NAMES } from '../bg/shaders';
@@ -7,6 +7,7 @@ import { cachedThumb, shaderThumb } from '../bg/program';
 import { block, chipInput, pillToggles, rangeSlider, row, segmented, stepSlider, toast, toggle } from './controls';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { createSheet, type Sheet } from './sheet';
+import { SITE_LINKS } from './header';
 import { clearLoc, geocodeList, savedLoc, setLoc as setLocWithName } from '../api/weather';
 
 export interface SettingsPanel { sheet: Sheet; sync(s: Settings): void }
@@ -79,6 +80,83 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
   const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 }));
   const fontS = segmented<'serif' | 'sans'>([['serif', '衬线'], ['sans', '无衬线']], s0.titleFont, (v) => save({ titleFont: v }));
+  const monoT = toggle(s0.monoNum, '数字用等宽字体', (v) => save({ monoNum: v }));
+  const fontIn = h('input', { type: 'text', class: 'city-in font-in', value: s0.bodyFont, placeholder: '比如 微软雅黑、HarmonyOS Sans SC', 'aria-label': '自定义字体', spellcheck: 'false' }) as HTMLInputElement;
+  const fontReset = h('button', { type: 'button', class: 'ghost small' }, h('span', {}, '默认'));
+  let fontT = 0;
+  const saveFont = () => { clearTimeout(fontT); const v = cleanFont(fontIn.value); if (v !== get().bodyFont) { save({ bodyFont: v }); say(v ? `正文字体：${v}${document.fonts.check(`14px "${v}"`) ? '' : '（本机可能没装这个字体）'}` : '正文字体改回默认'); } };
+  fontIn.addEventListener('input', () => { clearTimeout(fontT); fontT = window.setTimeout(saveFont, 700); });
+  fontIn.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') saveFont(); });
+  fontIn.addEventListener('blur', saveFont);
+  fontReset.addEventListener('click', () => { fontIn.value = ''; saveFont(); });
+  const fontBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, fontIn, fontReset));
+  // 顶栏入口（v0.47.1）：每行一个开关；B 站入口可以上下调顺序
+  const OWN: [string, string][] = [['收藏', ICONS.fav], ['稍后', ICONS.later], ['足迹', ICONS.heat], ['原版', ICONS.exit]];
+  const headList = h('div', { class: 'hl', role: 'list', 'aria-label': '顶栏入口' });
+  const siteOrder = (st: Settings) => [...st.headOrder.filter((t) => SITE_LINKS.some((l) => l.title === t)), ...SITE_LINKS.map((l) => l.title).filter((t) => !st.headOrder.includes(t))];
+  const paintHead = () => {
+    const st = get();
+    const order = siteOrder(st);
+    const mkRow = (title: string, ic: string, i: number | null) => {
+      const on = !st.headHide.includes(title);
+      const sw = toggle(on, `顶栏显示${title}`, (v) => save({ headHide: v ? get().headHide.filter((x) => x !== title) : [...get().headHide, title] }).then(paintHead));
+      const mv = (d: number, label: string, ch: string) => {
+        const b = h('button', { type: 'button', class: 'hl-mv', 'aria-label': `${title}${label}`, title: label }, ch) as HTMLButtonElement;
+        if (i === null || i + d < 0 || i + d >= order.length) b.disabled = true;
+        else b.onclick = () => { const o = [...order]; [o[i], o[i + d]] = [o[i + d], o[i]]; save({ headOrder: o }).then(paintHead); };
+        return b;
+      };
+      const r = h('div', { class: 'hl-row', role: 'listitem' }, icon(ic), h('span', {}, title), i === null ? h('span') : mv(-1, '上移', '↑'), i === null ? h('span') : mv(1, '下移', '↓'), sw);
+      if (!on) r.dataset.off = '';
+      return r;
+    };
+    headList.replaceChildren(
+      ...order.map((t, i) => mkRow(t, SITE_LINKS.find((l) => l.title === t)!.icon, i)),
+      h('div', { class: 'hl-sep', 'aria-hidden': 'true' }),
+      ...OWN.map(([t, ic]) => mkRow(t, ic, null)));
+  };
+  paintHead();
+  const headReset = h('button', { type: 'button', class: 'ghost small', onclick: () => save({ headHide: [], headOrder: [] }).then(paintHead) }, h('span', {}, '恢复默认'));
+  const zoomS = segmented<string>([['100', '100%'], ['110', '110%'], ['120', '120%']], String(s0.zoom), (v) => save({ zoom: Number(v) as 100 | 110 | 120 }));
+  const cmdKT = toggle(s0.cmdK, 'Ctrl+K 打开命令面板', (v) => save({ cmdK: v }));
+  // 视频 CDN 节点（v0.47.2）：列表 + 延迟测速；选中后新打开的视频生效
+  const CDNS: [string, string][] = [
+    ['', 'B 站默认'],
+    ['upos-sz-mirrorali.bilivideo.com', '阿里云'], ['upos-sz-mirroralib.bilivideo.com', '阿里云 B'],
+    ['upos-sz-mirrorcos.bilivideo.com', '腾讯云'], ['upos-sz-mirrorcosb.bilivideo.com', '腾讯云 B'],
+    ['upos-sz-mirrorhw.bilivideo.com', '华为云'], ['upos-sz-mirrorhwb.bilivideo.com', '华为云 B'],
+    ['upos-sz-mirror08c.bilivideo.com', '华为云 08c'], ['upos-sz-mirrorbd.bilivideo.com', '百度云'],
+    ['upos-sz-mirroraliov.bilivideo.com', '阿里云 海外'], ['upos-sz-mirrorcosov.bilivideo.com', '腾讯云 海外'],
+    ['upos-hz-mirrorakam.akamaized.net', 'Akamai 海外'],
+  ];
+  const cdnMs = new Map<string, number>();
+  const cdnList = h('div', { class: 'hl cdn', role: 'radiogroup', 'aria-label': '视频 CDN 节点' });
+  const paintCdn = () => {
+    const cur = get().cdn;
+    cdnList.replaceChildren(...CDNS.map(([host, name]) => {
+      const ms = cdnMs.get(host);
+      const b = h('button', { type: 'button', class: 'hl-row cdn-row', role: 'radio', 'aria-checked': String(cur === host), onclick: () => save({ cdn: host }).then(paintCdn) },
+        h('i', { class: 'cdn-dot', 'aria-hidden': 'true' }), h('span', {}, name), h('small', { class: 'cdn-host' }, host || '自动分配'),
+        h('span', { class: 'cdn-ms', 'data-q': ms === undefined ? '' : ms < 0 ? 'bad' : ms < 120 ? 'good' : ms < 300 ? 'ok' : 'bad' }, ms === undefined ? '' : ms < 0 ? '超时' : `${ms} ms`), h('span'));
+      return b;
+    }));
+  };
+  paintCdn();
+  const ping = async (host: string): Promise<number> => {
+    let best = Infinity;
+    for (let k = 0; k < 3; k++) {
+      const c = new AbortController(); const t = setTimeout(() => c.abort(), 3000);
+      const t0 = performance.now();
+      try { await fetch(`https://${host}/?margin-ping=${Date.now()}`, { mode: 'no-cors', cache: 'no-store', signal: c.signal, credentials: 'omit' }); best = Math.min(best, performance.now() - t0); } catch { /* 超时或拒绝 */ }
+      clearTimeout(t);
+    }
+    return best === Infinity ? -1 : Math.round(best);
+  };
+  const cdnTest = h('button', { type: 'button', class: 'ghost small', onclick: async () => {
+    cdnTest.setAttribute('disabled', ''); cdnTest.textContent = '测速中…';
+    await Promise.all(CDNS.filter(([x]) => x).map(async ([x]) => { cdnMs.set(x, await ping(x)); paintCdn(); }));
+    cdnTest.removeAttribute('disabled'); cdnTest.textContent = '重新测速';
+  } }, '测速');
   const idD = toggle(s0.idDrag, '账号卡片可拖拽', (v) => save({ idDrag: v }));
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
   const autoW = toggle(s0.autoWeb, '自动网页全屏', (v) => save({ autoWeb: v }));
@@ -180,15 +258,22 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     h('section', { class: 'group' }, h('h3', {}, '外观'),
       block('明暗', null, theme),
       block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
+      block('正文字体', '填本机已经装好的字体名；标题选「无衬线」时标题也用它。留空 = 映间默认', fontBox),
+      row('数字用等宽字体', '播放量、时间、UID 这些小字；关掉后和正文字体一致', monoT),
+      block('内容缩放', '字太小时放大首页、空间、消息、历史、动态的内容区；播放页和搜索页用浏览器缩放（Ctrl +）', zoomS),
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
       block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
       row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
       row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD)),
+    h('section', { class: 'group' }, h('h3', {}, '顶栏'),
+      row('Ctrl+K 打开命令面板', 'B 站自己没有 Ctrl+K；和浏览器或其他扩展冲突时关掉，按 / 照样能打开', cmdKT),
+      block('顶栏入口', '关掉的入口不在顶栏显示；B 站入口可以用箭头调顺序。「设置」始终保留', h('div', {}, headList, h('div', { class: 'hl-foot' }, headReset)))),
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
       row('自动网页全屏', '打开视频后直接铺满浏览器窗口，按 Esc 退出', autoW),
-      row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS)),
+      row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS),
+      block('视频 CDN 节点', '卡顿或加载慢时换一个节点试试；测的是连接延迟，数字越小越好。新打开的视频生效', h('div', {}, cdnList, h('div', { class: 'hl-foot' }, cdnTest)))),
     h('section', { class: 'group' }, h('h3', {}, '首页组件'),
       row('搜索框', '关掉后用顶栏的小搜索框', searchT),
       row('日期栏', '推荐上方的日期和「For You」', dateT),
@@ -203,7 +288,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       block('强度', null, intensity),
       h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '自定义图片'), h('small', {}, '压缩后只保存在本机')), upload, file)),
     h('section', { class: 'group' }, h('h3', {}, '推荐过滤'),
-      block('屏蔽关键词', '标题包含即隐藏', kw),
+      block('屏蔽关键词', '首页标题、动态页正文包含即隐藏', kw),
       block('屏蔽 UP 主', '卡片右上角也能一键屏蔽', ups),
       block('最低播放量', null, views),
       block('最短时长', null, dur)),
@@ -230,6 +315,12 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       webS.setAttribute('aria-checked', String(s.webScroll));
       cols.set(String(s.cols));
       fontS.set(s.titleFont);
+      monoT.setAttribute('aria-checked', String(s.monoNum));
+      zoomS.set(String(s.zoom));
+      cmdKT.setAttribute('aria-checked', String(s.cmdK));
+      paintCdn();
+      paintHead();
+      if (!fontIn.matches(':focus')) fontIn.value = s.bodyFont;
       idD.setAttribute('aria-checked', String(s.idDrag));
       kw.set(s.filters.keywords);
       ups.set(s.filters.ups);

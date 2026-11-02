@@ -24,7 +24,7 @@ export class MessageApp {
 
   constructor(settings: Settings) {
     this.shell = new PageShell(settings, 'msg');
-    const m = location.hash.match(/^#\/(\w+)/);
+    const m = location.hash.match(/^#\/?(\w+)/);
     this.view = HASH[m?.[1] ?? ''] ?? 'reply';
     this.render();
   }
@@ -42,7 +42,7 @@ export class MessageApp {
       }));
     this.pane = h('section', { class: 'ms-pane' });
     this.shell.main.append(h('div', { class: 'ms' }, this.nav, this.pane));
-    addEventListener('hashchange', () => { const m = location.hash.match(/^#\/(\w+)/); const v = HASH[m?.[1] ?? '']; if (v && v !== this.view) { this.view = v; this.show(); } });
+    addEventListener('hashchange', () => { const m = location.hash.match(/^#\/?(\w+)/); const v = HASH[m?.[1] ?? '']; if (v && v !== this.view) { this.view = v; this.show(); } });
     nav().then((n) => {
       if (!n?.isLogin) { this.pane.replaceChildren(this.empty('登录后查看消息', h('a', { class: 'sp-follow', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '去登录'))); return; }
       this.me = n.mid ?? 0;

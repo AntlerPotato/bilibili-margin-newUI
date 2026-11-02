@@ -22,8 +22,8 @@ html.margin-skin {
   --m-canvas: #f5f4f1; --m-surface: #ffffff; --m-ink: #17181a; --m-muted: #5f6167; --m-faint: #66686d;
   --m-line: rgb(23 24 26 / .09); --m-chip: rgb(23 24 26 / .05); --m-accent: #00aeec;
   --m-serif: var(--margin-title, "Instrument Serif", "Margin Serif SC", "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif);
-  --m-mono: "Geist Mono", "Margin Sans SC", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --m-sans: "Geist", "Margin Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --m-mono: var(--margin-mono, "Geist Mono", "Margin Sans SC", ui-monospace, SFMono-Regular, Menlo, monospace);
+  --m-sans: var(--margin-sans, "Geist", "Margin Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
   --m-radius: 16px;
 
   --bg1: #ffffff; --bg2: #f5f4f1; --bg3: #efeeea; --bg1_float: #ffffff; --bg2_float: #f1f0ec;
@@ -56,7 +56,7 @@ html.margin-skin #biliMainHeader,
 html.margin-skin .bili-header.fixed-header { display: none !important; }
 #margin-watch-top { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; height: 72px; }
 #margin-watch-top[hidden] { display: none !important; }
-html.margin-watch .video-container-v1 { padding-top: 96px !important; }
+html.margin-watch .video-container-v1, html.margin-watch .playlist-container { padding-top: 96px !important; }
 
 /* 广告与推广 */
 html.margin-watch .ad-report, html.margin-watch .slide-ad-exp, html.margin-watch .video-card-ad-small,

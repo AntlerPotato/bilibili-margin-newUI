@@ -375,3 +375,44 @@ a.wh-card:hover { box-shadow: var(--ring), var(--sh-sm); transform: translateY(-
 .hs.dense .hi-note { display: none; }
 .hs.dense .hi-del { position: absolute; right: 14px; top: 14px; z-index: 2; }
 .wh-noface { display: grid; place-items: center; background: var(--chip); color: var(--muted); border-radius: 50%; } .wh-noface svg { width: 18px; height: 18px; }
+
+/* v0.47：空间页投稿搜索（评论区：进了 UP 主页没法搜他的视频） */
+.sp-q { display: flex; align-items: center; gap: 8px; height: 36px; width: 200px; padding: 0 12px; border-radius: 99em; background: var(--chip); color: var(--muted); box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .2s var(--ease-out), background-color .2s var(--ease-out), width .3s var(--ease-out); cursor: text; }
+.sp-q[hidden] { display: none; }
+.sp-q svg { flex: none; width: 16px; height: 16px; }
+.sp-q:focus-within { width: 260px; background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 24%, transparent), 0 0 0 4px color-mix(in srgb, var(--ink) 6%, transparent); }
+.sp-q-in { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--ink); font: 13px/1 var(--sans); }
+.sp-q-in::placeholder { color: var(--faint); }
+.sp-q-in::-webkit-search-cancel-button { display: none; }
+@media (prefers-reduced-motion: reduce) { .sp-q { transition: none; } }
+/* v0.47.1：空间页吸顶时标签和工具条用近实底，不再直接压在封面上（列表里不叠 backdrop-filter，省合成） */
+.sp-bar.stuck .tabs { background-color: color-mix(in srgb, var(--canvas) 90%, transparent); }
+.sp-bar.stuck .tab-n { display: none; }
+.sp-bar.stuck .sp-q:not(:focus-within), .sp-bar.stuck .sp-sort { background-color: color-mix(in srgb, var(--canvas) 90%, transparent); box-shadow: var(--ring), var(--sh-sm); }
+/* v0.47.2：图组查看器（GitHub #8） */
+.lb { position: fixed; inset: 0; z-index: 2147483000; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgb(10 10 11 / .94); color: #fff; opacity: 0; transition: opacity .2s var(--ease-out); }
+.lb[data-open] { opacity: 1; }
+.lb-top { display: flex; align-items: center; gap: 8px; padding: 16px 20px; }
+.lb-sp { flex: 1; }
+.lb-count { font: 500 13px/1 var(--mono); color: rgb(255 255 255 / .72); }
+.lb-btn { height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: rgb(255 255 255 / .1); color: #fff; font: 500 13px/32px var(--sans); text-decoration: none; cursor: pointer; transition: background .15s; }
+.lb-btn:hover { background: rgb(255 255 255 / .18); }
+.lb-stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 0 72px; }
+.lb-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 40px rgb(0 0 0 / .5); }
+.lb-nav { position: absolute; top: 50%; translate: 0 -50%; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgb(255 255 255 / .1); color: #fff; font: 300 28px/40px var(--sans); cursor: pointer; transition: background .15s; }
+.lb-nav:hover { background: rgb(255 255 255 / .2); }
+.lb-nav.prev { left: 16px; } .lb-nav.next { right: 16px; }
+.lb-thumbs { display: flex; gap: 8px; justify-content: safe center; overflow-x: auto; padding: 16px 20px 20px; scrollbar-width: none; }
+.lb-th { flex: none; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: rgb(255 255 255 / .06); opacity: .5; cursor: pointer; transition: opacity .15s, box-shadow .15s; }
+.lb-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lb-th:hover { opacity: .8; }
+.lb-th[data-on] { opacity: 1; box-shadow: 0 0 0 2px #fff; }
+/* v0.47.2：长动态折叠 + 整卡可点 */
+.dy-text.fold { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 8; overflow: hidden; }
+.dy-more { display: block; justify-self: start; align-self: flex-start; width: fit-content; margin: 4px 0 0; padding: 0; border: 0; background: none; color: var(--accent-text); font: 500 14px/24px var(--sans); cursor: pointer; }
+.dy-more:hover { text-decoration: underline; }
+.dy[data-href] { cursor: pointer; }
+.dy[data-href] .dy-body, .dy[data-href] .dy-stat { cursor: pointer; }
+.dy-pics a { cursor: zoom-in; }
+.dy-pics a { position: relative; }
+.dy-pics-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / .5); color: #fff; font: 500 20px/1 var(--mono); border-radius: inherit; }

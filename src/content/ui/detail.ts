@@ -350,7 +350,7 @@ export class DetailAside {
 /** 挂载详情页增强；番剧页只补评论区皮肤（版式在 detail.css 里） */
 export function mountDetail(kind: DetailKind): DetailAside | null {
   // 详情页的「评论 / 赞与转发」标签已经写了评论数，评论区自己的大标题就不再重复
-  skinComments(kind === 'bangumi' ? undefined : { 'bili-comments-header-renderer': '#title { display: none !important; } #sort-actions { margin-left: 0 !important; }' });
+  skinComments(kind === 'bangumi' ? undefined : { 'bili-comments-header-renderer': '#title { display: none !important; } #sort-actions { margin-left: 0 !important; } #navbar { padding-top: 20px !important; }' });
   if (kind === 'bangumi') return null;
   return new DetailAside(kind);
 }
