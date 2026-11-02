@@ -2,6 +2,12 @@
 
 # Changelog
 
+## [v0.47.4](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.4) · 2026-11-02
+
+- Messages: images in a chat open in an in-page lightbox (← → to switch, Esc to close); Ctrl-click still opens the original in a new tab.
+- Comments: Enter sends, Shift + Enter adds a line; never sends while an IME is composing or an @ mention is being typed.
+- Settings: rarely changed options moved into collapsible drawers that show the current value when closed. Design reference: 21st "Accordion" (coss.com) and "Disclosure" (hero_ui).
+
 ## [v0.47.3](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.3) · 2026-11-02
 
 GitHub issues:
@@ -11,43 +17,36 @@ GitHub issues:
 
 ## [v0.47.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.2) · 2026-11-02
 
-- Live room skin: MARGIN header, canvas background instead of the room skin, rounded player and chat cards, light / dark aware. Playback, danmaku, gifts and chat untouched; full-page event templates stay native.
-- Video CDN node picker with latency test (Settings › Watch page). Only the stream host is rewritten and the original URLs stay as backups. Idea from bilisail.
-- New home tab "Classics": the most-played videos older than 90 days from random followed uploaders.
-- Ctrl+K can be turned off (Settings › Header); / still opens the command palette.
-
-## [v0.47.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.2) · 2026-11-02
-
-- Live room skin: MARGIN header, canvas background instead of the room skin, rounded player and chat cards, light / dark aware. Playback, danmaku, gifts and chat untouched; full-page event templates stay native.
-- Video CDN node picker with latency test (Settings › Watch page). Only the stream host is rewritten and the original URLs stay as backups. Idea from bilisail.
-- New home tab "Classics": the most-played videos older than 90 days from random followed uploaders.
-- Ctrl+K can be turned off (Settings › Header); / still opens the command palette.
+- Live room skin: MARGIN header, canvas background instead of the room skin, rounded player and chat cards, light / dark aware. Playback, danmaku, gifts and chat untouched; full-page event templates stay native. Thanks to @桃花映眼 for suggesting reskinning live rooms.
+- Video CDN node picker with latency test (Settings › Watch page). Only the stream host is rewritten and the original URLs stay as backups. Idea from bilisail. Thanks to @离港码头 for suggesting picking and speed-testing CDN nodes.
+- New home tab "Classics": the most-played videos older than 90 days from random followed uploaders. Thanks to @wsxszzz for suggesting surfacing followed creators' older popular videos.
+- Ctrl+K can be turned off (Settings › Header); / still opens the command palette. Thanks to @真红love的宝贝鱼 for suggesting handling Ctrl+K shortcut conflicts.
 
 ## [v0.47.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.1) · 2026-11-02
 
-- Header shortcuts are customizable: toggle each entry in Settings › Header and reorder the Bilibili links with arrows; Settings always stays, with a reset button.
-- Content zoom 100% / 110% / 120% for home, space, messages, history and feed; sticky tabs keep their offset.
+- Header shortcuts are customizable: toggle each entry in Settings › Header and reorder the Bilibili links with arrows; Settings always stays, with a reset button. Thanks to @离港码头 for suggesting customizing header icons.
+- Content zoom 100% / 110% / 120% for home, space, messages, history and feed; sticky tabs keep their offset. Thanks to @桃花映眼, @゙゙入间美兔 for suggesting text being too small and too much whitespace.
 - Space page tabs and tools become a sticky pill bar instead of sitting on top of video covers.
 
 ## [v0.47.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.47.0) · 2026-11-02
 
-- Fix "Message" on the watch-page uploader card opening Replies instead of the chat: Bilibili links use `#whisper/mid…` (no slash); both forms now open that conversation.
-- Space page: search within the uploader's videos (box next to the Videos tab, Esc clears).
-- Space page: "Recent coins" and "Recent likes" tabs, shown only when the user made them public.
-- Fix missing space banner: complete legacy host-less `bfs/space/…` paths; fall back to `web-interface/card` for name, avatar and banner when acc/info is risk-controlled (-352).
-- Weather clock runs on its own 15 s task instead of the sky animation, so it no longer freezes while scrolling, with a sheet open, or under reduced motion (the sun/moon still move with local time). Weather data refreshes every 30 minutes.
-- Watch-page scroll ruler can be dragged, not just clicked.
-- Home: the header search fades in once the big search box scrolls out of view.
-- Settings › Appearance: "Body font" (any installed font name; also used for titles when set to Sans) and a "Monospace numbers" toggle.
-- Warn once when BewlyBewly (or a similar full-site extension) is also running, since the two take over the same pages (reported: only the search page restyled on Edge).
+- Fix "Message" on the watch-page uploader card opening Replies instead of the chat: Bilibili links use `#whisper/mid…` (no slash); both forms now open that conversation. Thanks to @离港码头 for suggesting fixing the message link.
+- Space page: search within the uploader's videos (box next to the Videos tab, Esc clears). Thanks to @戊水Amber for suggesting searching within a creator's space.
+- Space page: "Recent coins" and "Recent likes" tabs, shown only when the user made them public. Thanks to @离港码头 for suggesting showing recent coins and likes.
+- Fix missing space banner: complete legacy host-less `bfs/space/…` paths; fall back to `web-interface/card` for name, avatar and banner when acc/info is risk-controlled (-352). Thanks to @FUSEAKIRA for suggesting the missing space banner.
+- Weather clock runs on its own 15 s task instead of the sky animation, so it no longer freezes while scrolling, with a sheet open, or under reduced motion (the sun/moon still move with local time). Weather data refreshes every 30 minutes. Thanks to @海虎爆破拳11 for suggesting the frozen weather clock.
+- Watch-page scroll ruler can be dragged, not just clicked. Thanks to @海虎爆破拳11 for suggesting dragging the scroll ruler.
+- Home: the header search fades in once the big search box scrolls out of view. Thanks to @吉安天命 for suggesting keeping search visible while scrolling.
+- Settings › Appearance: "Body font" (any installed font name; also used for titles when set to Sans) and a "Monospace numbers" toggle. Thanks to @我的王之力啊123, @Eyedazzler for suggesting choosing a local font and turning off mono.
+- Warn once when BewlyBewly (or a similar full-site extension) is also running, since the two take over the same pages (reported: only the search page restyled on Edge). Thanks to @Eous_the_Bangboo for suggesting only the search page working in Edge.
 
 ## [v0.46.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.46.0) · 2026-11-01
 
-- "Not interested" on home cards: hover × or the context menu fades the card out and reports it through Bilibili's own home-feed feedback endpoint, with undo (which cancels the feedback). "Block uploader" also tells Bilibili "don't show this uploader".
-- Fix message center unread dots not clearing until refresh: opening a whisper sends the read ack (update_ack); opening replies / @ / likes / system clears the sidebar count and advances the system read cursor; the header badge refreshes right away.
-- The "Grain" background no longer looks like TV static: grain is now fixed to screen pixels instead of re-randomised every frame, at half strength (frame-to-frame flicker 1.03 → 0.07).
-- New appearance setting "Title font": serif (default) or sans, applied to home, takeover and skinned pages.
-- New appearance setting "Draggable account card": off keeps the card hanging still; click still flips it.
+- "Not interested" on home cards: hover × or the context menu fades the card out and reports it through Bilibili's own home-feed feedback endpoint, with undo (which cancels the feedback). "Block uploader" also tells Bilibili "don't show this uploader". Thanks to @A一命二运三风水 for suggesting disliked videos still being recommended.
+- Fix message center unread dots not clearing until refresh: opening a whisper sends the read ack (update_ack); opening replies / @ / likes / system clears the sidebar count and advances the system read cursor; the header badge refreshes right away. Thanks to @Weslie077, @戊水Amber for suggesting unread dots not clearing.
+- The "Grain" background no longer looks like TV static: grain is now fixed to screen pixels instead of re-randomised every frame, at half strength (frame-to-frame flicker 1.03 → 0.07). Thanks to @昂卟哩唔啵 for suggesting the flickering grain background.
+- New appearance setting "Title font": serif (default) or sans, applied to home, takeover and skinned pages. Thanks to @这是我小号不用怀疑, @Eyedazzler for suggesting letting users choose the font.
+- New appearance setting "Draggable account card": off keeps the card hanging still; click still flips it. Thanks to @nianyi呀 for suggesting a switch for dragging the account card.
 - Card hover buttons drop their backdrop blur for a solid translucent fill.
 
 ## [v0.45.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.45.0) · 2026-11-01
@@ -66,11 +65,11 @@ GitHub issues:
 
 ## [v0.43.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.43.0) · 2026-11-01
 
-- Settings "Home top" becomes "Home components": hide the search box, date row or refresh button individually; hiding the big search brings back the header search.
+- Settings "Home top" becomes "Home components": hide the search box, date row or refresh button individually; hiding the big search brings back the header search. Thanks to @Riiiiiiiiick for suggesting managing home components.
 - New "Card info": toggle uploader, views, danmaku, publish time, duration and recommendation reason on home video cards; separators follow automatically.
 - Less stutter: the animated background freezes while a video plays and in web/full screen, pauses while scrolling, and drops to 30 fps below the first screen; the weather card drops its blur while scrolling; closed settings/favorites sheets no longer take part in compositing.
-- New header "Zones" entry: hover for 24 Bilibili zones (anime, guochuang, movies, animation, games, knowledge…).
-- New "Watch page" settings: auto web fullscreen (off by default); scrollable web fullscreen (on by default) — scroll down to the comments while the player scrolls away, Esc exits.
+- New header "Zones" entry: hover for 24 Bilibili zones (anime, guochuang, movies, animation, games, knowledge…). Thanks to @真新镇的撒东西 for suggesting the missing zones entry.
+- New "Watch page" settings: auto web fullscreen (off by default); scrollable web fullscreen (on by default) — scroll down to the comments while the player scrolls away, Esc exits. Thanks to @scorpio19xx for suggesting auto web fullscreen and scrolling to comments in web fullscreen.
 
 ## [v0.42.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.2) · 2026-11-01
 
@@ -79,14 +78,14 @@ GitHub issues:
 
 ## [v0.42.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.1) · 2026-11-01
 
-- Fix web-fullscreen player being covered by the right column (uploader card, danmaku list, recommendations); header hides in web fullscreen.
+- Fix web-fullscreen player being covered by the right column (uploader card, danmaku list, recommendations); header hides in web fullscreen. Thanks to @子时欧拉欧拉欧拉 for suggesting the covered web-fullscreen player.
 
 ## [v0.42.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.42.0) · 2026-11-01
 
 - Player control bar back to Bilibili's original (v0.40.0 floating glass dock removed), in-video views · danmaku chip removed.
-- Video cards show danmaku count: uploader · views · danmaku · time; time hides first on narrow cards.
-- New setting "Videos per row" on home: auto (6–8 by width) / 4 / 5.
-- Favorites "play all" and watch-later playlists (/list/…) use the watch page styling.
+- Video cards show danmaku count: uploader · views · danmaku · time; time hides first on narrow cards. Thanks to @ooohes for suggesting showing danmaku counts on cards.
+- New setting "Videos per row" on home: auto (6–8 by width) / 4 / 5. Thanks to @看到你时我的表情belike for suggesting four videos per row.
+- Favorites "play all" and watch-later playlists (/list/…) use the watch page styling. Thanks to @55348868 for suggesting supporting favorites play-all.
 - Header hover popovers (live, messages, feed, history, favorites, watch later) open instantly, no 1.5s delay.
 
 ## [v0.41.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.41.0) · 2026-11-01
@@ -119,15 +118,15 @@ GitHub issues:
 
 ## [v0.39.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.1) · 2026-11-01
 
-- Style consistency pass (first round, for the "UI feels inconsistent" feedback): header gets a progressive blur + stronger fade when content scrolls under it; standalone pages drop the redundant Home button so every header has the same entries; stray radii (5/7/9/11px) snapped to 6/8/10/12px, one pink (#fb7299), search tab text back on the type scale (14px).
+- Style consistency pass (first round, for the "UI feels inconsistent" feedback): header gets a progressive blur + stronger fade when content scrolls under it; standalone pages drop the redundant Home button so every header has the same entries; stray radii (5/7/9/11px) snapped to 6/8/10/12px, one pink (#fb7299), search tab text back on the type scale (14px). Thanks to @P1r2y for suggesting the UI feeling inconsistent.
 
 ## [v0.39.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.39.0) · 2026-11-01
 
-- Header hover lists now cover more entries (same 1.5 s rest delay, one open at a time): Live (followed streamers on air), Messages (unread per category), History (last 8 with progress and device), Favorites (folders with counts; clicking still opens the drawer), Watch later (with duration and progress).
+- Header hover lists now cover more entries (same 1.5 s rest delay, one open at a time): Live (followed streamers on air), Messages (unread per category), History (last 8 with progress and device), Favorites (folders with counts; clicking still opens the drawer), Watch later (with duration and progress). Thanks to @不遇春雪 for suggesting a hover list for history.
 
 ## [v0.38.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.38.0) · 2026-11-01
 
-- Header "动态" (Moments) hover list: rest the pointer on the button for 1.5 s to open the latest 8 followed posts (avatar, uploader, time, type, title, cover). Move into the panel to keep browsing; leaving or Esc closes it, and opening clears the unread badge. Passing over the header does not trigger it.
+- Header "动态" (Moments) hover list: rest the pointer on the button for 1.5 s to open the latest 8 followed posts (avatar, uploader, time, type, title, cover). Move into the panel to keep browsing; leaving or Esc closes it, and opening clears the unread badge. Passing over the header does not trigger it. Thanks to @星星不在闪耀 for suggesting showing recent posts on hover.
 
 ## [v0.37.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.2) · 2026-11-01
 
@@ -135,17 +134,17 @@ GitHub issues:
 
 ## [v0.37.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.1) · 2026-11-01
 
-- Watch page quick menu moved from bottom-center to the bottom-left corner. Collapsed it is a small translucent round button (fully visible on hover), so it no longer covers the video or comments; it still expands into the same panel.
+- Watch page quick menu moved from bottom-center to the bottom-left corner. Collapsed it is a small translucent round button (fully visible on hover), so it no longer covers the video or comments; it still expands into the same panel. Thanks to @DML靓仔 for suggesting moving the quick menu off center.
 
 ## [v0.37.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.37.0) · 2026-11-01
 
 Fixes from Bilibili comment feedback.
 
-- Home infinite scroll: fixed the feed sometimes stopping at the bottom. It now re-checks remaining height after each load and when scrolling stops, retries later when a whole batch is filtered or duplicated, and silently retries the recommendation API twice on transient errors. Same fix on the Following feed page.
-- ID card lag in Firefox: the card is positioned with `transform` and its size is cached, removing a forced reflow every frame; the bead chain only clears last frame's area; the photo backdrop uses an upscaled tiny image instead of `filter: blur`; the holo stripe only animates while hovered; blend-mode layers are dropped in Firefox.
-- Following feed avatar strip: creators with new posts come first and get an accent ring plus a dot (the logic existed but had no styles); the selected avatar now uses an ink ring so it reads differently.
-- Your own space page: Follow / Message are replaced by Favorites, History and Watch later shortcuts.
-- Favorites: new setting "Open favorites directly" lists all videos on click instead of fanning out the latest four. Home now opens Favorites / Watch later from `bilibili.com/#fav` and `#later`; the ID card shortcuts use them.
+- Home infinite scroll: fixed the feed sometimes stopping at the bottom. It now re-checks remaining height after each load and when scrolling stops, retries later when a whole batch is filtered or duplicated, and silently retries the recommendation API twice on transient errors. Same fix on the Following feed page. Thanks to @小龙爱搓澡 for suggesting infinite scroll stalling.
+- ID card lag in Firefox: the card is positioned with `transform` and its size is cached, removing a forced reflow every frame; the bead chain only clears last frame's area; the photo backdrop uses an upscaled tiny image instead of `filter: blur`; the holo stripe only animates while hovered; blend-mode layers are dropped in Firefox. Thanks to @雪花Snow-Official for suggesting ID card lag in Firefox.
+- Following feed avatar strip: creators with new posts come first and get an accent ring plus a dot (the logic existed but had no styles); the selected avatar now uses an ink ring so it reads differently. Thanks to @--聪聪子-- for suggesting avatars for creators with new posts.
+- Your own space page: Follow / Message are replaced by Favorites, History and Watch later shortcuts. Thanks to @--聪聪子-- for suggesting history and favorites on your own space.
+- Favorites: new setting "Open favorites directly" lists all videos on click instead of fanning out the latest four. Home now opens Favorites / Watch later from `bilibili.com/#fav` and `#later`; the ID card shortcuts use them. Thanks to @--聪聪子-- for suggesting opening favorites directly.
 
 ## [v0.36.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.36.1) · 2026-10-31
 
@@ -159,14 +158,14 @@ Safe-DOM cleanup ahead of Firefox Add-ons review.
 
 Firefox support.
 
-- New Firefox package `margin-firefox.zip` (Firefox 140+), attached to every release alongside `margin.zip`. The code is identical to the Chrome build; only the manifest differs: an event-page background for Firefox, a gecko extension ID, and a data-collection declaration (weather uses an IP-based city lookup).
+- New Firefox package `margin-firefox.zip` (Firefox 140+), attached to every release alongside `margin.zip`. The code is identical to the Chrome build; only the manifest differs: an event-page background for Firefox, a gecko extension ID, and a data-collection declaration (weather uses an IP-based city lookup). Thanks to @秋前雨- for suggesting Firefox support.
 - Fixed always appearing logged out in Firefox: Firefox content-script requests are sent as the extension, so Bilibili APIs never saw the login. Requests to Bilibili domains now go out as the page; Chrome and Edge are unaffected.
 - Tested on Firefox 153 ESR across home, watch, search, space, feed, messages and history pages in light and dark themes.
 - Install via `about:debugging` → Load Temporary Add-on (removed on restart) until MARGIN is listed on Firefox Add-ons. The README now covers Firefox and other Chromium browsers.
 
 ## [v0.35.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.35.0) · 2026-10-31
 
-- The Footprint heatmap and the weather card at the top of the home page can now be turned off separately: Settings → Home top. Both stay on by default.
+- The Footprint heatmap and the weather card at the top of the home page can now be turned off separately: Settings → Home top. Both stay on by default. Thanks to @看不见的战争 for suggesting hiding the heatmap and weather card.
 - Turning Footprint off only hides it; activity is still recorded locally and comes back when you turn it on again. Turning weather off stops all weather and city-lookup requests.
 - With both off, only the search bar remains and the feed moves up; with weather alone, the card keeps its 480 × 240 size, aligned left.
 - When Footprint is off, the header Footprint button and the palette's "看足迹" show a notice with a one-tap turn-on.
@@ -174,7 +173,7 @@ Firefox support.
 
 ## [v0.34.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.34.2) · 2026-10-31
 
-- Added the missing Live entry: a 直播 (Live) link now leads the header shortcuts on every redesigned page, the command palette (Ctrl K) finds it by "直播" or "live", and the account card's quick links include it too.
+- Added the missing Live entry: a 直播 (Live) link now leads the header shortcuts on every redesigned page, the command palette (Ctrl K) finds it by "直播" or "live", and the account card's quick links include it too. Thanks to @常喝新西粥 for suggesting adding a Live entry.
 
 ## [v0.34.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.34.1) · 2026-10-30
 

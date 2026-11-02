@@ -254,44 +254,72 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const exportBtn = h('button', { type: 'button', class: 'ghost small', onclick: exportData }, h('span', {}, '导出'));
   const importBtn = h('button', { type: 'button', class: 'ghost small', onclick: () => json.click() }, h('span', {}, '导入'));
 
+
+  /**
+   * 抽屉（v0.47.4，用户：非必要的设置收进抽屉）：标题行 + 当前值摘要 + 箭头，点开后高度用 grid 0fr→1fr 过渡，
+   * 不读布局；收起时内容 inert，不进 Tab 顺序。参考 21st「Accordion」(coss.com) 与「Disclosure」(hero_ui) 的结构与键盘行为，原生重写。
+   */
+  const drawers: (() => void)[] = [];
+  const drawer = (title: string, sum: () => string, ...kids: (Node | null)[]) => {
+    const id = `sd-${drawers.length}`;
+    const note = h('small', { class: 'sd-sum' });
+    const inner = h('div', { class: 'sd-in' }, ...kids.filter(Boolean) as Node[]);
+    const panel = h('div', { class: 'sd-panel', id, role: 'region' }, inner);
+    const btn = h('button', { type: 'button', class: 'sd-head', 'aria-expanded': 'false', 'aria-controls': id },
+      h('span', { class: 'sd-t' }, title), note, h('span', { class: 'sd-chev', 'aria-hidden': 'true' })) as HTMLButtonElement;
+    btn.querySelector('.sd-chev')!.innerHTML = '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const set = (open: boolean) => { btn.setAttribute('aria-expanded', String(open)); wrap.toggleAttribute('data-open', open); inner.toggleAttribute('inert', !open); };
+    btn.onclick = () => set(btn.getAttribute('aria-expanded') !== 'true');
+    const wrap = h('div', { class: 'sd' }, btn, panel);
+    const paint = () => { note.textContent = sum(); };
+    drawers.push(paint); paint(); set(false);
+    return wrap;
+  };
   sheet.body.append(
     h('section', { class: 'group' }, h('h3', {}, '外观'),
       block('明暗', null, theme),
-      block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
-      block('正文字体', '填本机已经装好的字体名；标题选「无衬线」时标题也用它。留空 = 映间默认', fontBox),
-      row('数字用等宽字体', '播放量、时间、UID 这些小字；关掉后和正文字体一致', monoT),
-      block('内容缩放', '字太小时放大首页、空间、消息、历史、动态的内容区；播放页和搜索页用浏览器缩放（Ctrl +）', zoomS),
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
-      row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
-      block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
-      row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
-      row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD)),
+      drawer('字体与缩放', () => { const st = get(); return [st.titleFont === 'sans' ? '无衬线标题' : '衬线标题', st.bodyFont || '', st.zoom !== 100 ? `${st.zoom}%` : ''].filter(Boolean).join(' · '); },
+        block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
+        block('正文字体', '填本机已经装好的字体名；标题选「无衬线」时标题也用它。留空 = 映间默认', fontBox),
+        row('数字用等宽字体', '播放量、时间、UID 这些小字；关掉后和正文字体一致', monoT),
+        block('内容缩放', '字太小时放大首页、空间、消息、历史、动态的内容区；播放页和搜索页用浏览器缩放（Ctrl +）', zoomS)),
+      drawer('布局与细节', () => { const st = get(); return st.cols ? `每行 ${st.cols} 个` : '每行自动'; },
+        block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
+        row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
+        row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
+        row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD))),
     h('section', { class: 'group' }, h('h3', {}, '顶栏'),
       row('Ctrl+K 打开命令面板', 'B 站自己没有 Ctrl+K；和浏览器或其他扩展冲突时关掉，按 / 照样能打开', cmdKT),
-      block('顶栏入口', '关掉的入口不在顶栏显示；B 站入口可以用箭头调顺序。「设置」始终保留', h('div', {}, headList, h('div', { class: 'hl-foot' }, headReset)))),
+      drawer('顶栏入口', () => { const n = get().headHide.length; return n ? `已隐藏 ${n} 个` : '全部显示'; },
+        h('p', { class: 'sd-note' }, '关掉的入口不在顶栏显示；B 站入口可以用箭头调顺序。「设置」始终保留'), headList, h('div', { class: 'hl-foot' }, headReset))),
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
       row('自动网页全屏', '打开视频后直接铺满浏览器窗口，按 Esc 退出', autoW),
       row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS),
-      block('视频 CDN 节点', '卡顿或加载慢时换一个节点试试；测的是连接延迟，数字越小越好。新打开的视频生效', h('div', {}, cdnList, h('div', { class: 'hl-foot' }, cdnTest)))),
+      drawer('视频 CDN 节点', () => CDNS.find(([x]) => x === get().cdn)?.[1] ?? 'B 站默认',
+        h('p', { class: 'sd-note' }, '卡顿或加载慢时换一个节点试试；测的是连接延迟，数字越小越好。新打开的视频生效'), cdnList, h('div', { class: 'hl-foot' }, cdnTest))),
     h('section', { class: 'group' }, h('h3', {}, '首页组件'),
       row('搜索框', '关掉后用顶栏的小搜索框', searchT),
       row('日期栏', '推荐上方的日期和「For You」', dateT),
       row('换一批按钮', null, refreshT),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT),
-      block('天气城市', 'IP 定位不准时手动选一个；留空 = 自动定位', cityBox),
-      block('卡片信息', '首页视频卡片下面显示哪些，点一下开关', cardBits)),
+      drawer('天气城市与卡片信息', () => { const l = savedLoc(); return l?.manual ? l.name : '自动定位'; },
+        block('天气城市', 'IP 定位不准时手动选一个；留空 = 自动定位', cityBox),
+        block('卡片信息', '首页视频卡片下面显示哪些，点一下开关', cardBits))),
     h('section', { class: 'group' }, h('h3', {}, '背景'),
       block('模式', '随机：每次打开换一款，不连续重复', mode),
       block('样式', null, swatches),
-      block('强度', null, intensity),
-      h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '自定义图片'), h('small', {}, '压缩后只保存在本机')), upload, file)),
+      drawer('强度与自定义图片', () => '',
+        block('强度', null, intensity),
+        h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '自定义图片'), h('small', {}, '压缩后只保存在本机')), upload, file))),
     h('section', { class: 'group' }, h('h3', {}, '推荐过滤'),
       block('屏蔽关键词', '首页标题、动态页正文包含即隐藏', kw),
       block('屏蔽 UP 主', '卡片右上角也能一键屏蔽', ups),
-      block('最低播放量', null, views),
-      block('最短时长', null, dur)),
+      drawer('播放量与时长', () => '',
+        block('最低播放量', null, views),
+        block('最短时长', null, dur))),
     h('section', { class: 'group' }, h('h3', {}, '数据'),
       h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '备份与迁移'), h('small', {}, '设置和足迹导出成 JSON 文件；不含自定义背景图片')),
         h('div', { class: 'data-acts' }, exportBtn, importBtn), json)),
@@ -300,6 +328,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   return {
     sheet,
     sync(s) {
+      drawers.forEach((f) => f());
       theme.set(s.theme);
       preview.setAttribute('aria-checked', String(s.hoverPreview));
       intro.setAttribute('aria-checked', String(s.intro));

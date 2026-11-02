@@ -1639,3 +1639,19 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .hl-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
 .dp-end { margin: 0; padding: 12px 0 4px; text-align: center; font-size: 12px; color: var(--muted); }
 .dp-tail { display: block; height: 1px; }
+
+/* 设置抽屉（v0.47.4）：grid 0fr→1fr 展开，不读布局 */
+.sd { border-radius: 12px; margin: 4px 0; background: color-mix(in srgb, var(--ink) 3%, transparent); box-shadow: var(--ring); }
+.sd-head { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px 0 14px; border-radius: 12px; cursor: pointer; font: 500 14px/1.3 var(--sans); color: var(--ink); transition: background 150ms var(--ease-out); }
+.sd-head:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.sd-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sd-t { flex: none; }
+.sd-sum { flex: 1; min-width: 0; text-align: right; font: 400 12px/1.3 var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sd-chev { flex: none; display: grid; width: 16px; height: 16px; color: var(--muted); transition: transform 200ms var(--ease-out); }
+.sd[data-open] .sd-chev { transform: rotate(180deg); }
+.sd-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms var(--ease-out); }
+.sd[data-open] .sd-panel { grid-template-rows: 1fr; }
+.sd-in { min-height: 0; overflow: hidden; padding: 0 14px; opacity: 0; transition: opacity 200ms var(--ease-out), padding 300ms var(--ease-out); }
+.sd[data-open] .sd-in { padding: 4px 14px 12px; opacity: 1; }
+.sd-note { margin: 4px 0 10px; font: 400 12px/1.5 var(--sans); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .sd-panel, .sd-in, .sd-chev { transition: none; } }

@@ -198,6 +198,9 @@ a.sp-stat:hover b { color: var(--accent); }
 .wh-m p { margin: 0; padding: 10px 16px; border-radius: 16px 16px 16px 4px; background: var(--chip); font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 .wh-m.me p { background: var(--ink); color: var(--canvas); border-radius: 16px 16px 4px 16px; }
 .wh-m img { max-width: 240px; border-radius: 12px; }
+.wh-mimg { display: block; cursor: zoom-in; border-radius: 12px; }
+.wh-mimg img { display: block; }
+.wh-mimg:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
 .wh-m time { font: 500 10px/1 var(--mono); color: var(--faint); }
 .wh-compose { display: flex; gap: 10px; align-items: flex-end; padding: 16px 16px; border-top: 1px solid var(--line); }
 .wh-input { flex: 1; resize: none; min-height: 40px; max-height: 120px; padding: 10px 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--canvas); color: var(--ink); font: inherit; font-size: 14px; outline: 0; }

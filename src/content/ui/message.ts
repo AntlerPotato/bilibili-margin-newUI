@@ -2,6 +2,7 @@ import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
 import { ackSession, ats, likes, messages, replies, sendText, sessions, system, systemRead, unread, type Notice, type Page, type Session } from '../api/msg';
 import { dayBucket, fmtAgo, h, icon, ICONS, svg } from './dom';
+import { openLightbox } from './lightbox';
 import { toast } from './controls';
 import { csrf, PageShell } from './shell';
 
@@ -223,7 +224,12 @@ export class MessageApp {
           !me ? h('a', { class: `wh-mface${showFace ? '' : ' ghost'}`, href: `https://space.bilibili.com/${s.talker}`, target: '_blank', rel: 'noopener', 'aria-label': `${name} 的个人空间`, tabindex: showFace ? '0' : '-1' },
             showFace && face ? h('img', { src: face, alt: '', referrerpolicy: 'no-referrer' }) : null) : null,
           h('div', { class: 'wh-mb' },
-            m.image ? h('img', { src: `${m.image}@360w.webp`, alt: '', referrerpolicy: 'no-referrer' }) : null,
+            m.image ? h('a', { class: 'wh-mimg', href: m.image, target: '_blank', rel: 'noopener', 'aria-label': '查看图片', onclick: (ev: Event) => { const e = ev as MouseEvent;
+              if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              const pics = list.filter((x) => x.image).map((x) => x.image as string);
+              openLightbox(pics, pics.indexOf(m.image as string), log.getRootNode());
+            } }, h('img', { src: /\.gif(\?|$)/i.test(m.image) ? m.image : `${m.image}@360w.webp`, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' })) : null,
             m.text ? h('p', {}, m.text) : null,
             card,
             h('time', {}, fmtAgo(m.ts))));
