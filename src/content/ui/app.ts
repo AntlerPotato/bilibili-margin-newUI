@@ -234,10 +234,10 @@ export class MarginApp {
     let scrollT = 0;
     this.app.addEventListener('scroll', () => {
       this.bg.redraw();
-      if (!scrollT) { this.app.classList.add('scrolling'); this.bg.hold('scroll', true); }
+      if (!scrollT) this.app.classList.add('scrolling');
       clearTimeout(scrollT);
       scrollT = window.setTimeout(() => {
-        scrollT = 0; this.app.classList.remove('scrolling'); this.bg.hold('scroll', false);
+        scrollT = 0; this.app.classList.remove('scrolling');
         // 滚过首屏后背景基本被卡片盖住，30 帧就够
         this.bg.cap(this.app.scrollTop > innerHeight * 0.8 ? 30 : 0);
         this.fillIfShort();

@@ -279,7 +279,7 @@ export class BackgroundLayer {
   private fastRun = 0;
 
   /**
-   * 暂停原因（v0.43）：播放视频、全屏、滚动中……只要还有一个原因在，背景就停在当前帧。
+   * 暂停原因（v0.43）：播放视频、全屏等场景；只要还有一个原因在，背景就停在当前帧。
    * 背景停着，上面那些毛玻璃也就不用每帧重算模糊。
    */
   private holds = new Set<string>();
