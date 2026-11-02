@@ -41,11 +41,11 @@ function smoothWheelScroll(strip: HTMLElement) {
     }
     target = next;
     if (frame) return;
-    let lastTime = 0;
+    let lastTime = 0, position = strip.scrollLeft;
     const animate = (now: number) => {
       const finish = () => { frame = 0; target = null; strip.style.scrollBehavior = scrollBehavior; };
       if (!strip.isConnected) { finish(); return; }
-      const remaining = (target ?? strip.scrollLeft) - strip.scrollLeft;
+      const remaining = (target ?? position) - position;
       if (Math.abs(remaining) < 0.5) {
         strip.scrollLeft = target ?? strip.scrollLeft;
         finish();
@@ -54,7 +54,9 @@ function smoothWheelScroll(strip: HTMLElement) {
       const elapsed = lastTime ? Math.min(32, now - lastTime) : 16;
       lastTime = now;
       // 连续滚轮输入合并到同一条缓动曲线上，避免每个事件重启原生平滑滚动。
-      strip.scrollLeft += remaining * (1 - Math.exp(-elapsed / 90));
+      // 保留小数位置，避免浏览器取整后缓动停在终点前一像素。
+      position += remaining * (1 - Math.exp(-elapsed / 90));
+      strip.scrollLeft = position;
       frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
