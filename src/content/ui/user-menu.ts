@@ -184,6 +184,9 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
   const ctx = canvas.getContext('2d')!;
   const anchor = { x: 0, y: 0 };
   const points: Pt[] = [];
+  // 链长会随视口/头像位置变化：头像贴右边缘时静止点被夹回视口内，链子必须同步变长，
+  // 否则水平重力过大，卡片会被甩到页面中间（YouTube 顶栏暴露了这个边界情况）
+  let restLen = REST_LENGTH, segLen = SEGMENT_LENGTH;
   let dragging = false, flipped = false, interacted = false;
   let downPos = { x: 0, y: 0 }, pointer = { x: 0, y: 0 }, lastPointer = { x: 0, y: 0 };
   const velocity = { x: 0, y: 0 };
@@ -207,7 +210,10 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
     anchor.x = r.left + r.width / 2;
     anchor.y = r.bottom - 3;
     restX = Math.min(anchor.x, innerWidth - (236 * CARD_SCALE) / 2 - 20);
-    const dx = restX - anchor.x, dy = Math.sqrt(Math.max(1, REST_LENGTH ** 2 - dx * dx));
+    const dx = restX - anchor.x;
+    restLen = Math.max(REST_LENGTH, Math.hypot(dx, REST_LENGTH * 0.65));
+    const dy = Math.sqrt(Math.max(1, restLen ** 2 - dx * dx));
+    segLen = restLen / (NUM_POINTS - 1);
     gx = GRAVITY * dx / dy;
     restAngle = Math.atan2(dy, dx) - Math.PI / 2;
   };
@@ -234,7 +240,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
         const p1 = points[i], p2 = points[i + 1];
         const dx = p2.x - p1.x, dy = p2.y - p1.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
-        const diff = (SEGMENT_LENGTH - dist) / dist;
+        const diff = (segLen - dist) / dist;
         const offX = dx * diff * 0.5, offY = dy * diff * 0.5;
         if (!p1.pinned) { p1.x -= offX; p1.y -= offY; }
         if (!(dragging && i + 1 === points.length - 1)) { p2.x += offX; p2.y += offY; }
@@ -407,7 +413,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
     const fixed = !idDrag || reducedMotion();
     // 按原长沿静止方向摆直，再给一点横向初速度，挂出来时轻轻晃一下
     {
-      const dx = restX - anchor.x, dy = Math.sqrt(Math.max(0, REST_LENGTH ** 2 - dx * dx));
+      const dx = restX - anchor.x, dy = Math.sqrt(Math.max(0, restLen ** 2 - dx * dx));
       for (let i = 0; i < NUM_POINTS; i++) {
         const k = i / (NUM_POINTS - 1), x = anchor.x + dx * k, y = anchor.y + dy * k;
         points.push({ x, y, oldx: fixed ? x : x + k * 1.5, oldy: y, pinned: i === 0 });
