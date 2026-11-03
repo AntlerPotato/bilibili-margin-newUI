@@ -96,6 +96,12 @@ export interface Settings {
   appFeed: boolean;
   /** X 式重排（v0.48 实验，默认关）：按本机算的偏好给推荐重新排序，混入关注新稿，看过的不再出现 */
   rerank: boolean;
+  /** 圆角强度（v0.50，B 站评论建议）：0 直角 / 50 小 / 100 默认 / 150 大；构建时所有 px 圆角乘 --margin-rk */
+  radius: 0 | 50 | 100 | 150;
+  /** 评论正文字号（v0.50，B 站评论：评论字太小）：14 默认 / 15 / 16 / 17 */
+  commentSize: 14 | 15 | 16 | 17;
+  /** 顶栏图标悬停展开文字（v0.50，B 站评论：想要悬停不展开）；关掉后只在点选时展开 */
+  headHover: boolean;
   filters: Filters;
   bg: Background;
 }
@@ -145,6 +151,9 @@ export const DEFAULTS: Settings = {
   homeOrder: [...HOME_SECTIONS],
   appFeed: false,
   rerank: false,
+  radius: 100,
+  commentSize: 14,
+  headHover: true,
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -191,6 +200,9 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     homeOrder: normalizeHomeOrder(r.homeOrder),
     appFeed: r.appFeed === true,
     rerank: r.rerank === true,
+    radius: r.radius === 0 || r.radius === 50 || r.radius === 150 ? r.radius : 100,
+    commentSize: r.commentSize === 15 || r.commentSize === 16 || r.commentSize === 17 ? r.commentSize : 14,
+    headHover: r.headHover !== false,
     palette: 'classic', // 旧版存过 mist，统一回到经典
   };
 }
@@ -220,9 +232,11 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank' | 'headHover') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('speedKeys'); bool('replyTree'); bool('idDrag'); bool('monoNum');
-  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank');
+  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank'); bool('headHover');
+  if (r.radius === 0 || r.radius === 50 || r.radius === 100 || r.radius === 150) out.radius = r.radius;
+  if (r.commentSize === 14 || r.commentSize === 15 || r.commentSize === 16 || r.commentSize === 17) out.commentSize = r.commentSize;
   if (typeof r.bodyFont === 'string') out.bodyFont = cleanFont(r.bodyFont);
   if (Array.isArray(r.headHide)) out.headHide = strList(r.headHide);
   if (Array.isArray(r.headOrder)) out.headOrder = strList(r.headOrder);

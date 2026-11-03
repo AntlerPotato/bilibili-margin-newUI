@@ -303,6 +303,8 @@ function applyFont(s: Settings): void {
   // 视频 CDN 节点：页面主环境的 cdn.js 同步读 localStorage（v0.47.2）
   try { if (on && s.cdn) localStorage.setItem('margin:cdn', s.cdn); else localStorage.removeItem('margin:cdn'); } catch { /* 隐私模式 */ }
   set('--margin-zoom', on && s.zoom !== 100 ? String(s.zoom / 100) : null);
+  set('--margin-rk', on && s.radius !== 100 ? String(s.radius / 100) : null);
+  set('--margin-cfs', on && s.commentSize !== 14 ? `${s.commentSize}px` : null);
 }
 if (!offByUrl() && !sessionStorage.getItem('margin:off')) {
   loadSettings().then((s) => { applyFont(s); applyGlobalUi(s); }).catch(() => {});

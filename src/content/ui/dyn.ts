@@ -1,4 +1,4 @@
-import type { Dyn } from '../api/dyn';
+import { dynLike, dynReplies, dynReply, dynRepost, type Dyn } from '../api/dyn';
 import { fmtAgo, fmtCount, h, icon, ICONS } from './dom';
 import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
@@ -77,11 +77,7 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
       h('span', { class: 'dy-kind' }, kindLabel(d)),
       h('a', { class: 'dy-open', href: d.url, ...ext, title: '查看详情' }, icon(ICONS.arrow))),
     body,
-    h('div', { class: 'dy-stat' },
-      h('span', {}, `转发 ${fmtCount(d.stat.forward)}`),
-      // v0.49：评论数可点，新标签打开详情并直接滚到评论区（B 站评论反馈「看不了动态评论」）
-      d.url ? h('a', { class: 'dy-cmt', href: `${d.url}#comment`, ...ext, title: '查看评论' }, `评论 ${fmtCount(d.stat.comment)}`) : h('span', {}, `评论 ${fmtCount(d.stat.comment)}`),
-      h('span', {}, `赞 ${fmtCount(d.stat.like)}`))), d.url);
+    actions(d)), d.url);
   dynData.set(el, d);
   return el;
 }
@@ -94,7 +90,7 @@ function clickable(el: HTMLElement, url: string): HTMLElement {
   if (!url) return el;
   el.dataset.href = url;
   const go = (e: MouseEvent) => {
-    if ((e.target as HTMLElement).closest('a, button, input, textarea, video')) return;
+    if ((e.target as HTMLElement).closest('a, button, input, textarea, video, .dy-box')) return;
     if (String(getSelection() ?? '').trim()) return;
     e.stopPropagation();
     window.open(url, '_blank', 'noopener');
@@ -111,4 +107,90 @@ function kindLabel(d: Dyn): string {
   if (d.article) return 'ARTICLE';
   if (d.pics.length) return 'PHOTO';
   return 'NOTE';
+}
+
+/**
+ * 动态卡底部互动条（v0.50，B 站评论建议：点赞、转发、评论不用跳详情页）。
+ * 赞：直接切换；转发：卡片里展开一句话输入框，点「转发」才发出；评论：卡片里展开热门评论 + 输入框，
+ * 「全部评论」仍新标签打开详情页。没有评论区信息（直播等）时保留原来的链接。
+ */
+function actions(d: Dyn): HTMLElement {
+  const bar = h('div', { class: 'dy-stat dy-acts' });
+  const wrap = h('div', { class: 'dy-foot' }, bar);
+  const say = (t: string) => { const tip = h('span', { class: 'dy-tip', role: 'status' }, t); bar.querySelector('.dy-tip')?.remove(); bar.append(tip); setTimeout(() => tip.remove(), 2400); };
+  // 转发
+  const fwd = h('button', { type: 'button', class: 'dy-act', 'aria-expanded': 'false' }, `转发 ${fmtCount(d.stat.forward)}`);
+  let fwdBox: HTMLElement | null = null;
+  fwd.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (fwdBox) { fwdBox.remove(); fwdBox = null; fwd.setAttribute('aria-expanded', 'false'); return; }
+    closeCmt();
+    const ta = h('textarea', { class: 'dy-in', rows: '2', maxlength: '233', placeholder: '说点什么（可留空）' }) as HTMLTextAreaElement;
+    const send = h('button', { type: 'button', class: 'dy-send' }, '转发');
+    send.addEventListener('click', async () => {
+      send.setAttribute('disabled', '');
+      try {
+        await dynRepost(d.id, ta.value.trim());
+        d.stat.forward++; fwd.textContent = `转发 ${fmtCount(d.stat.forward)}`;
+        fwdBox?.remove(); fwdBox = null; fwd.setAttribute('aria-expanded', 'false'); say('已转发');
+      } catch (err) { send.removeAttribute('disabled'); say(`转发失败：${(err as Error).message}`); }
+    });
+    fwdBox = h('div', { class: 'dy-box' }, ta, h('div', { class: 'dy-box-foot' }, send));
+    wrap.append(fwdBox); fwd.setAttribute('aria-expanded', 'true'); ta.focus();
+  });
+  // 评论
+  const canCmt = !!(d.cmtType && d.cmtOid);
+  const cmt = canCmt
+    ? h('button', { type: 'button', class: 'dy-act', 'aria-expanded': 'false' }, `评论 ${fmtCount(d.stat.comment)}`)
+    : d.url ? h('a', { class: 'dy-cmt', href: `${d.url}#comment`, ...ext, title: '查看评论' }, `评论 ${fmtCount(d.stat.comment)}`) : h('span', {}, `评论 ${fmtCount(d.stat.comment)}`);
+  let cmtBox: HTMLElement | null = null;
+  function closeCmt(): void { cmtBox?.remove(); cmtBox = null; if (canCmt) cmt.setAttribute('aria-expanded', 'false'); }
+  if (canCmt) cmt.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (cmtBox) { closeCmt(); return; }
+    fwdBox?.remove(); fwdBox = null; fwd.setAttribute('aria-expanded', 'false');
+    const list = h('div', { class: 'dy-rlist' }, h('div', { class: 'dy-rempty' }, '加载中…'));
+    const ta = h('textarea', { class: 'dy-in', rows: '1', maxlength: '1000', placeholder: '发一条友善的评论' }) as HTMLTextAreaElement;
+    const send = h('button', { type: 'button', class: 'dy-send' }, '发布');
+    const post = async () => {
+      const msg = ta.value.trim();
+      if (!msg) return;
+      send.setAttribute('disabled', '');
+      try {
+        await dynReply(d.cmtType!, d.cmtOid!, msg);
+        ta.value = ''; d.stat.comment++; cmt.textContent = `评论 ${fmtCount(d.stat.comment)}`;
+        list.querySelector('.dy-rempty')?.remove();
+        list.prepend(h('div', { class: 'dy-r mine' }, h('div', { class: 'dy-r-b' }, h('b', {}, '我'), h('p', {}, msg))));
+      } catch (err) { say(`发布失败：${(err as Error).message}`); }
+      send.removeAttribute('disabled');
+    };
+    send.addEventListener('click', post);
+    ta.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && ev.keyCode !== 229) { ev.preventDefault(); post(); } });
+    cmtBox = h('div', { class: 'dy-box dy-cbox' }, h('div', { class: 'dy-box-row' }, ta, send), list,
+      d.url ? h('a', { class: 'dy-rall', href: `${d.url}#comment`, ...ext }, '全部评论 ↗') : null);
+    wrap.append(cmtBox); cmt.setAttribute('aria-expanded', 'true');
+    dynReplies(d.cmtType!, d.cmtOid!).then(({ list: rs }) => {
+      list.replaceChildren(...(rs.length ? rs.map((r) => h('div', { class: 'dy-r' },
+        h('a', { class: 'dy-r-face', href: `https://space.bilibili.com/${r.mid}`, ...ext }, h('img', { src: r.face ? `${r.face}@64w_64h_1c.webp` : '', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' })),
+        h('div', { class: 'dy-r-b' },
+          h('a', { class: 'dy-r-name', href: `https://space.bilibili.com/${r.mid}`, ...ext }, r.name),
+          h('p', {}, r.text),
+          h('span', { class: 'dy-r-meta' }, [fmtAgo(r.ts), r.like ? `赞 ${fmtCount(r.like)}` : '', r.rcount ? `${r.rcount} 条回复` : ''].filter(Boolean).join(' · '))))) : [h('div', { class: 'dy-rempty' }, '还没有评论')]));
+    }).catch((err) => list.replaceChildren(h('div', { class: 'dy-rempty' }, `评论加载失败：${(err as Error).message}`)));
+  });
+  // 赞
+  const like = h('button', { type: 'button', class: 'dy-act dy-like', 'aria-pressed': String(!!d.liked) }, `赞 ${fmtCount(d.stat.like)}`);
+  like.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const on = !d.liked;
+    like.setAttribute('disabled', '');
+    try {
+      await dynLike(d.id, on);
+      d.liked = on; d.stat.like += on ? 1 : -1;
+      like.setAttribute('aria-pressed', String(on)); like.textContent = `赞 ${fmtCount(d.stat.like)}`;
+    } catch (err) { say(`操作失败：${(err as Error).message}`); }
+    like.removeAttribute('disabled');
+  });
+  bar.append(fwd, cmt, like);
+  return wrap;
 }

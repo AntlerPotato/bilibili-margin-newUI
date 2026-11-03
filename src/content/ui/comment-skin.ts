@@ -75,7 +75,7 @@ export function skinComments(more: Record<string, string> = {}): void {
   extra = more;
   loadSettings().then((st) => { treeOn = st.replyTree; run(); }).catch(() => {});
   onSettingsChange((st) => { if (st.replyTree !== treeOn) { treeOn = st.replyTree; retreeAll(); } });
-  const run = () => { const bc = document.querySelector('bili-comments'); if (bc) { skin(bc.parentElement ?? document); tree(bc); } };
+  const run = () => { const bc = document.querySelector('bili-comments'); if (bc) { skin(bc.parentElement ?? document); tree(bc); } treeOld(); };
   // 前 90 秒每秒补一次（评论区是懒加载的 Web Components）；页面隐藏时暂停
   let n = 0;
   const stop = every(1000, () => { run(); if (++n > 90) stop(); });
@@ -125,6 +125,11 @@ function layout(sr: ShadowRoot): void {
     return;
   }
   retry.delete(sr);
+  nest(reps, info);
+}
+
+/** 按「回复 @名」把平铺的回复排成深度优先：CSS order + data-m-depth（最多 3 层），不动 DOM */
+function nest(reps: HTMLElement[], info: { name: string; to: string }[]): void {
   const kids = new Map<number, number[]>();
   const tops: number[] = [];
   info.forEach((x, i) => {
@@ -140,6 +145,49 @@ function layout(sr: ShadowRoot): void {
     for (const k of kids.get(i) ?? []) walk(k, d + 1);
   };
   for (const t of tops) walk(t, 0);
+}
+
+/**
+ * 旧版评论区（v0.50）：B 站仍给一部分账号下发非 Web Components 的老评论（.reply-item / .sub-reply-list），
+ * v0.49 的对话树只认 bili-comments，这些用户开了也没效果。老评论在普通 DOM 里，直接按同样规则排。
+ */
+const OLD_CSS = `
+  .sub-reply-list.m-tree { display: flex !important; flex-direction: column !important; }
+  .sub-reply-list.m-tree > :not(.sub-reply-item) { order: 99999 !important; }
+  .sub-reply-item[data-m-depth] { --m-tl: color-mix(in srgb, var(--m-ink, #888) 18%, transparent); background-repeat: no-repeat !important; }
+  .sub-reply-item[data-m-depth="1"] { margin-left: 4px !important; padding-left: 24px !important; background-image: linear-gradient(var(--m-tl), var(--m-tl)) !important; background-position: 0 0 !important; background-size: 1px 100% !important; }
+  .sub-reply-item[data-m-depth="2"] { margin-left: 4px !important; padding-left: 52px !important; background-image: linear-gradient(var(--m-tl), var(--m-tl)), linear-gradient(var(--m-tl), var(--m-tl)) !important; background-position: 0 0, 28px 0 !important; background-size: 1px 100%, 1px 100% !important; }
+  .sub-reply-item[data-m-depth="3"] { margin-left: 4px !important; padding-left: 80px !important; background-image: linear-gradient(var(--m-tl), var(--m-tl)), linear-gradient(var(--m-tl), var(--m-tl)), linear-gradient(var(--m-tl), var(--m-tl)) !important; background-position: 0 0, 28px 0, 56px 0 !important; background-size: 1px 100%, 1px 100%, 1px 100% !important; }
+`;
+const oldSeen = new WeakSet<Element>();
+function treeOld(): void {
+  const lists = document.querySelectorAll<HTMLElement>('.sub-reply-list');
+  if (!lists.length) return;
+  if (!document.getElementById('m-tree-old')) { const st = document.createElement('style'); st.id = 'm-tree-old'; st.textContent = OLD_CSS; document.head.append(st); }
+  for (const l of lists) {
+    if (oldSeen.has(l)) continue;
+    oldSeen.add(l);
+    treeLists.add(l);
+    let raf = 0;
+    const kick = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; layoutOld(l); }); };
+    new MutationObserver(kick).observe(l, { childList: true });
+    kick();
+  }
+}
+const treeLists = new Set<HTMLElement>();
+function layoutOld(l: HTMLElement): void {
+  const reps = [...l.querySelectorAll<HTMLElement>(':scope > .sub-reply-item')];
+  if (!treeOn || reps.length < 2) {
+    l.classList.remove('m-tree');
+    for (const r of reps) { r.style.removeProperty('order'); delete r.dataset.mDepth; }
+    return;
+  }
+  l.classList.add('m-tree');
+  nest(reps, reps.map((r) => {
+    const name = (r.querySelector('.sub-user-name')?.textContent ?? '').trim();
+    const text = (r.querySelector('.reply-content')?.textContent ?? '').trim();
+    return { name, to: /^回复\s*@(.+?)\s*[:：]/.exec(text)?.[1]?.trim() ?? '' };
+  }));
 }
 
 function tree(bc: Element): void {
@@ -159,7 +207,10 @@ function tree(bc: Element): void {
   }
 }
 
-function retreeAll(): void { for (const sr of treeRoots) { if (sr.host.isConnected) layout(sr); else treeRoots.delete(sr); } }
+function retreeAll(): void {
+  for (const sr of treeRoots) { if (sr.host.isConnected) layout(sr); else treeRoots.delete(sr); }
+  for (const l of treeLists) { if (l.isConnected) layoutOld(l); else treeLists.delete(l); }
+}
 
 /**
  * 回车直接发评论（v0.47.4，用户要求）：B 站原生评论框里回车只换行，要点「发布」。

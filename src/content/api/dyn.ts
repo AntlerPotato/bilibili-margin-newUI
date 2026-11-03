@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getJSON } from './http';
+import { getJSON, postForm, postJSON } from './http';
 
 /** 一条动态，抽成渲染需要的最小结构 */
 export interface Dyn {
@@ -15,6 +15,8 @@ export interface Dyn {
   orig?: Dyn | null;
   stat: { comment: number; forward: number; like: number };
   url: string;
+  /** v0.50 动态页直接互动：自己是否已赞、评论区 type/oid */
+  liked?: boolean; cmtType?: number; cmtOid?: string;
 }
 
 const https = (u: unknown) => String(u ?? '').replace(/^\/\//, 'https://').replace(/^http:/, 'https:');
@@ -30,6 +32,7 @@ export function toDyn(it: any): Dyn | null {
     text, title: opus?.title || undefined, pics: [],
     stat: { comment: s.comment?.count ?? 0, forward: s.forward?.count ?? 0, like: s.like?.count ?? 0 },
     url: `https://www.bilibili.com/opus/${it.id_str}`,
+    liked: s.like?.status === true, cmtType: Number(it.basic?.comment_type) || undefined, cmtOid: it.basic?.comment_id_str || undefined,
   };
   if (major.archive) {
     const v = major.archive;
@@ -95,4 +98,31 @@ export async function portal(): Promise<{ ups: Up[]; live: LiveUp[]; liveCount: 
 export async function searchFollowing(me: number, name: string): Promise<Up[]> {
   const d = await getJSON<any>('/x/relation/followings/search', { vmid: me, pn: 1, ps: 30, name });
   return (d.list ?? []).map((u: any) => ({ mid: u.mid, name: u.uname, face: https(u.face), fresh: false }));
+}
+
+/* ---- v0.50 动态页直接点赞 / 转发 / 评论（B 站评论建议：不用跳详情页）---- */
+/** 点赞 / 取消赞，接口同 B 站动态页（bilibili-API-collect：dynamic/action） */
+export async function dynLike(id: string, on: boolean): Promise<void> {
+  await postJSON('/x/dynamic/feed/dyn/thumb', { dyn_id_str: id, up: on ? 1 : 2, spmid: '333.1365.0.0' });
+}
+/** 转发（可带一句话）；空文字时和 B 站一样只转发 */
+export async function dynRepost(id: string, text: string): Promise<void> {
+  await postJSON('/x/dynamic/feed/create/dyn', {
+    dyn_req: { content: { contents: text ? [{ raw_text: text, type: 1, biz_id: '' }] : [] }, scene: 4, attach_card: null, meta: { app_meta: { from: 'create.dynamic.web', mobi_app: 'web' } } },
+    web_repost_src: { dyn_id_str: id },
+  }, { platform: 'web' });
+}
+export interface Reply { rpid: number; name: string; face: string; mid: number; text: string; like: number; ts: number; rcount: number }
+/** 热门评论第一页（旧版 /x/v2/reply 不要 wbi 签名） */
+export async function dynReplies(type: number, oid: string, ps = 8): Promise<{ list: Reply[]; count: number }> {
+  const d = await getJSON<any>('/x/v2/reply', { type, oid, sort: 1, ps, pn: 1 });
+  const seen = new Set<number>();
+  const list = [...(d.upper?.top ? [d.upper.top] : []), ...(d.replies ?? [])].filter((r: any) => !seen.has(r.rpid) && seen.add(r.rpid)).slice(0, ps).map((r: any) => ({
+    rpid: r.rpid, name: r.member?.uname ?? '', face: https(r.member?.avatar), mid: Number(r.mid) || 0,
+    text: r.content?.message ?? '', like: r.like ?? 0, ts: r.ctime ?? 0, rcount: r.rcount ?? 0,
+  }));
+  return { list, count: d.page?.acount ?? d.page?.count ?? list.length };
+}
+export async function dynReply(type: number, oid: string, message: string): Promise<void> {
+  await postForm('/x/v2/reply/add', { type, oid, message, plat: 1 });
 }

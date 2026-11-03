@@ -18,6 +18,7 @@ export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLEle
   const cover = h('a', { class: 'cover', href, target: '_blank', rel: 'noopener', title: v.title },
     h('img', { src: thumb(v.cover), alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }),
     v.duration && !opts.hide?.has('dur') ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
+    v.coop ? h('span', { class: 'coop', title: '多位 UP 主联合投稿' }, '合作') : null,
     laterButton(v.bvid),
   );
   const acts: HTMLElement[] = [];
@@ -37,7 +38,7 @@ export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLEle
   const el = h('article', { class: `card${opts.compact ? ' compact' : ''}`, style: `--i:${index % 12}` },
     cover,
     h('div', { class: 'body' },
-      h('a', { class: 'title', href, target: '_blank', rel: 'noopener' }, v.title),
+      h('a', { class: 'title', href, target: '_blank', rel: 'noopener', title: v.title }, v.title),
       metaRow(v, opts),
       v.reason && !opts.hide?.has('reason') ? h('span', { class: 'reason' }, v.reason) : null,
     ),

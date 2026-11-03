@@ -50,6 +50,7 @@ export async function spaceVideos(mid: number, pn: number, order: VideoOrder, ke
   const list: Video[] = (d.list?.vlist ?? []).map((v: any) => ({
     bvid: v.bvid, cid: 0, title: v.title, cover: https(v.pic), duration: parseLen(v.length),
     author: v.author, mid: v.mid, face: '', views: Number(v.play) || 0, danmaku: v.video_review ?? 0, pubdate: v.created ?? 0,
+    coop: v.is_union_video === 1 || undefined,
   }));
   return { list, total: d.page?.count ?? list.length };
 }
@@ -124,7 +125,8 @@ export async function followClassics(me: number): Promise<{ list: Video[]; done:
   const pick = followPool.splice(0, 4);
   const old = Date.now() / 1000 - 90 * 86400;
   const lists = await Promise.all(pick.map((mid, i) => new Promise<Video[]>((res) => setTimeout(() => spaceVideos(mid, 1, 'click').then((r) => res(r.list.filter((v) => v.pubdate && v.pubdate < old).slice(0, 3))).catch(() => res([])), i * 250))));
-  const list = lists.flat().sort(() => Math.random() - 0.5);
+  // v0.50：每批按发布时间从新到旧排（B 站评论建议，原来是打乱）
+  const list = lists.flat().sort((a, b) => b.pubdate - a.pubdate);
   return { list, done: followPool.length === 0 };
 }
 export const resetClassics = () => { followPool = null; };

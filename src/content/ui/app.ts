@@ -9,7 +9,7 @@ import { FilterRuntime } from '../filter-runtime';
 import { targetOfVideo } from '../filter-targets';
 import { videoCard, skeleton } from './card';
 import { toast } from './controls';
-import { h, icon, ICONS } from './dom';
+import { h, icon, ICONS, guardTyping } from './dom';
 import { createFavorites } from './favorites';
 import { createHeader, SITE_LINKS, type Header } from './header';
 import { shouldPlayIntro, setIntroActive } from './intro/gate';
@@ -29,6 +29,7 @@ import { reducedMotion } from '../motion';
 import css from '../styles.css?inline';
 
 type Tab = 'rcmd' | 'popular' | 'classic';
+type Snap = { tab: Tab; items: Video[]; page: number; appIdx: number; done: boolean; round: number };
 
 export class MarginApp {
   readonly host: HTMLElement;
@@ -64,6 +65,7 @@ export class MarginApp {
     this.filter = new FilterRuntime(settings);
     this.host = h('div', { id: 'margin-root' });
     this.root = this.host.attachShadow({ mode: 'open' });
+    guardTyping(this.host);
     this.root.append(h('style', {}, css));
     this.render();
     this.applyTheme();
@@ -319,13 +321,30 @@ export class MarginApp {
 
   private switchTab(id: Tab, tabs: HTMLElement): void {
     if (id === this.tab) return;
+    // 每个 tab 记住自己的列表和滚动位置（v0.50，B 站评论建议）：切回来接着看，不回到顶部
+    if (this.items.length) this.tabMem.set(this.tab, { s: this.snapshot()!, top: this.app.scrollTop, back: this.snap });
     this.tab = id;
     tabs.querySelectorAll<HTMLElement>('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === id)));
-    this.reload();
+    const m = this.tabMem.get(id);
+    if (!m) { this.reload(); return; }
+    this.tabMem.delete(id);
+    const s = m.s!;
+    this.gen++;
+    this.items = s.items.slice();
+    this.seen = new Set(s.items.map((v) => v.bvid));
+    this.page = s.page; this.appIdx = s.appIdx; this.done = s.done; this.round = s.round;
+    this.loading = false;
+    this.snap = m.back;
+    if (this.backBtn) this.backBtn.hidden = !this.snap;
+    this.status.replaceChildren();
+    this.repaint();
+    this.app.scrollTo({ top: m.top });
   }
 
+  private tabMem = new Map<Tab, { s: Snap; top: number; back: Snap | null }>();
+
   private backBtn: HTMLElement | null = null;
-  private snap: { tab: Tab; items: Video[]; page: number; appIdx: number; done: boolean; round: number } | null = null;
+  private snap: Snap | null = null;
 
   private snapshot(): typeof this.snap {
     return { tab: this.tab, items: this.items.slice(), page: this.page, appIdx: this.appIdx, done: this.done, round: this.round };

@@ -124,3 +124,18 @@ export function dayBucket(ts: number, exact = false): string {
   if (exact) { const t = new Date(ts * 1000); return `${t.getMonth() + 1} 月 ${t.getDate()} 日`; }
   return diff < 7 ? '本周' : '更早';
 }
+
+/**
+ * 在映间 Shadow DOM 里的输入框打字时，不让按键冒泡到 B 站页面（v0.50，B 站评论反馈：
+ * 播放页搜索按空格会播放视频）。B 站播放器在 document 上听快捷键，只看 event.target，
+ * 而 shadow 里的输入框对外 target 是宿主 div，它就当成没在打字。宿主上拦住冒泡即可，
+ * 不影响输入框自己的处理（Enter / 方向键）和我们在 window 捕获阶段的 Ctrl+K。
+ */
+export function guardTyping(host: HTMLElement): void {
+  const stop = (e: Event) => {
+    const t = e.composedPath()[0];
+    const typing = t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
+    if (typing && !(e as KeyboardEvent).ctrlKey && !(e as KeyboardEvent).metaKey) e.stopPropagation();
+  };
+  for (const ty of ['keydown', 'keyup', 'keypress']) host.addEventListener(ty, stop);
+}

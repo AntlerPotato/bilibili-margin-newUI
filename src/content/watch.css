@@ -24,7 +24,7 @@ html.margin-skin {
   --m-serif: var(--margin-title, "Instrument Serif", "Margin Serif SC", "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif);
   --m-mono: var(--margin-mono, "Geist Mono", "Margin Sans SC", ui-monospace, SFMono-Regular, Menlo, monospace);
   --m-sans: var(--margin-sans, "Geist", "Margin Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
-  --m-radius: 16px;
+  --m-radius: calc(16px * var(--margin-rk, 1));
 
   --bg1: #ffffff; --bg2: #f5f4f1; --bg3: #efeeea; --bg1_float: #ffffff; --bg2_float: #f1f0ec;
   /* 评论「UP主觉得很赞」标签实际读取这两个变量；显式定义后可穿透 Shadow DOM，避免 B 站无效 fallback 退回黑色。 */
@@ -131,9 +131,9 @@ html.margin-watch #commentapp { margin-top: 20px; padding: 24px 24px 24px; }
  * 它读这些自定义属性（可穿透 Shadow DOM 继承），在宿主上统一成 14px/24px（约 1.7 倍行高，clreq 推荐区间）、思源黑体，昵称 13px */
 html.margin-skin #commentapp, html.margin-skin bili-comments {
   --bili-font-family: var(--m-sans);
-  --bili-comments-font-size-content: 14px; --bili-comments-line-height-content: 24px;
-  --bili-rich-text-font-size: 14px; --bili-rich-text-line-height: 24px;
-  --brt-font-size: 14px; --brt-line-height: 24px;
+  --bili-comments-font-size-content: var(--margin-cfs, 14px); --bili-comments-line-height-content: calc(var(--margin-cfs, 14px) + 10px);
+  --bili-rich-text-font-size: var(--margin-cfs, 14px); --bili-rich-text-line-height: calc(var(--margin-cfs, 14px) + 10px);
+  --brt-font-size: var(--margin-cfs, 14px); --brt-line-height: calc(var(--margin-cfs, 14px) + 10px);
   --bili-comments-font-size-name: 13px; --bili-comments-font-size-title: 20px;
   --bili-comments-font-size-count: 13px; --bili-comments-font-size-sort: 13px;
   --bili-comment-textarea-font-size: 14px;
@@ -477,3 +477,6 @@ html.margin-webscroll.margin-watch .left-container > .m-wcard:not([hidden]) { di
   padding: 8px 14px; border-radius: 10px; background: rgba(0,0,0,.62); color: #fff; font: 500 14px/20px var(--margin-sans, system-ui);
   font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transition: opacity 150ms var(--ease-out, ease), transform 150ms var(--ease-out, ease); }
 .m-voltip.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* 旧版评论区（.reply-item）跟随「评论字号」（v0.50） */
+html.margin-skin .reply-item .reply-content, html.margin-skin .sub-reply-item .reply-content { font-size: var(--margin-cfs, 15px) !important; line-height: calc(var(--margin-cfs, 15px) + 9px) !important; }

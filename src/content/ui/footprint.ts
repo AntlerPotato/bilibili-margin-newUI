@@ -119,8 +119,8 @@ export function createFootprintCard(): HTMLElement {
     const legend = h('span', { class: 'fp-legend' }, '少', ...[0, 1, 2, 3, 4].map((l) => { const c = h('i', { class: 'fp-cell' }); c.dataset.l = String(l); return c; }), '多');
     const graph = h('div', { class: 'fp-graph' },
       h('div', { class: 'fp-months', style: `width:calc(${weeks} * (var(--c) + var(--gp)))` },
-        // 最后两周开头的月份标签放不下一个「11月」宽度，改为贴右对齐，否则会被挤成两行压到格子上
-        ...months.map(([w, m]) => h('span', { style: weeks - w < 2 ? 'right:0' : `left:calc(${w} * (var(--c) + var(--gp)))` }, `${m}月`))),
+        // 最后不足 3 周的月份放不下标签（窄屏格子小时会和上一个月叠在一起），干脆不标，同 GitHub 贡献图
+        ...months.filter(([w]) => weeks - w >= 3).map(([w, m]) => h('span', { style: `left:calc(${w} * (var(--c) + var(--gp)))` }, `${m}月`))),
       h('div', { class: 'fp-days' }, ...['', '一', '', '三', '', '五', ''].map((x) => h('span', {}, x))),
       h('div', { class: 'fp-cells' }, ...cells),
     );
@@ -144,8 +144,12 @@ export function createFootprintCard(): HTMLElement {
     const fit = () => {
       const w = (graph.parentElement as HTMLElement).clientWidth;
       tip.hidden = true;
-      const cs = Math.max(8, Math.min(18, Math.floor((w - 34) / weeks) - 3));
+      // v0.50：窄屏时间距 3→2、格子最小 6px，让一整年放得下，不再横向裁掉左边
+      const per = Math.floor((w - 34) / weeks);
+      const gp = per < 12 ? 2 : 3;
+      const cs = Math.max(6, Math.min(18, per - gp));
       graph.style.setProperty('--c', `${cs}px`);
+      graph.style.setProperty('--gp', `${gp}px`);
       // 滚到最右放到下一帧：改完格子尺寸立刻读 scrollWidth 会在同一帧里再排一次版（v0.44）
       requestAnimationFrame(() => { graph.scrollLeft = graph.scrollWidth; });
     };
