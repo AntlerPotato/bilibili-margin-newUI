@@ -180,6 +180,10 @@
   text-align: left;
   cursor: pointer;
 }
+/* hidden 属性会被上面的 display:flex 覆盖，必须显式声明；否则单个入口隐藏不生效，
+   只有整组都隐藏时（组没有 display 规则）才会消失 */
+.app.yt .yt-side-item[hidden],
+.app.yt .yt-side-group[hidden] { display: none !important; }
 .app.yt .yt-side-item:hover { background: var(--chip); }
 .app.yt .yt-side-item[data-active] { background: var(--chip); font-weight: 600; }
 .app.yt .yt-side-item svg { flex: none; width: 20px; height: 20px; color: var(--muted); }

@@ -250,7 +250,7 @@ for (const theme of THEMES) {
         const item = (name) => [...r?.querySelectorAll('.yt-side-item') ?? []].find((n) => n.dataset.pref === name);
         const m = [];
         const live = item('直播');
-        if (live && !live.hidden) m.push('sidebar live entry not hidden');
+        if (live && (!live.hidden || getComputedStyle(live).display !== 'none')) m.push('sidebar live entry not hidden');
         const msg = item('消息');
         if (msg && msg.style.order !== '0') m.push('sidebar message order not applied');
         return m;
