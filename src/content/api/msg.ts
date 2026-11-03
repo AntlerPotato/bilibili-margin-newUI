@@ -19,6 +19,22 @@ export interface Notice {
 export interface Page { list: Notice[]; cursor: { id: number; time: number } | null; top?: number }
 export interface Unread { reply: number; at: number; like: number; system: number; chat: number }
 
+/**
+ * 通知跳转链接：B 站 msgfeed 的 uri 现在返回裸链接（不再拼 #reply 锚点），点过去定位不到那条评论。
+ * rpid 从两处兜底取：① item 的 id 字段（source_id=对方的新评论，target_id / root_id=我的评论）；
+ * ② native_uri 的 comment_secondary_id / comment_root_id 参数（like 接口的 id 字段已被删光，rpid 只在这里）。
+ * 已带锚点的链接和非主站链接原样返回。
+ */
+function jumpUrl(kind: 'reply' | 'at' | 'like', item: any): string {
+  const u = https(item?.uri);
+  if (!u || !/^https:\/\/www\.bilibili\.com\//.test(u) || /#reply\d+/.test(u)) return u;
+  const n = String(item?.native_uri ?? '');
+  const ids = kind === 'like' ? [] : [item.source_id, item.target_id, item.root_id];
+  const rpid = [...ids.map(Number), Number(/comment_secondary_id=(\d+)/.exec(n)?.[1]), Number(/comment_root_id=(\d+)/.exec(n)?.[1])]
+    .find((x) => Number.isInteger(x) && x > 0) ?? 0;
+  return rpid ? `${u}#reply${rpid}` : u;
+}
+
 const person = (u: any): Person => ({ mid: u?.mid ?? 0, name: u?.nickname ?? u?.name ?? '', face: https(u?.avatar ?? u?.face) });
 const VERB: Record<string, string> = { video: '视频', reply: '评论', dynamic: '动态', article: '专栏', album: '动态' };
 
@@ -39,7 +55,7 @@ export async function replies(c: Page['cursor']): Promise<Page> {
       id: x.id, kind: 'reply', users: [person(x.user)], more: 0, time: x.reply_time,
       verb: `回复了我的${VERB[x.item?.type] ?? '内容'}`, content: x.item?.source_content ?? '',
       quote: x.item?.target_reply_content || x.item?.root_reply_content || x.item?.title || '',
-      title: x.item?.title ?? '', image: https(x.item?.image), url: https(x.item?.uri),
+      title: x.item?.title ?? '', image: https(x.item?.image), url: jumpUrl('reply', x.item),
     })),
     cursor: d.cursor && !d.cursor.is_end ? { id: d.cursor.id, time: d.cursor.time } : null,
   };
@@ -51,7 +67,7 @@ export async function ats(c: Page['cursor']): Promise<Page> {
     list: (d.items ?? []).map((x: any): Notice => ({
       id: x.id, kind: 'at', users: [person(x.user)], more: 0, time: x.at_time,
       verb: `在${VERB[x.item?.type] ?? '内容'}中 @ 了我`, content: x.item?.source_content ?? '', quote: x.item?.title ?? '',
-      title: x.item?.title ?? '', image: https(x.item?.image), url: https(x.item?.uri),
+      title: x.item?.title ?? '', image: https(x.item?.image), url: jumpUrl('at', x.item),
     })),
     cursor: d.cursor && !d.cursor.is_end ? { id: d.cursor.id, time: d.cursor.time } : null,
   };
@@ -64,7 +80,7 @@ export async function likes(c: Page['cursor']): Promise<Page> {
     list: (t.items ?? []).map((x: any): Notice => ({
       id: x.id, kind: 'like', users: (x.users ?? []).map(person), more: Math.max(0, (x.counts ?? 0) - (x.users ?? []).length), time: x.like_time,
       verb: `赞了我的${VERB[x.item?.type] ?? '内容'}`, content: '', quote: x.item?.title ?? '',
-      title: x.item?.title ?? '', image: https(x.item?.image), url: https(x.item?.uri),
+      title: x.item?.title ?? '', image: https(x.item?.image), url: jumpUrl('like', x.item),
     })),
     cursor: t.cursor && !t.cursor.is_end ? { id: t.cursor.id, time: t.cursor.time } : null,
   };
