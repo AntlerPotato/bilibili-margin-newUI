@@ -134,14 +134,31 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: Filter
     });
   };
 
-  const place = () => {
+  const place = (target?: DOMRect) => {
     // 挂在顶栏里（顶栏 z-index 高于正文），按顶栏坐标定位
     const host = pop.parentElement ?? btn;
-    const r = btn.getBoundingClientRect(), o = host.getBoundingClientRect();
+    const r = target ?? btn.getBoundingClientRect(), o = host.getBoundingClientRect();
     const w = pop.offsetWidth || 360;
     const left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), innerWidth - w - 12);
     pop.style.left = `${left - o.left}px`;
     pop.style.top = `${r.bottom - o.top + 10}px`;
+  };
+
+  const expandedRect = (host: HTMLElement): DOMRect => {
+    const buttons = Array.from(host.querySelectorAll<HTMLElement>('.et-btn'));
+    const index = buttons.indexOf(btn);
+    if (index < 0 || !host.parentElement) return btn.getBoundingClientRect();
+    const bounds = host.getBoundingClientRect();
+    const copy = host.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll('.dp').forEach((p) => p.remove());
+    copy.setAttribute('aria-hidden', 'true');
+    copy.inert = true;
+    copy.style.cssText += `;position:fixed;left:${bounds.left}px;top:${bounds.top}px;width:${bounds.width}px;box-sizing:border-box;visibility:hidden;pointer-events:none;`;
+    copy.querySelectorAll<HTMLElement>('*').forEach((el) => { el.style.setProperty('transition', 'none', 'important'); el.style.setProperty('animation', 'none', 'important'); });
+    host.parentElement.append(copy);
+    const rect = copy.querySelectorAll<HTMLElement>('.et-btn')[index]?.getBoundingClientRect();
+    copy.remove();
+    return rect ?? btn.getBoundingClientRect();
   };
 
   const show = () => {
@@ -154,8 +171,9 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: Filter
     if (pop.parentNode !== host) host.append(pop);
     host.querySelectorAll<HTMLElement>('.dp[data-open]').forEach((p) => p !== pop && p.dispatchEvent(new Event('dp-close')));
     pop.hidden = false;
-    place(); load();
-    void pop.offsetWidth; // 先让 hidden→显示生效，再触发过渡
+    place(expandedRect(host));
+    load();
+    void pop.offsetWidth;
     pop.setAttribute('data-open', '');
     btn.setAttribute('aria-expanded', 'true');
     spec.onOpen?.();
