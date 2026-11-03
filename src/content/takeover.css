@@ -71,6 +71,8 @@ html.margin-reduce .sp-menu { animation: none; }
 .vlist .vrow .cover { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--chip); }
 .vlist .vrow .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .vlist .vrow .dur { position: absolute; right: 6px; bottom: 6px; font: 500 11px/1 var(--mono); color: #fff; background: rgb(0 0 0 / .55); padding: 4px 4px; border-radius: 6px; }
+/* v0.51：列表视图的小封面上，充电专属角标缩小 */
+.vlist .vrow .tag-charge { right: 6px; top: 6px; padding: 1px 6px; border-radius: 5px; font-size: 10px; }
 .vr-title { font: 600 18px/1.45 var(--serif); color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color .2s var(--ease-out); }
 .vr-note { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font: 500 11px/1 var(--mono); letter-spacing: .06em; color: var(--faint); white-space: nowrap; }
 .vr-go { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--faint); transition: background-color .2s var(--ease-out), color .2s var(--ease-out), transform .3s var(--ease-out); }

@@ -51,6 +51,9 @@ export async function spaceVideos(mid: number, pn: number, order: VideoOrder, ke
     bvid: v.bvid, cid: 0, title: v.title, cover: https(v.pic), duration: parseLen(v.length),
     author: v.author, mid: v.mid, face: '', views: Number(v.play) || 0, danmaku: v.video_review ?? 0, pubdate: v.created ?? 0,
     coop: v.is_union_video === 1 || undefined,
+    // v0.51：充电专属等封面角标（B 站评论：插件页看不到充电专属标记）——接口给 elec_arc_badge 文案，
+    // 老接口只给 is_charging_arc 时兜底成「充电专属」
+    badge: String(v.elec_arc_badge || '').trim() || (v.is_charging_arc === 1 ? '充电专属' : undefined),
   }));
   return { list, total: d.page?.count ?? list.length };
 }
