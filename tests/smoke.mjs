@@ -383,7 +383,11 @@ for (const theme of THEMES) {
       // 消息页自身仍要显示未读数（开关只控制主动提醒）
       requests = [];
       await page.goto(MESSAGE, { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(2200);
+      // 未读数要等 /nav 返回后才请求；CI 上伪造接口偶尔要 2~3 秒才回 /nav，固定等 2.2s 会误报，改为等计数出现（最多 10s）
+      await page.waitForFunction(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        return [...r?.querySelectorAll('.ms-n') ?? []].some((n) => n.textContent?.trim());
+      }, null, { timeout: 10_000 }).catch(() => {});
       if (!requests.some((u) => u.includes('msgfeed/unread') || u.includes('single_unread'))) miss.push('message page own unread not requested');
       miss.push(...await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
