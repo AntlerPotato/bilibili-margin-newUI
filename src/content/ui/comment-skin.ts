@@ -1,6 +1,17 @@
 import { every } from '../sched';
 // B 站原生评论（bili-comments，lit 组件，多层 open shadow root）外层 CSS 进不去：
 // 找到关键组件后往它们的 shadowRoot 里追加一张样式表，变量从 html 继承（--m-*）。
+const TAG_SKIN = `
+  :host-context(html[data-margin-theme="light"]) .tag {
+    color: #757575 !important;
+    background-color: #f4f4f4 !important;
+  }
+  :host-context(html[data-margin-theme="dark"]) .tag {
+    color: #939393 !important;
+    background-color: #1e1e1e !important;
+  }
+`;
+
 const SKINS: Record<string, string> = {
   'bili-comments-header-renderer': `
     #navbar { align-items: center !important; margin: 0 0 20px !important; padding-top: 0 !important; }
@@ -29,6 +40,7 @@ const SKINS: Record<string, string> = {
 };
 
 const done = new WeakSet<ShadowRoot>();
+const watched = new WeakSet<ShadowRoot>();
 let extra: Record<string, string> = {};
 const sheets = new Map<string, CSSStyleSheet>();
 
@@ -38,15 +50,21 @@ function skin(root: ParentNode, depth = 0): void {
     const sr = el.shadowRoot;
     if (!sr) continue;
     const tag = el.tagName.toLowerCase();
-    const css = SKINS[tag] ? SKINS[tag] + (extra[tag] ?? '') : undefined;
-    if (css && !done.has(sr)) {
+    // tag 位于每条评论自己的嵌套 Shadow DOM；主题规则需要注入到包含它的那一层。
+    const css = (SKINS[tag] ?? '') + TAG_SKIN + (extra[tag] ?? '');
+    if (!done.has(sr)) {
       let s = sheets.get(tag);
       if (!s) { s = new CSSStyleSheet(); s.replaceSync(css); sheets.set(tag, s); }
       sr.adoptedStyleSheets = [...sr.adoptedStyleSheets, s];
       done.add(sr);
     }
-    // 只往评论头部 / 输入框所在的层级钻，不遍历每条评论（数量多）
-    if (tag === 'bili-comments' || tag === 'bili-comments-header-renderer' || tag === 'bili-comment-box') skin(sr, depth + 1);
+    // 评论项也是 Web Component，继续遍历所有 open shadow root，直到找到 tag 所在层级。
+    if (!watched.has(sr)) {
+      watched.add(sr);
+      // 评论是异步、分批插入的；监听当前 root，避免等下一轮 1 秒补扫才显示正确主题。
+      new MutationObserver(() => skin(sr, depth + 1)).observe(sr, { childList: true, subtree: true });
+    }
+    skin(sr, depth + 1);
   }
 }
 
