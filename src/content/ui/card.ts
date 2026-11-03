@@ -19,6 +19,8 @@ export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLEle
     h('img', { src: thumb(v.cover), alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }),
     v.duration && !opts.hide?.has('dur') ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
     v.coop ? h('span', { class: 'coop', title: '多位 UP 主联合投稿' }, '合作') : null,
+    // v0.51：充电专属等角标（右上角，避开左上角的「合作」）
+    v.badge ? h('span', { class: 'tag-charge', title: v.badge }, v.badge) : null,
     laterButton(v.bvid),
   );
   const acts: HTMLElement[] = [];

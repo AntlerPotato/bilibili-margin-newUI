@@ -170,6 +170,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cover.playing .dur { opacity: 0; }
 .coop { position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 6px; font: 500 11px/1.5 var(--sans); color: #fff; background: rgb(0 0 0 / .62); pointer-events: none; }
 .cover.playing .coop { opacity: 0; }
+/* v0.51：充电专属等封面角标（空间接口的 elec_arc_badge）；右上角与「稍后再看」同位置，悬停时淡出让位 */
+.tag-charge { position: absolute; right: 8px; top: 8px; z-index: 2; padding: 2px 8px; border-radius: 6px; font: 500 11px/1.5 var(--sans); color: #fff; background: #fb7299; pointer-events: none; box-shadow: 0 1px 8px rgb(251 114 153 / .3); transition: opacity 150ms var(--ease-out); }
+:is(.card, .dy-video):hover .tag-charge, .card:focus-within .tag-charge, .cover.playing .tag-charge { opacity: 0; }
 
 /* sheet */
 .sheet-layer { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
