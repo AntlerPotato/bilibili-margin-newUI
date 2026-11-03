@@ -17,6 +17,52 @@ const MONTH_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July'
 const WEEK_1 = ['日', '一', '二', '三', '四', '五', '六'];
 const CHEV_L = '<path d="m14.5 6-6 6 6 6"/>', CHEV_R = '<path d="m9.5 6 6 6-6 6"/>';
 
+function smoothWheelScroll(strip: HTMLElement) {
+  let target: number | null = null, frame = 0, scrollBehavior = '';
+  strip.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) {
+      if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+        target = null;
+        strip.style.scrollBehavior = scrollBehavior;
+      }
+      return;
+    }
+    const delta = e.deltaY * (e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? strip.clientWidth : 1);
+    const max = Math.max(0, strip.scrollWidth - strip.clientWidth);
+    const next = Math.max(0, Math.min(max, (target ?? strip.scrollLeft) + delta));
+    if (next === (target ?? strip.scrollLeft) && !frame) return;
+    e.preventDefault();
+    if (target === null) {
+      scrollBehavior = strip.style.scrollBehavior;
+      strip.style.scrollBehavior = 'auto';
+      target = strip.scrollLeft;
+    }
+    target = next;
+    if (frame) return;
+    let lastTime = 0, position = strip.scrollLeft;
+    const animate = (now: number) => {
+      const finish = () => { frame = 0; target = null; strip.style.scrollBehavior = scrollBehavior; };
+      if (!strip.isConnected) { finish(); return; }
+      const remaining = (target ?? position) - position;
+      if (Math.abs(remaining) < 0.5) {
+        strip.scrollLeft = target ?? strip.scrollLeft;
+        finish();
+        return;
+      }
+      const elapsed = lastTime ? Math.min(32, now - lastTime) : 16;
+      lastTime = now;
+      // 连续滚轮输入合并到同一条缓动曲线上，避免每个事件重启原生平滑滚动。
+      // 保留小数位置，避免浏览器取整后缓动停在终点前一像素。
+      position += remaining * (1 - Math.exp(-elapsed / 90));
+      strip.scrollLeft = position;
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+  }, { passive: false });
+}
+
 /** 首页上的「B 站足迹」卡片：近一年每天首次打开时间与停留时长的热力图 */
 export function createFootprintCard(): HTMLElement {
   const el = h('section', { class: 'fp-card', 'aria-label': 'B 站足迹' });
@@ -199,7 +245,7 @@ export function createFootprintCard(): HTMLElement {
     const nextOff = isThisMonth;
     const prevOff = +new Date(y, m, 1) <= +new Date(today.getFullYear() - 1, today.getMonth(), 1);
     requestAnimationFrame(() => { if (sel) strip.scrollLeft = sel.offsetLeft - strip.clientWidth / 2 + sel.offsetWidth / 2; });
-    strip.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { strip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+    smoothWheelScroll(strip);
     return h('div', { class: 'fp-month' },
       h('div', { class: 'fp-mhead' },
         h('p', { class: 'fp-mname' }, h('span', { class: 'en' }, MONTH_EN[m]), h('small', {}, `${y} 年 ${m + 1} 月`)),
