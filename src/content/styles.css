@@ -1288,9 +1288,7 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .fp-seg-b, .fp-mnav button { transition: color .15s var(--ease-out), background-color .2s var(--ease-out), scale .15s var(--ease-out); }
 .fp-day-b { transition: background-color .2s var(--ease-out), scale .15s var(--ease-out), box-shadow .2s var(--ease-out); }
 /* 滚动时（GPU 最忙的时候）暂时摘掉大块毛玻璃：底下只有本来就很柔的背景，换成同色实底几乎看不出差别，停下 160ms 后恢复 */
-.app.scrolling .fp-card, .app.scrolling .hero-search { backdrop-filter: none; }
-.app.scrolling .fp-card { background: rgb(255 255 255 / .55); }
-.app[data-theme="dark"].scrolling .fp-card { background: rgb(18 18 20 / .5); }
+.app.scrolling .hero-search { backdrop-filter: none; }
 /* 视口外的卡片跳过布局和绘制（无限加载后几百张卡也不拖慢滚动） */
 .grid > .card:not(.sk) { content-visibility: auto; contain-intrinsic-size: auto 300px; }
 
@@ -1320,7 +1318,6 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
   --i-off: rgb(23 24 26 / .07); --i-sun: #f5a524; --i-moon: #a9a59b; --i-star: #8d939c; --i-cloud: #b9bdc5; --i-cloud-d: #7f848d; --i-rain: var(--accent); --i-snow: #9fb4cc; --i-hill: #6f7177; --i-hz: #a3a5aa; --well: rgb(23 24 26 / .035); }
 .app[data-theme="dark"] .wx { background: rgb(0 0 0 / .2); border-color: rgb(255 255 255 / .1); box-shadow: 0 25px 50px -12px rgb(0 0 0 / .25);
   --i-off: rgb(255 255 255 / .06); --i-moon: #ececee; --i-star: #c9ccd2; --i-cloud: #8b8f98; --i-cloud-d: #5d6169; --i-snow: #dbe6f3; --i-hill: #9a9ba0; --i-hz: #64656a; --well: rgb(0 0 0 / .28); }
-.app.scrolling .wx { backdrop-filter: none; }
 .wx-empty { grid-column: 1 / -1; margin: auto; font-size: 13px; color: var(--muted); }
 .wx-sky { position: relative; min-height: 0; overflow: hidden; border-radius: 12px; background: var(--well); box-shadow: inset 0 1px 2px rgb(0 0 0 / .08), inset 0 0 0 var(--hair) rgb(0 0 0 / .05); }
 .wx-sky.sk { animation: pulse 1.6s ease-in-out infinite; }
@@ -1564,7 +1561,6 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 /* 关着的侧板（设置 / 收藏夹）不参与合成，也不再在屏幕外算毛玻璃 */
 .sheet-layer:not([data-open="true"]) .sheet { visibility: hidden; transition: transform .4s var(--ease-out), visibility 0s linear .4s; }
 .sheet-layer[data-open="true"] .sheet { visibility: visible; transition: transform .4s var(--ease-out), visibility 0s; }
-.app.scrolling .wx { backdrop-filter: none; }
 
 /* ===== v0.43 首页部件显隐（设置 → 首页组件） ===== */
 .app.home[data-hide~="search"] :is(.hs-slot, .hero-search, .hs-scrim) { display: none; }
