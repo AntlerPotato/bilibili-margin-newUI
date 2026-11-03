@@ -434,7 +434,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         block('强度', null, intensity),
         h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '自定义图片'), h('small', {}, '压缩后只保存在本机')), upload, file))),
     h('section', { class: 'group' }, h('h3', {}, '内容过滤'),
-      block('屏蔽关键词', '标题包含即隐藏（首页、搜索、播放页推荐、动态等全站生效）', kw),
+      block('屏蔽关键词', '标题或视频标签包含即隐藏（首页、搜索、播放页推荐、动态等全站生效）', kw),
       block('屏蔽 UP 主', '卡片右上角也能一键屏蔽', ups),
       drawer('播放量与时长', () => '',
         block('最低播放量', null, views),

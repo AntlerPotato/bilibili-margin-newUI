@@ -213,6 +213,53 @@ for (const theme of THEMES) {
       });
     });
 
+    await feature('tag-filter-home', async () => {
+      await reset();
+      await seed({ filters: { ...filterOff, keywords: ['隐藏标签词'] } });
+      await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
+      await sleep(800);
+      return page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        const titles = [...r?.querySelectorAll('.grid .card .title') ?? []].map((e) => e.textContent ?? '');
+        const miss = [];
+        if (!titles.length) miss.push('no cards');
+        // 《胡闹厨房》的标题不含屏蔽词，但视频标签是「隐藏标签词」
+        if (titles.some((t) => t.includes('胡闹厨房'))) miss.push('tag-blocked card shown');
+        return miss;
+      });
+    });
+
+    await feature('space-no-filter', async () => {
+      await reset();
+      await seed({ filters: { ...filterOff, keywords: ['旗舰手机芯片'], minDuration: 600 } });
+      await page.goto('https://space.bilibili.com/1/video', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
+      await sleep(600);
+      const miss = await page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        const cards = [...r?.querySelectorAll('.grid .card:not(.sk)') ?? []];
+        const m = [];
+        if (cards.length < 4) m.push(`space cards ${cards.length}`);
+        if (cards.some((c) => c.hasAttribute('data-margin-filtered'))) m.push('space video filtered');
+        if (!cards.some((c) => (c.querySelector('.title')?.textContent ?? '').includes('旗舰手机芯片'))) m.push('keyword-matched video hidden');
+        return m;
+      });
+      await page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        r?.querySelector('.sp-bar .tab[data-tab="dynamic"]')?.click();
+      });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.dy:not(.sk)'), null, { timeout: 15_000 }).catch(() => {});
+      await sleep(400);
+      miss.push(...await page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        const dyn = [...r?.querySelectorAll('.dy:not(.sk)') ?? []];
+        if (!dyn.length) return ['space dynamics empty'];
+        return dyn.some((d) => d.hasAttribute('data-margin-filtered')) ? ['space dynamic filtered'] : [];
+      }));
+      return miss;
+    });
+
     await feature('extension-filters', async () => {
       await reset();
       await seed({ filters: { ...filterOff, keywords: ['芯片'] } });
@@ -223,8 +270,14 @@ for (const theme of THEMES) {
       await sleep(500);
       miss.push(...await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
-        const titles = [...r?.querySelectorAll('.grid .card:not([data-margin-filtered]) .title') ?? []].map((e) => e.textContent ?? '');
-        return titles.some((t) => t.includes('芯片')) ? ['space keyword card shown'] : [];
+        const cards = [...r?.querySelectorAll('.grid .card:not(.sk)') ?? []];
+        const titles = cards.filter((c) => !c.hasAttribute('data-margin-filtered')).map((c) => c.querySelector('.title')?.textContent ?? '');
+        const out = [];
+        if (!cards.length) out.push('space no cards');
+        // v0.5x：进了 UP 主页就不再套用关键词 / 时长等全局过滤（只保留隐藏广告）
+        if (!titles.some((t) => t.includes('芯片'))) out.push('space keyword card hidden (should be exempt)');
+        if (cards.some((c) => c.hasAttribute('data-margin-filtered'))) out.push('space card filtered');
+        return out;
       }));
       // 历史记录
       await page.goto('https://www.bilibili.com/account/history', { waitUntil: 'domcontentloaded' });
@@ -292,6 +345,25 @@ for (const theme of THEMES) {
         const m = [];
         if (!q('normal') || hidden(q('normal'))) m.push('popular normal hidden');
         if (!q('keyword') || !hidden(q('keyword'))) m.push('popular keyword not hidden');
+        return m;
+      });
+    });
+
+    await feature('native-tag-filter', async () => {
+      await reset();
+      await seed({ filters: { ...filterOff, keywords: ['隐藏标签词'] } });
+      await page.goto(SEARCH, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => {
+        const el = document.querySelector('[data-k="tag"]');
+        return !!el && getComputedStyle(el).display === 'none';
+      }, null, { timeout: 12_000 }).catch(() => {});
+      await sleep(200);
+      return page.evaluate(() => {
+        const el = document.querySelector('[data-k="tag"]');
+        const normal = document.querySelector('[data-k="normal"]');
+        const m = [];
+        if (!el || getComputedStyle(el).display !== 'none') m.push('tag card not hidden');
+        if (normal && getComputedStyle(normal).display === 'none') m.push('normal card hidden');
         return m;
       });
     });

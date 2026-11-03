@@ -1,6 +1,7 @@
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
 import { clearHistory, deleteHistory, historyList, historyPaused, historySearch, setHistoryPaused, type Cursor, type HistItem, type HistKind } from '../api/history';
+import { bvidFromHref } from '../tags';
 import { dayBucket, fmtDuration, h, icon, ICONS } from './dom';
 import { segmented, toast } from './controls';
 import { PageShell } from './shell';
@@ -121,6 +122,9 @@ export class HistoryApp {
         items = r.list; this.cursor = r.cursor; this.done = !r.cursor;
       }
       if (gen !== this.gen) return;
+      // 关键词也要能命中视频标签：先预热这批记录的标签
+      await this.shell.filter.prepare(items.map((it) => bvidFromHref(it.url)));
+      if (gen !== this.gen) return;
       sk.forEach((n) => n.remove());
       for (const it of items) this.add(it);
       this.applyFilters();
@@ -187,15 +191,20 @@ export class HistoryApp {
   /** 标记命中屏蔽词的记录，并藏掉没有可见行的日期分组 */
   private applyFilters(): void {
     const filter = this.shell.filter;
-    this.list.querySelectorAll<HTMLElement>('.hi-row').forEach((li) => {
-      const it = histData.get(li);
-      if (it) li.toggleAttribute('data-margin-filtered', !filter.allows(targetOfHistory(it)));
-    });
-    this.list.querySelectorAll<HTMLElement>('.hi-group').forEach((group) => {
-      const hide = !group.querySelector('.hi-row:not([data-margin-filtered])');
-      group.hidden = hide;
-      const day = group.previousElementSibling;
-      if (day?.classList.contains('hi-day')) (day as HTMLElement).hidden = hide;
+    const items = [...this.list.querySelectorAll<HTMLElement>('.hi-row')]
+      .map((li) => histData.get(li))
+      .filter((it): it is HistItem => !!it);
+    void filter.prepare(items.map((it) => bvidFromHref(it.url))).then(() => {
+      this.list.querySelectorAll<HTMLElement>('.hi-row').forEach((li) => {
+        const it = histData.get(li);
+        if (it) li.toggleAttribute('data-margin-filtered', !filter.allows(targetOfHistory(it)));
+      });
+      this.list.querySelectorAll<HTMLElement>('.hi-group').forEach((group) => {
+        const hide = !group.querySelector('.hi-row:not([data-margin-filtered])');
+        group.hidden = hide;
+        const day = group.previousElementSibling;
+        if (day?.classList.contains('hi-day')) (day as HTMLElement).hidden = hide;
+      });
     });
   }
 }

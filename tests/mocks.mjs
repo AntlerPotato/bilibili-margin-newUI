@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const P = JSON.parse(readFileSync(new URL('./fixtures/pop.json', import.meta.url), 'utf8'));
 const NOW = Math.floor(Date.now() / 1000);
+/** 视频标签：给第 5 个样本挂一个「隐藏标签词」，用来测关键词命中视频标签 */
+const TAGS = { [P[4].bvid]: ['隐藏标签词'] };
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const https = (u) => String(u).replace(/^http:/, 'https:');
 
@@ -68,6 +70,10 @@ export function apiBody(u) {
     return { code: 0, data: { item: items } };
   }
   if (u.includes('/x/web-interface/popular')) return { code: 0, data: { list: P.map(arc), no_more: true } };
+  if (u.includes('/x/tag/archive/tags')) {
+    const bvid = new URL(u).searchParams.get('bvid') ?? '';
+    return { code: 0, data: (TAGS[bvid] ?? []).map((name, i) => ({ tag_id: i + 1, tag_name: name })) };
+  }
   if (u.includes('fav/folder/created/list')) return { code: 0, data: { count: 3, list: [{ id: 101, title: '默认收藏夹', media_count: 42, cover: P[1].pic, attr: 0 }, { id: 202, title: '动效参考', media_count: 17, cover: P[4].pic, attr: 2 }, { id: 303, title: '字体与排版', media_count: 8, cover: '', attr: 3 }] } };
   if (u.includes('fav/resource/list')) return { code: 0, data: { has_more: false, medias: P.slice(0, 8).map((v) => ({ type: 2, attr: 0, bvid: v.bvid, title: v.title, cover: v.pic, duration: v.dur, upper: { name: v.name, mid: v.mid, face: v.face }, cnt_info: { play: v.play, danmaku: 100 }, fav_time: v.pub })) } };
   if (u.includes('fav/folder/')) return { code: 0, data: 0 };
@@ -150,6 +156,7 @@ const searchHtml = () => `<!doctype html><html lang="zh-CN"><head><meta charset=
   ${searchCard('up', '被屏蔽 UP 的结果', '坏UP', '12.3万', '10:00')}
   ${searchCard('low', '低播放结果', '正常UP', '12', '1:00')}
   ${searchCard('missing', '缺播放量结果', '正常UP', '', '2:00')}
+  <div class="bili-video-card" data-k="tag"><a href="https://www.bilibili.com/video/${P[4].bvid}"><div class="bili-video-card__info--tit">标签命中结果</div></a><div class="bili-video-card__info--author">正常UP</div><div class="bili-video-card__stats"><span class="bili-video-card__stats--item">12.3万</span><span class="bili-video-card__stats__duration">10:00</span></div></div>
   <div class="video-list-item" data-k="ad"><div class="bili-video-card">
     <div class="bili-video-card__info--tit">广告搜索结果</div><div class="bili-video-card__info--author">推广账号</div>
     <div class="bili-video-card__info--ad">广告</div>

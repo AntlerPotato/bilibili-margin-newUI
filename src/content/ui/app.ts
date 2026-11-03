@@ -365,10 +365,14 @@ export class MarginApp {
 
   /** 过滤条件变化后，用已加载的数据重画网格 */
   private repaint(): void {
-    const shown = this.items.filter((v) => this.filter.allows(targetOfVideo(v)));
-    this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, this.cardOpts())));
-    this.grid.querySelectorAll('.card').forEach((c) => c.classList.add('still'));
-    this.fillIfShort();
+    const gen = this.gen;
+    void this.filter.prepare(this.items.map((v) => v.bvid)).then(() => {
+      if (gen !== this.gen) return;
+      const shown = this.items.filter((v) => this.filter.allows(targetOfVideo(v)));
+      this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, this.cardOpts())));
+      this.grid.querySelectorAll('.card').forEach((c) => c.classList.add('still'));
+      this.fillIfShort();
+    });
   }
 
   private async blockUp(v: Video): Promise<void> {
@@ -426,6 +430,9 @@ export class MarginApp {
         this.done = r.done;
       }
       if (this.tab === 'rcmd' && this.settings.rerank) list = await rerank(list, this.items.slice(-3).map((x) => x.mid), this.seen).catch(() => list);
+      if (gen !== this.gen) return;
+      // 关键词也要能命中视频标签：先把这批视频的标签取回来（没有关键词时立即返回）
+      await this.filter.prepare(list.map((v) => v.bvid));
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
       const start = this.grid.children.length;

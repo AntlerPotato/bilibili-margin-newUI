@@ -11,6 +11,10 @@ export interface FilterTarget {
   duration?: number | null;
   /** 接口明确标记的广告 */
   ad?: boolean;
+  /** 视频标签（播放页下方那种）；未知时为 null/undefined */
+  tags?: readonly string[] | null;
+  /** 用来查标签缓存 */
+  bvid?: string | null;
 }
 
 /** 返回 true 表示保留 */
@@ -41,7 +45,8 @@ export function compileFilter(f: Filters): Predicate {
     else if (t) names.add(t.toLowerCase());
   }
   return (t) => {
-    if (kws.some((k) => k(t.title))) return false;
+    // 关键词同时匹配标题和视频标签（v0.5x：屏蔽词对播放页那种标签也生效）
+    if (kws.some((k) => k(t.title) || (t.tags ?? []).some((tag) => k(tag)))) return false;
     if (t.mid != null && mids.has(t.mid)) return false;
     if (t.author && names.has(t.author.toLowerCase())) return false;
     // 未知播放量 / 时长放行：历史、稍后再看、动态、私信卡片没有这些字段
@@ -56,8 +61,8 @@ export function compileFilter(f: Filters): Predicate {
  * 动态过滤（v0.47.2，GitHub #8：装了扩展后油猴的动态净化用不了）：
  * 沿用设置里首页的「屏蔽关键词 / 屏蔽 UP」，匹配动态正文、标题、视频标题和转发的原动态。
  */
-export interface DynLike { author: string; mid: number; title?: string; text?: string; video?: { title: string } | null; article?: { title: string } | null; orig?: DynLike | null }
-export function compileDynFilter(f: Filters): (d: DynLike) => boolean {
+export interface DynLike { author: string; mid: number; title?: string; text?: string; video?: { title: string; bvid?: string } | null; article?: { title: string } | null; orig?: DynLike | null }
+export function compileDynFilter(f: Filters, tagsOf?: (bvid: string) => readonly string[] | undefined): (d: DynLike) => boolean {
   const kws = f.keywords.map(keywordTest).filter(Boolean) as ((s: string) => boolean)[];
   const mids = new Set<number>();
   const names = new Set<string>();
@@ -67,7 +72,11 @@ export function compileDynFilter(f: Filters): (d: DynLike) => boolean {
     else if (t) names.add(t.toLowerCase());
   }
   if (!kws.length && !mids.size && !names.size) return () => true;
-  const hay = (d: DynLike): string => [d.title, d.text, d.video?.title, d.article?.title, d.orig ? hay(d.orig) : ''].filter(Boolean).join('\n');
+  const hay = (d: DynLike): string => [
+    d.title, d.text, d.video?.title,
+    d.video?.bvid && tagsOf ? (tagsOf(d.video.bvid) ?? []).join(' ') : '',
+    d.article?.title, d.orig ? hay(d.orig) : '',
+  ].filter(Boolean).join('\n');
   const upOk = (d: DynLike) => !mids.has(d.mid) && !names.has(String(d.author).toLowerCase());
   return (d) => upOk(d) && (!d.orig || upOk(d.orig)) && !kws.some((k) => k(hay(d)));
 }
