@@ -63,6 +63,8 @@ export interface Settings {
   replyTree: boolean;
   /** 首页每行几个视频：0 = 按窗口宽度自动，4 / 5 = 固定 */
   cols: 0 | 4 | 5;
+  /** 点击「推荐 / 热门 / 关注老片」分类标签刷新列表 */
+  tabRefresh: boolean;
   /** 首页隐藏的部件；空 = 全部显示 */
   homeHide: HomeBit[];
   /** 标题字体（v0.46，B 站评论建议）：衬线 = 宋体系，无衬线 = 黑体系 */
@@ -128,6 +130,7 @@ export const DEFAULTS: Settings = {
   speedKeys: true,
   replyTree: true,
   cols: 0,
+  tabRefresh: false,
   homeHide: [],
   titleFont: 'serif',
   monoNum: true,
@@ -180,6 +183,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     headHide: strList(r.headHide),
     headOrder: strList(r.headOrder),
     zoom: r.zoom === 110 || r.zoom === 120 ? r.zoom : 100,
+    tabRefresh: r.tabRefresh === true,
     cmdK: r.cmdK !== false,
     cdn: cleanHost(r.cdn),
     bodyFont: cleanFont(r.bodyFont),
@@ -220,9 +224,9 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank' | 'tabRefresh') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('speedKeys'); bool('replyTree'); bool('idDrag'); bool('monoNum');
-  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank');
+  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank'); bool('tabRefresh');
   if (typeof r.bodyFont === 'string') out.bodyFont = cleanFont(r.bodyFont);
   if (Array.isArray(r.headHide)) out.headHide = strList(r.headHide);
   if (Array.isArray(r.headOrder)) out.headOrder = strList(r.headOrder);

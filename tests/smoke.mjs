@@ -22,6 +22,10 @@ const PAGES = [
   ['home', 'https://www.bilibili.com/', `(() => { const r = ${R}; if (!r) return ['#margin-root'];
     const miss = []; if (r.querySelectorAll('.grid .card').length < 4) miss.push('.grid .card ×4');
     for (const s of ['header', '.fp-card .fp-cells', '.hero-search, .hs', '.dash']) if (!r.querySelector(s)) miss.push(s);
+    // 发布时间的绝对时间要单独一行显示
+    const dates = [...r.querySelectorAll('.grid .card .pubtime')].map((e) => e.textContent.trim())
+      .filter((t) => t.length === 19 && t[4] === '-' && t[10] === ' ' && t[13] === ':' && t[16] === ':');
+    if (dates.length < 4) miss.push('card publish time missing');
     return miss; })()`],
   ['watch', 'https://www.bilibili.com/video/BV1mdxN68E7F/', `(() => { const miss = [];
     if (!document.documentElement.classList.contains('margin-watch')) miss.push('html.margin-watch');
@@ -179,6 +183,7 @@ for (const theme of THEMES) {
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '宽屏模式')) m.push('wide row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '消息提醒')) m.push('message row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '隐藏广告')) m.push('ads row missing');
+        if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '点击分类标签刷新列表')) m.push('tab-refresh row missing');
         return m;
       });
       await page.evaluate(() => {
@@ -194,6 +199,34 @@ for (const theme of THEMES) {
         return idx('.dash') >= 0 && idx('.dash') < idx('.hs-slot') ? [] : ['order button did not move hero down'];
       }));
       return miss;
+    });
+
+    await feature('tab-refresh', async () => {
+      await reset();
+      await seed({ tabRefresh: true });
+      await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
+      await sleep(500);
+      const state = () => page.evaluate(() => {
+        const r = document.getElementById('margin-root').shadowRoot;
+        return {
+          backHidden: r.querySelector('.refresh.back')?.hidden,
+          cards: r.querySelectorAll('.grid .card:not(.sk)').length,
+          sel: r.querySelector('.tab[aria-selected="true"]')?.dataset.tab,
+        };
+      });
+      const before = await state();
+      // 打开设置后，点当前分类标签应该等于换一批
+      await page.evaluate(() => document.getElementById('margin-root').shadowRoot.querySelector('.tab[data-tab=rcmd]')?.click());
+      await sleep(1800);
+      const after = await state();
+      const m = [];
+      if (before.backHidden !== true) m.push('back button visible before refreshing');
+      if (after.backHidden !== false) m.push('back button missing after clicking the active tab');
+      if (after.sel !== 'rcmd') m.push(`tab changed unexpectedly: ${after.sel}`);
+      if (!after.cards) m.push('no cards after refreshing');
+      await reset();
+      return m;
     });
 
     await feature('home-filter', async () => {

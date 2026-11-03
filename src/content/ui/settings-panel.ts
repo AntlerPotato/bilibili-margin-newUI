@@ -201,6 +201,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const spdK = toggle(s0.speedKeys, '倍速快捷键', (v) => save({ speedKeys: v }));
   const treeT = toggle(s0.replyTree, '楼中楼对话树', (v) => save({ replyTree: v }));
   const msgT = toggle(s0.msgRemind, '消息提醒', (v) => save({ msgRemind: v }));
+  const tabRefreshT = toggle(s0.tabRefresh, '点击分类标签刷新列表', (v) => save({ tabRefresh: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
   const ups = chipInput(s0.filters.ups, 'UP 主昵称或 MID', (v) => save({ filters: { ...get().filters, ups: v } }));
@@ -419,6 +420,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('搜索框', '关掉后用顶栏的小搜索框', searchT),
       row('日期栏', '推荐上方的日期和「For You」', dateT),
       row('换一批按钮', null, refreshT),
+      row('点击分类标签刷新列表', null, tabRefreshT),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT),
       drawer('天气城市与卡片信息', () => { const l = savedLoc(); return l?.manual ? l.name : '自动定位'; },
@@ -469,6 +471,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       searchT.setAttribute('aria-checked', String(!s.homeHide.includes('search')));
       dateT.setAttribute('aria-checked', String(!s.homeHide.includes('date')));
       refreshT.setAttribute('aria-checked', String(!s.homeHide.includes('refresh')));
+      tabRefreshT.setAttribute('aria-checked', String(s.tabRefresh));
       cardBits.set(shownCard(s.homeHide));
       order = normalizeHomeOrder(s.homeOrder);
       paintOrder();

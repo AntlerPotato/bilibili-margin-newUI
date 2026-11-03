@@ -318,10 +318,12 @@ export class MarginApp {
   }
 
   private switchTab(id: Tab, tabs: HTMLElement): void {
-    if (id === this.tab) return;
+    const same = id === this.tab;
+    // 设置里打开「点击分类标签刷新列表」后，点当前分类标签等于换一批，保留「上一批」可回退
+    if (same && !this.settings.tabRefresh) return;
     this.tab = id;
     tabs.querySelectorAll<HTMLElement>('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === id)));
-    this.reload();
+    this.reload(same && this.settings.tabRefresh);
   }
 
   private backBtn: HTMLElement | null = null;
