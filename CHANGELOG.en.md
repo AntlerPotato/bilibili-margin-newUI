@@ -2,6 +2,10 @@
 
 # Changelog
 
+## [v0.49.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.49.1) · 2026-11-03
+
+- Messages: a "Load more chats" button now sits at the end of the chat list, so you can load more by hand if auto-loading doesn't fire; auto-loading at the bottom is also more reliable (it re-checks after each page).
+
 ## [v0.49.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.49.0) · 2026-11-03
 
 - New reply tree for nested comments: expanded replies are indented by who they reply to ("回复 @name"), joined by hairlines, up to three levels deep. The page script can't read Bilibili's reply-parent field, so a reply is matched to the nearest earlier comment by that name and may occasionally land one level off; can be turned off in Settings → Watch page. Styling after klyv-ui's Comment Thread on 21st.dev. Thanks to @橘味魔术师 for suggesting it (inspired by BewlyCat's reply styling).

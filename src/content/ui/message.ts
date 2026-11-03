@@ -221,7 +221,8 @@ export class MessageApp {
     const want = Number(location.hash.match(/mid(\d+)/)?.[1] || 0);
     // v0.49：会话分页（每页 20 个，滚到底自动加载下一页）+ 一键全部已读
     let endTs = 0, more = true, busy = false, bucket = '', first = true;
-    const sentinel = h('div', { class: 'wh-more' });
+    const sentinel = h('button', { class: 'wh-more', type: 'button' }, '加载更多会话');
+    sentinel.addEventListener('click', () => page());
     const readAll = h('button', { class: 'ghost small wh-readall', type: 'button', title: '把所有私信会话标为已读' }, '全部已读');
     readAll.addEventListener('click', async () => {
       readAll.setAttribute('disabled', '');
@@ -239,6 +240,7 @@ export class MessageApp {
     const page = async () => {
       if (busy || !more || gen !== this.gen) return;
       busy = true;
+      sentinel.textContent = '加载中…';
       try {
         const p = await sessions(endTs);
         if (gen !== this.gen) return;
@@ -266,12 +268,13 @@ export class MessageApp {
         if (!more) sentinel.remove();
       } catch (e) {
         if (gen === this.gen) { more = false; sentinel.replaceWith(this.empty(`加载失败：${(e as Error).message}`)); }
-      } finally { busy = false; }
-      // 列表没填满可视区时继续拉
-      if (more && gen === this.gen && list.scrollHeight <= list.clientHeight + 40) page();
+      } finally { busy = false; sentinel.textContent = '加载更多会话'; }
+      // 重新观察一次：哨兵一直在可视区里时 IO 不会再回调（之前滚到底不加载就是这个原因）
+      if (more && gen === this.gen && sentinel.isConnected) { io.unobserve(sentinel); io.observe(sentinel); }
     };
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) page(); }, { root: list, rootMargin: '0px 0px 300px 0px' });
     list.append(sentinel);
-    new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) page(); }, { root: list, rootMargin: '0px 0px 300px 0px' }).observe(sentinel);
+    io.observe(sentinel);
     page();
   }
 
