@@ -3,6 +3,7 @@ import { saveSettings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
 import { h, ICONS } from './dom';
 import { createHeader, type Header, SITE_LINKS } from './header';
+import { createYtHeader, type YtHeader } from './yt/header';
 import { createSettingsPanel, type SettingsPanel } from './settings-panel';
 import { attachGlass, filtersIn } from './liquid-glass';
 import { createLaterDrawer } from './drawer';
@@ -13,6 +14,7 @@ import { FilterRuntime } from '../filter-runtime';
 import { reducedMotion } from '../motion';
 import css from '../styles.css?inline';
 import pagesCss from '../takeover.css?inline';
+import ytCss from '../yt.css?inline';
 
 /**
  * 接管式页面（个人空间、消息中心）的公共外壳：Shadow DOM、映间顶栏、背景、主题切换、设置/收藏/稍后再看。
@@ -23,38 +25,47 @@ export class PageShell {
   readonly root: ShadowRoot;
   readonly app: HTMLElement;
   readonly main: HTMLElement;
-  readonly head: Header;
+  readonly head: Header | YtHeader;
   readonly filter: FilterRuntime;
-  private sunMoon: SunMoon;
+  private yt: boolean;
+  private sunMoon?: SunMoon;
   private bg = new BackgroundLayer();
   private panel: SettingsPanel;
   private fadeTimer = 0;
   private media = matchMedia('(prefers-color-scheme: dark)');
 
   constructor(public settings: Settings, kind: string) {
+    this.yt = settings.ytHome;
     this.host = h('div', { id: 'margin-root' });
     this.root = this.host.attachShadow({ mode: 'open' });
-    this.root.append(h('style', {}, css + '\n' + pagesCss));
+    this.root.append(h('style', {}, css + '\n' + pagesCss + (this.yt ? '\n' + ytCss : '')));
     this.filter = new FilterRuntime(settings);
     this.panel = createSettingsPanel(() => this.settings, () => this.bg.shader);
     const fav = createFavorites((g) => attachPreview(g, () => this.settings.hoverPreview), undefined, this.filter);
     const later = createLaterDrawer(() => this.app, this.filter);
-    this.head = createHeader({
-      onTheme: () => this.toggleTheme(),
-      msgRemind: () => this.settings.msgRemind,
-      filter: this.filter,
-      tabs: [
-        ...SITE_LINKS,
-        'separator',
-        { title: '收藏', icon: ICONS.fav, run: () => fav.open() },
-        { title: '稍后', icon: ICONS.later, run: () => later.open() },
-        { title: '设置', icon: ICONS.gear, run: () => this.panel.sheet.open() },
-      ],
-    });
-    this.sunMoon = this.head.sunMoon;
+    this.head = this.yt
+      ? createYtHeader({
+          onTheme: () => this.toggleTheme(),
+          onMenu: () => {},
+          onSearch: (q) => window.open(`https://search.bilibili.com/all?keyword=${encodeURIComponent(q)}`, '_blank', 'noopener'),
+          msgRemind: () => this.settings.msgRemind,
+        })
+      : createHeader({
+          onTheme: () => this.toggleTheme(),
+          msgRemind: () => this.settings.msgRemind,
+          filter: this.filter,
+          tabs: [
+            ...SITE_LINKS,
+            'separator',
+            { title: '收藏', icon: ICONS.fav, run: () => fav.open() },
+            { title: '稍后', icon: ICONS.later, run: () => later.open() },
+            { title: '设置', icon: ICONS.gear, run: () => this.panel.sheet.open() },
+          ],
+        });
+    if ('sunMoon' in this.head) this.sunMoon = this.head.sunMoon;
     this.main = h('main', { class: `main tk tk-${kind}` });
     const exit = h('button', { class: 'ghost small', type: 'button', onclick: () => { sessionStorage.setItem('margin:off', '1'); location.reload(); } }, '本次回到 B 站原版');
-    this.app = h('div', { class: 'app' },
+    this.app = h('div', { class: `app${this.yt ? ' yt yt-shell' : ''}` },
       this.bg.el, this.head.el, this.main,
       h('footer', { class: 'foot tk-foot' }, exit, h('span', {}, '映间 MARGIN · 非 B 站官方')),
       this.panel.sheet.el, fav.el, later.el,
@@ -62,9 +73,11 @@ export class PageShell {
     // 侧板开着时背景定格：侧板的毛玻璃（backdrop-filter）只有在底下画面变化时才需要每帧重算（v0.45）
     this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); this.bg.hold('sheet', on); });
     this.root.append(this.app);
-    const lg = filtersIn(this.root);
-    this.head.glass.forEach((g) => attachGlass(g, lg));
-    attachGlass(this.head.thumb, lg, { blur: 2, strength: 0.4 });
+    if ('glass' in this.head) {
+      const lg = filtersIn(this.root);
+      this.head.glass.forEach((g) => attachGlass(g, lg));
+      attachGlass(this.head.thumb, lg, { blur: 2, strength: 0.4 });
+    }
     this.applyTheme();
     this.media.addEventListener('change', () => this.applyTheme());
     // 滚动时背景停一停，毛玻璃不用每帧重算（v0.43）
@@ -83,6 +96,7 @@ export class PageShell {
 
   update(s: Settings): void {
     const prev = this.settings;
+    if (prev.ytHome !== s.ytHome) { location.reload(); return; }
     this.settings = s;
     this.filter.update(s);
     if (prev.reduceMotion !== s.reduceMotion || prev.theme !== s.theme || prev.palette !== s.palette || JSON.stringify(prev.bg) !== JSON.stringify(s.bg)) this.applyTheme();
@@ -102,17 +116,19 @@ export class PageShell {
     this.app.dataset.bg = this.settings.bg.mode;
     this.app.classList.toggle('margin-reduce', this.settings.reduceMotion);
     document.documentElement.style.background = t === 'dark' ? '#111' : '#f5f4f1';
-    this.sunMoon.set(t, !reducedMotion());
+    if (this.yt) (this.head as YtHeader).setTheme(t);
+    else this.sunMoon?.set(t, !reducedMotion());
     this.bg.apply(this.settings.bg, t, this.settings.palette).then(() => this.panel.sync(this.settings));
   }
 
   private async toggleTheme(): Promise<void> {
     const next = this.resolved() === 'dark' ? 'light' : 'dark';
     if (!reducedMotion()) {
+      const dur = this.sunMoon?.duration ?? 300;
       this.app.classList.add('theme-fading');
-      this.app.style.setProperty('--fade', `${this.sunMoon.duration}ms`);
+      this.app.style.setProperty('--fade', `${dur}ms`);
       clearTimeout(this.fadeTimer);
-      this.fadeTimer = window.setTimeout(() => this.app.classList.remove('theme-fading'), this.sunMoon.duration + 100);
+      this.fadeTimer = window.setTimeout(() => this.app.classList.remove('theme-fading'), dur + 100);
     }
     this.settings = { ...this.settings, theme: next };
     this.applyTheme();
