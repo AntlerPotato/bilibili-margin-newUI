@@ -311,6 +311,7 @@ for (const theme of THEMES) {
         if (!document.documentElement.classList.contains('margin-yt')) m.push('html.margin-yt missing');
         if (!document.getElementById('margin-yt-watch-css')) m.push('yt watch css missing');
         if (!r?.querySelector('header.yt-top')) m.push('yt header missing');
+        if (!r?.querySelector('.yt-switch[data-active="true"]')) m.push('yt switch missing');
         if (!/bilibili/i.test(r?.querySelector('.yt-brand b')?.textContent ?? '')) m.push('brand not bilibili');
         if (getComputedStyle(document.getElementById('margin-watch-top')).height !== '56px') m.push('yt header height');
         const vc = document.querySelector('.video-container-v1');
@@ -364,6 +365,30 @@ for (const theme of THEMES) {
         if (!r?.querySelector('header.yt-top')) m.push('yt header missing');
         const s = r?.querySelector('.yt-search');
         if (s && getComputedStyle(s).visibility !== 'hidden') m.push('yt search not hidden on search page');
+        return m;
+      });
+      await page.goto('about:blank');
+      await seed({ ytHome: false });
+      return miss;
+    });
+
+    await feature('yt-switch', async () => {
+      await page.goto('about:blank');
+      await reset();
+      await seed({ ytHome: true });
+      await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.yt-switch[data-active="true"]'), null, { timeout: 15_000 });
+      await page.evaluate(() => {
+        document.getElementById('margin-root')?.shadowRoot?.querySelector('.yt-switch')?.click();
+      });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.hero-search, .hs'), null, { timeout: 15_000 }).catch(() => {});
+      const miss = await page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        const m = [];
+        if (r?.querySelector('.app.yt')) m.push('still in yt mode');
+        if (!r?.querySelector('.hero-search, .hs')) m.push('margin home missing after switch');
+        const sw = r?.querySelector('.yt-switch');
+        if (!sw || sw.getAttribute('data-active') !== 'false') m.push('margin switch state wrong');
         return m;
       });
       await page.goto('about:blank');

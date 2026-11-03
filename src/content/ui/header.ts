@@ -9,6 +9,7 @@ import { attachTooltips } from './tooltip';
 import { BILI_TIGHT } from './intro/logo';
 import { liveTv } from './tv-eyes';
 import { attachHoverList, POPS, type PopHandle } from './dyn-pop';
+import { createYtSwitch } from './yt/switch';
 import type { FilterRuntime } from '../filter-runtime';
 
 /** 顶栏左上角的小电视：开场动画结束时图标就飞落到这里 */
@@ -92,7 +93,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
   const el = h('header', { class: 'top' },
     h('a', { class: 'brand', href: 'https://www.bilibili.com/', title: '首页', 'aria-label': '首页' }, tv()),
     search,
-    h('div', { class: 'acts' }, tabsNav.el, sunMoon.el, upload, userSlot),
+    h('div', { class: 'acts' }, tabsNav.el, createYtSwitch(false), sunMoon.el, upload, userSlot),
   );
 
   account().then((a) => {
