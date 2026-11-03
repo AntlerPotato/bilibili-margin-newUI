@@ -1,5 +1,5 @@
 import type { Settings } from '../../shared/settings';
-import { follow, spaceInfo, spaceRecent, spaceVideos, type SpaceInfo, type VideoOrder } from '../api/space';
+import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceRecent, spaceVideos, type SpaceInfo, type VideoOrder } from '../api/space';
 import { spaceDynamics } from '../api/dyn';
 import { videoCard, skeleton } from './card';
 import { dynCard, dynData } from './dyn';
@@ -117,16 +117,77 @@ export class SpaceApp {
 
   private hero(i: SpaceInfo): HTMLElement {
     const followBtn = h('button', { class: `sp-follow${i.isFollowing ? ' on' : ''}`, type: 'button' }, i.isFollowing ? '已关注' : '+ 关注');
+    // v0.49：已关注时点按钮弹菜单（设置分组 / 取消关注），不再一点就取关；关注成功后直接弹出分组；「⋯」里可以拉黑
+    const menu = h('div', { class: 'sp-menu', role: 'menu', hidden: '' });
+    const closeMenu = () => { menu.hidden = true; document.removeEventListener('pointerdown', outside, true); };
+    const outside = (e: Event) => { if (!e.composedPath().some((n) => n === menu || n === followBtn || n === moreBtn)) closeMenu(); };
+    const openMenu = (nodes: Node[]) => {
+      menu.replaceChildren(...nodes);
+      menu.hidden = false;
+      setTimeout(() => document.addEventListener('pointerdown', outside, true));
+    };
+    menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); followBtn.focus(); } });
+    const item = (label: string, fn: () => void, danger = false) => h('button', { class: `sp-mi${danger ? ' danger' : ''}`, type: 'button', role: 'menuitem', onclick: fn }, label);
+    const setFollowing = (on: boolean) => { followBtn.classList.toggle('on', on); followBtn.textContent = on ? '已关注' : '+ 关注'; };
+    const groups = async () => {
+      const token = csrf();
+      openMenu([h('div', { class: 'sp-mh' }, '设置分组'), h('div', { class: 'sp-mload' }, '加载中…')]);
+      const [tags, mine] = await Promise.all([followTags(), userTags(i.mid)]);
+      const picked = new Set(mine);
+      const boxes = tags.filter((t) => t.id > 0 || t.id === -10).map((t) => {
+        const cb = h('input', { type: 'checkbox' }) as HTMLInputElement;
+        cb.checked = picked.has(t.id);
+        cb.addEventListener('change', () => { if (cb.checked) picked.add(t.id); else picked.delete(t.id); });
+        return h('label', { class: 'sp-mc' }, cb, h('span', {}, t.name), h('i', {}, String(t.count)));
+      });
+      const save = h('button', { class: 'sp-msave', type: 'button' }, '保存');
+      save.addEventListener('click', async () => {
+        save.setAttribute('disabled', '');
+        const ok = await setUserTags(i.mid, [...picked], token).catch(() => false);
+        toast(this.shell.app, ok ? (picked.size ? '已设置分组' : '已移到默认分组') : '设置失败，请稍后再试');
+        if (ok) closeMenu(); else save.removeAttribute('disabled');
+      });
+      openMenu([h('div', { class: 'sp-mh' }, '设置分组'), boxes.length ? h('div', { class: 'sp-mlist' }, ...boxes) : h('div', { class: 'sp-mload' }, '还没有自建分组，未选即默认分组'), h('div', { class: 'sp-mfoot' }, save)]);
+      (menu.querySelector('input,button') as HTMLElement | null)?.focus();
+    };
+    followBtn.setAttribute('aria-haspopup', 'menu');
     followBtn.addEventListener('click', async () => {
       const token = csrf();
       if (!token) { window.open('https://passport.bilibili.com/login', '_blank', 'noopener'); return; }
-      const next = !followBtn.classList.contains('on');
+      if (followBtn.classList.contains('on')) {
+        if (!menu.hidden) { closeMenu(); return; }
+        openMenu([
+          item('设置分组', () => { groups(); }),
+          item('取消关注', async () => {
+            closeMenu();
+            const ok = await follow(i.mid, false, token).catch(() => false);
+            if (!ok) { toast(this.shell.app, '操作失败，请稍后再试'); return; }
+            setFollowing(false);
+          }, true),
+        ]);
+        (menu.querySelector('button') as HTMLElement | null)?.focus();
+        return;
+      }
       followBtn.disabled = true;
-      const ok = await follow(i.mid, next, token).catch(() => false);
+      const ok = await follow(i.mid, true, token).catch(() => false);
       followBtn.disabled = false;
       if (!ok) { toast(this.shell.app, '操作失败，请稍后再试'); return; }
-      followBtn.classList.toggle('on', next);
-      followBtn.textContent = next ? '已关注' : '+ 关注';
+      setFollowing(true);
+      groups();
+    });
+    const moreBtn = h('button', { class: 'sp-more', type: 'button', 'aria-label': '更多操作', 'aria-haspopup': 'menu', title: '更多' }, icon('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'));
+    moreBtn.addEventListener('click', () => {
+      if (!menu.hidden) { closeMenu(); return; }
+      const token = csrf();
+      if (!token) { window.open('https://passport.bilibili.com/login', '_blank', 'noopener'); return; }
+      openMenu([item(`拉黑 ${i.name}`, async () => {
+        closeMenu();
+        if (!confirm(`确定把 ${i.name} 加入黑名单？拉黑后对方不能关注你、给你发私信和评论。`)) return;
+        const ok = await block(i.mid, true, token).catch(() => false);
+        toast(this.shell.app, ok ? '已加入黑名单，可在 B 站设置 → 黑名单管理里移出' : '操作失败，请稍后再试');
+        if (ok) setFollowing(false);
+      }, true)]);
+      (menu.querySelector('button') as HTMLElement | null)?.focus();
     });
     const stat = (n: number, label: string, href?: string) => {
       const inner = [h('b', {}, fmtCount(n)), h('span', {}, label)];
@@ -134,7 +195,8 @@ export class SpaceApp {
     };
     const acts = h('div', { class: 'sp-acts' },
       followBtn,
-      h('a', { class: 'sp-msg', href: `https://message.bilibili.com/#/whisper/mid${i.mid}`, target: '_blank', rel: 'noopener' }, icon(ICONS.message), '私信'));
+      h('a', { class: 'sp-msg', href: `https://message.bilibili.com/#/whisper/mid${i.mid}`, target: '_blank', rel: 'noopener' }, icon(ICONS.message), '私信'),
+      moreBtn, menu);
     // 自己的空间：关注 / 私信换成收藏夹、历史记录、稍后再看（用户反馈：不想每次去顶栏找）
     account().then((me) => {
       if (!me || me.mid !== i.mid) return;

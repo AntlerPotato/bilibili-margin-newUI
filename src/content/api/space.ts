@@ -79,6 +79,30 @@ export async function follow(mid: number, on: boolean, csrf: string): Promise<bo
   return j.code === 0;
 }
 
+/** v0.49：关注分组（B 站评论反馈：主页关注后不能选分组，再点一下就直接取关了） */
+export interface FollowTag { id: number; name: string; count: number }
+export async function followTags(): Promise<FollowTag[]> {
+  const r = await fetch('https://api.bilibili.com/x/relation/tags', { credentials: 'include' }).then((x) => x.json()).catch(() => ({}));
+  return (r.data ?? []).filter((t: any) => t.tagid !== -10).map((t: any) => ({ id: Number(t.tagid), name: String(t.name), count: Number(t.count) || 0 }));
+}
+/** 这个 UP 当前所在的分组 id（默认分组为空） */
+export async function userTags(mid: number): Promise<number[]> {
+  const r = await fetch(`https://api.bilibili.com/x/relation/tag/user?fid=${mid}`, { credentials: 'include' }).then((x) => x.json()).catch(() => ({}));
+  return Object.keys(r.data ?? {}).map(Number).filter((n) => n > 0);
+}
+/** 设置分组（覆盖式；空数组 = 回到默认分组） */
+export async function setUserTags(mid: number, tags: number[], csrf: string): Promise<boolean> {
+  const body = new URLSearchParams({ fids: String(mid), tagids: tags.length ? tags.join(',') : '0', csrf });
+  const r = await fetch('https://api.bilibili.com/x/relation/tags/addUsers', { method: 'POST', credentials: 'include', body });
+  return ((await r.json().catch(() => ({}))) as any).code === 0;
+}
+/** 拉黑 / 移出黑名单（relation/modify act 5 / 6；B 站评论反馈：空间页少了拉黑按钮） */
+export async function block(mid: number, on: boolean, csrf: string): Promise<boolean> {
+  const body = new URLSearchParams({ fid: String(mid), act: on ? '5' : '6', re_src: '11', csrf });
+  const r = await fetch('https://api.bilibili.com/x/relation/modify', { method: 'POST', credentials: 'include', body });
+  return ((await r.json().catch(() => ({}))) as any).code === 0;
+}
+
 /**
  * 「关注老片」（v0.47.2，评论区 wsxszzz：想看关注的 UP 以前的高播放视频）：
  * 每批随机挑 4 位关注的 UP，取各自「最多播放」第一页里发布超过 90 天的前 3 条，打乱后返回。

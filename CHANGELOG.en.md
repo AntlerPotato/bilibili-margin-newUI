@@ -2,6 +2,19 @@
 
 # Changelog
 
+## [v0.49.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.49.0) · 2026-11-03
+
+- New reply tree for nested comments: expanded replies are indented by who they reply to ("回复 @name"), joined by hairlines, up to three levels deep. The page script can't read Bilibili's reply-parent field, so a reply is matched to the nearest earlier comment by that name and may occasionally land one level off; can be turned off in Settings → Watch page. Styling after klyv-ui's Comment Thread on 21st.dev. Thanks to @橘味魔术师 for suggesting it (inspired by BewlyCat's reply styling).
+- New stepless speed keys on the watch page: X slows down and C speeds up by 0.1× (0.1×–16×); Z toggles between the current speed and 1×. The current speed shows briefly in the middle of the picture. Can be turned off in Settings → Watch page. Thanks to @岁月_2023 for suggesting it.
+- Fix: the row of followed-UP avatars at the top of the Feed page had disappeared, because Bilibili changed the response format and the old parser got an empty list. The row also no longer stops at 30, scrolls sideways with the mouse wheel, and can search your followings by name. Thanks to @bgbfbfb for the report.
+- "Comments N" on feed cards is now clickable: it opens the post in a new tab, scrolled to the comments. Thanks to @cyf84 for reporting that feed comments couldn't be viewed.
+- Calmer motion: the theme switch now takes 0.3 s with no overshoot instead of 0.5 s with a bounce; the account card no longer swings on its lanyard or tilts with the mouse by default (turn on "Draggable account card" to bring it back), and its fade-in is down to 0.2 s. Reduce motion turns all of it off. Thanks to @岁月_2023 for suggesting it.
+- Fix: the Messages page showed only the first 20 chats. More now load as you scroll; chats outside the list get their name and avatar instead of a bare UID; a new "Mark all read" marks every chat read at once. The red badge that never cleared was most likely unread messages in chats you couldn't reach. Thanks to @随便起一个昵称就好啦 for the report and the diagnosis.
+- Fix: system tips in chats ("you can send only 1 text message before they follow or reply") showed as a dark bubble of raw JSON; they're now small centered grey text. Thanks to @随便起一个昵称就好啦 for the report.
+- Fix: System notices missed site-wide announcements (privacy-policy updates and the like) because only personal notices were fetched; "点击查看>>" and links inside notices are now clickable. Thanks to @随便起一个昵称就好啦 for the report.
+- Space page: clicking "Following" now opens Set groups / Unfollow instead of unfollowing straight away; following someone opens group selection; the "⋯" menu can block the user. Thanks to @EA乖离 for the report and @我是真心困啊 for the suggestion.
+- Fix: in dark mode, hovering a group in Bilibili's following/fans sidebar turned it white-on-white. Thanks to @EA乖离 for the report.
+
 ## [v0.48.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.48.0) · 2026-11-03
 
 - Experimental "App feed" (Settings → Experimental, off by default): the home Recommended tab uses the Bilibili mobile app's recommendation API. Scan a QR code once with the Bilibili app to get the same personalised feed as on your phone; without it you get the non-personalised app feed. "Not interested" and blocking an uploader are sent back to the app feed. The token stays on this device and can be revoked any time. API and QR flow based on bilibili-API-collect and BewlyBewly's "Authorize app" (MIT), reimplemented natively.

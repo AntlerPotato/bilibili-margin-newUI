@@ -1,6 +1,6 @@
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
-import { ackSession, ats, likes, messages, replies, sendText, sessions, system, systemRead, unread, type MsgCard, type Notice, type Page, type Session } from '../api/msg';
+import { ackSession, ats, fillPeople, likes, messages, readAllSessions, replies, sendText, sessions, system, systemRead, unread, type MsgCard, type Notice, type Page, type Session } from '../api/msg';
 import { dayBucket, fmtAgo, h, icon, ICONS, svg } from './dom';
 import { openLightbox } from './lightbox';
 import { toast } from './controls';
@@ -8,6 +8,25 @@ import { csrf, PageShell } from './shell';
 import { targetOfMsgCard } from '../filter-targets';
 
 const msgCardData = new WeakMap<Element, MsgCard>();
+
+/**
+ * 系统通知正文 → 节点：B 站用 #{文字}{"链接"} 嵌链接，正文里也会直接放 https 链接；以前全被剥成纯文字点不了（B 站评论反馈）。
+ * 只认 http(s) 链接，其余照纯文本输出。
+ */
+function noticeNodes(text: string): Node[] {
+  const out: Node[] = [];
+  const re = /#\{([^}]*)\}\{"?([^}"]*)"?\}|(https?:\/\/[^\s<>"'，。）)]+)/g;
+  let i = 0, m: RegExpExecArray | null;
+  const link = (label: string, href: string) => /^https?:\/\//.test(href)
+    ? h('a', { href: href.replace(/^http:/, 'https:'), target: '_blank', rel: 'noopener' }, label) : document.createTextNode(label);
+  while ((m = re.exec(text))) {
+    if (m.index > i) out.push(document.createTextNode(text.slice(i, m.index)));
+    out.push(m[3] ? link(m[3].length > 48 ? `${m[3].slice(0, 46)}…` : m[3], m[3]) : link(m[1], m[2]));
+    i = m.index + m[0].length;
+  }
+  if (i < text.length) out.push(document.createTextNode(text.slice(i)));
+  return out;
+}
 
 type View = 'whisper' | 'reply' | 'at' | 'like' | 'system';
 const VIEWS: [View, string, string][] = [
@@ -164,7 +183,8 @@ export class MessageApp {
       return h('article', { class: 'ms-row sys' },
         h('div', { class: 'ms-main' },
           h('div', { class: 'ms-line' }, h('b', { class: 'ms-title' }, n.title), h('time', {}, fmtAgo(n.time))),
-          h('p', { class: 'ms-text' }, n.content)));
+          h('p', { class: 'ms-text' }, ...noticeNodes(n.content)),
+          n.url ? h('a', { class: 'ms-sys-go', href: n.url, ...ext }, '查看详情') : null));
     }
     const u = n.users[0];
     const names = n.users.slice(0, 2).map((x) => h('a', { class: 'ms-name', href: `https://space.bilibili.com/${x.mid}`, ...ext }, x.name));
@@ -199,19 +219,60 @@ export class MessageApp {
     this.pane.append(wh);
     this.fitWhisper(wh);
     const want = Number(location.hash.match(/mid(\d+)/)?.[1] || 0);
-    sessions().then((ss) => {
-      if (gen !== this.gen) return;
-      if (!ss.length) { list.append(this.empty('还没有私信')); return; }
-      let target = ss.find((s) => s.talker === want);
-      if (want && !target) { target = { talker: want, unread: 0, last: '', ts: 0 }; ss.unshift(target); }
-      let bucket = '';
-      ss.forEach((s) => {
-        const b = s.ts ? dayBucket(s.ts) : '';
-        if (b && b !== bucket) { bucket = b; list.append(h('div', { class: 'wh-day' }, b)); }
-        list.append(this.sessionRow(s, chat, list));
-      });
-      if (target) (list.querySelector(`[data-talker="${target.talker}"]`) as HTMLElement)?.click();
-    }).catch((e) => { if (gen === this.gen) list.append(this.empty(`加载失败：${(e as Error).message}`)); });
+    // v0.49：会话分页（每页 20 个，滚到底自动加载下一页）+ 一键全部已读
+    let endTs = 0, more = true, busy = false, bucket = '', first = true;
+    const sentinel = h('div', { class: 'wh-more' });
+    const readAll = h('button', { class: 'ghost small wh-readall', type: 'button', title: '把所有私信会话标为已读' }, '全部已读');
+    readAll.addEventListener('click', async () => {
+      readAll.setAttribute('disabled', '');
+      readAll.textContent = '处理中…';
+      try {
+        const n = await readAllSessions(csrf(), (k) => { readAll.textContent = `已读 ${k}…`; });
+        list.querySelectorAll('.wh-dot').forEach((d) => d.remove());
+        this.setCount('whisper', () => 0);
+        toast(this.shell.app, n ? `已把 ${n} 个会话标为已读` : '没有未读的私信');
+      } catch { toast(this.shell.app, '操作失败，稍后再试'); }
+      readAll.textContent = '全部已读';
+      readAll.removeAttribute('disabled');
+    });
+    list.append(h('div', { class: 'wh-bar' }, h('span', {}, '会话'), readAll));
+    const page = async () => {
+      if (busy || !more || gen !== this.gen) return;
+      busy = true;
+      try {
+        const p = await sessions(endTs);
+        if (gen !== this.gen) return;
+        const ss = p.list;
+        more = p.more; endTs = p.endTs;
+        let target: Session | undefined;
+        if (first) {
+          first = false;
+          if (!ss.length && !want) { sentinel.remove(); list.append(this.empty('还没有私信')); return; }
+          target = ss.find((s) => s.talker === want);
+          if (want && !target) {
+            // 要打开的会话不在第一页：单独补昵称，不再显示成 UID（B 站评论反馈）
+            target = { talker: want, unread: 0, last: '', ts: 0 };
+            await fillPeople([target]);
+            ss.unshift(target);
+          }
+        }
+        ss.forEach((s) => {
+          if (list.querySelector(`[data-talker="${s.talker}"]`)) return;
+          const b = s.ts ? dayBucket(s.ts) : '';
+          if (b && b !== bucket) { bucket = b; sentinel.before(h('div', { class: 'wh-day' }, b)); }
+          sentinel.before(this.sessionRow(s, chat, list));
+        });
+        if (target) (list.querySelector(`[data-talker="${target.talker}"]`) as HTMLElement)?.click();
+        if (!more) sentinel.remove();
+      } catch (e) {
+        if (gen === this.gen) { more = false; sentinel.replaceWith(this.empty(`加载失败：${(e as Error).message}`)); }
+      } finally { busy = false; }
+      // 列表没填满可视区时继续拉
+      if (more && gen === this.gen && list.scrollHeight <= list.clientHeight + 40) page();
+    };
+    list.append(sentinel);
+    new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) page(); }, { root: list, rootMargin: '0px 0px 300px 0px' }).observe(sentinel);
+    page();
   }
 
   private sessionRow(s: Session, chat: HTMLElement, list: HTMLElement): HTMLElement {
@@ -240,6 +301,7 @@ export class MessageApp {
     const paint = (list: Awaited<ReturnType<typeof messages>>) => {
       const face = s.person?.face ? `${s.person.face}@80w_80h_1c.webp` : '';
       log.replaceChildren(...list.map((m, i) => {
+        if (m.type === 18) return h('div', { class: 'wh-tip' }, m.text);
         const me = m.sender === this.me;
         const c = m.card;
         const card = c ? h(c.url ? 'a' : 'div', { class: 'wh-card', ...(c.url ? { href: c.url, target: '_blank', rel: 'noopener' } : {}) },
@@ -254,7 +316,7 @@ export class MessageApp {
           card.toggleAttribute('data-margin-filtered', !this.shell.filter.allows(targetOfMsgCard(c)));
         }
         // 对方的连续消息只在第一条前放头像（#2）
-        const showFace = !me && (i === 0 || list[i - 1].sender !== m.sender);
+        const showFace = !me && (i === 0 || list[i - 1].sender !== m.sender || list[i - 1].type === 18);
         return h('div', { class: `wh-m${me ? ' me' : ''}${!me ? ' them' : ''}` },
           !me ? h('a', { class: `wh-mface${showFace ? '' : ' ghost'}`, href: `https://space.bilibili.com/${s.talker}`, target: '_blank', rel: 'noopener', 'aria-label': `${name} 的个人空间`, tabindex: showFace ? '0' : '-1' },
             showFace && face ? h('img', { src: face, alt: '', referrerpolicy: 'no-referrer' }) : null) : null,

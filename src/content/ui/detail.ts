@@ -377,6 +377,16 @@ export class DetailAside {
 export function mountDetail(kind: DetailKind, filter?: FilterRuntime): DetailAside | null {
   // 详情页的「评论 / 赞与转发」标签已经写了评论数，评论区自己的大标题就不再重复
   skinComments(kind === 'bangumi' ? undefined : { 'bili-comments-header-renderer': '#title { display: none !important; } #sort-actions { margin-left: 0 !important; } #navbar { padding-top: 20px !important; }' });
+  if (location.hash === '#comment') {
+    // 从动态卡片的「评论」点进来：评论区出现后滚过去（它是异步渲染的，最多等 10 秒）
+    let n = 0;
+    const tryScroll = () => {
+      const c = document.querySelector('bili-comments, #comment-module, .bili-comment-container');
+      if (c && c.getBoundingClientRect().height > 40) { c.scrollIntoView({ block: 'start' }); scrollBy(0, -80); return; }
+      if (++n < 40) setTimeout(tryScroll, 250);
+    };
+    setTimeout(tryScroll, 300);
+  }
   if (kind === 'bangumi') return null;
   return new DetailAside(kind, filter);
 }

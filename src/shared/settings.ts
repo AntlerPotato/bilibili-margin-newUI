@@ -57,6 +57,10 @@ export interface Settings {
   autoWeb: boolean;
   /** 网页全屏时可以往下滚动看评论（播放器跟着滚走） */
   webScroll: boolean;
+  /** v0.49：播放页 X / C 减速加速 0.1×、Z 在当前倍速与 1× 之间切换（B 站评论建议） */
+  speedKeys: boolean;
+  /** v0.49：楼中楼按回复关系缩进成对话树（参考 BewlyCat，B 站评论建议） */
+  replyTree: boolean;
   /** 首页每行几个视频：0 = 按窗口宽度自动，4 / 5 = 固定 */
   cols: 0 | 4 | 5;
   /** 首页隐藏的部件；空 = 全部显示 */
@@ -121,6 +125,8 @@ export const DEFAULTS: Settings = {
   favDirect: false,
   autoWeb: false,
   webScroll: true,
+  speedKeys: true,
+  replyTree: true,
   cols: 0,
   homeHide: [],
   titleFont: 'serif',
@@ -131,7 +137,7 @@ export const DEFAULTS: Settings = {
   cmdK: true,
   cdn: '',
   bodyFont: '',
-  idDrag: true,
+  idDrag: false,
   reduceMotion: false,
   wide: false,
   hideAds: true,
@@ -177,7 +183,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     cmdK: r.cmdK !== false,
     cdn: cleanHost(r.cdn),
     bodyFont: cleanFont(r.bodyFont),
-    idDrag: r.idDrag !== false,
+    idDrag: r.idDrag === true,
     reduceMotion: r.reduceMotion === true,
     wide: r.wide === true,
     hideAds: r.hideAds !== false,
@@ -214,8 +220,8 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
-  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('idDrag'); bool('monoNum');
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('speedKeys'); bool('replyTree'); bool('idDrag'); bool('monoNum');
   bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank');
   if (typeof r.bodyFont === 'string') out.bodyFont = cleanFont(r.bodyFont);
   if (Array.isArray(r.headHide)) out.headHide = strList(r.headHide);

@@ -1,4 +1,5 @@
 import { every } from '../sched';
+import { loadSettings, onSettingsChange } from '../../shared/settings';
 // B 站原生评论（bili-comments，lit 组件，多层 open shadow root）外层 CSS 进不去：
 // 找到关键组件后往它们的 shadowRoot 里追加一张样式表，变量从 html 继承（--m-*）。
 const SKINS: Record<string, string> = {
@@ -54,13 +55,93 @@ function skin(root: ParentNode, depth = 0): void {
 export function skinComments(more: Record<string, string> = {}): void {
   enterToSend();
   extra = more;
-  const run = () => { const bc = document.querySelector('bili-comments'); if (bc) skin(bc.parentElement ?? document); };
+  loadSettings().then((st) => { treeOn = st.replyTree; run(); }).catch(() => {});
+  onSettingsChange((st) => { if (st.replyTree !== treeOn) { treeOn = st.replyTree; retreeAll(); } });
+  const run = () => { const bc = document.querySelector('bili-comments'); if (bc) { skin(bc.parentElement ?? document); tree(bc); } };
   // 前 90 秒每秒补一次（评论区是懒加载的 Web Components）；页面隐藏时暂停
   let n = 0;
   const stop = every(1000, () => { run(); if (++n > 90) stop(); });
   let pending = 0;
   addEventListener('scroll', () => { if (pending) return; pending = window.setTimeout(() => { pending = 0; run(); }, 400); }, { passive: true });
 }
+
+/**
+ * 楼中楼对话树（v0.49，B 站评论建议，参考 BewlyCat 的回复美化；样式参考 21st klyv-ui Comment Thread：
+ * 限深缩进 + 细引导线）。B 站展开后的楼中楼是按时间平铺的，每条 reply 的 data.parent 指向它回复的那条。
+ * 不移动 DOM（lit 管着这些节点，挪了会乱）：容器改成 flex 列，用 CSS order 按深度优先排，
+ * data-m-depth 控制缩进（最多 3 层），父评论不在当前页时按时间留在原位。
+ */
+let treeOn = true;
+const TREE_CSS = `
+  #expander-contents { display: flex !important; flex-direction: column !important; }
+  #expander-contents > #expander-footer { order: 99999 !important; }
+  bili-comment-reply-renderer[data-m-depth] { --m-tl: color-mix(in srgb, var(--m-ink, #888) 18%, transparent); }
+  bili-comment-reply-renderer[data-m-depth="1"] { margin-left: 4px; padding-left: 24px; background: linear-gradient(var(--m-tl), var(--m-tl)) 0 0 / 1px 100% no-repeat; }
+  bili-comment-reply-renderer[data-m-depth="2"] { margin-left: 4px; padding-left: 52px; background: linear-gradient(var(--m-tl), var(--m-tl)) 0 0 / 1px 100% no-repeat, linear-gradient(var(--m-tl), var(--m-tl)) 28px 0 / 1px 100% no-repeat; }
+  bili-comment-reply-renderer[data-m-depth="3"] { margin-left: 4px; padding-left: 80px; background: linear-gradient(var(--m-tl), var(--m-tl)) 0 0 / 1px 100% no-repeat, linear-gradient(var(--m-tl), var(--m-tl)) 28px 0 / 1px 100% no-repeat, linear-gradient(var(--m-tl), var(--m-tl)) 56px 0 / 1px 100% no-repeat; }
+`;
+let treeSheet: CSSStyleSheet | null = null;
+const treeRoots = new Set<ShadowRoot>();
+const treeSeen = new WeakSet<ShadowRoot>();
+const retry = new WeakMap<ShadowRoot, number>();
+
+function layout(sr: ShadowRoot): void {
+  const reps = [...sr.querySelectorAll<HTMLElement & { data?: any }>('#expander-contents > bili-comment-reply-renderer')];
+  if (!treeOn || reps.length < 2) {
+    for (const r of reps) { r.style.removeProperty('order'); delete r.dataset.mDepth; }
+    return;
+  }
+  // 内容脚本在隔离世界里拿不到 lit 的 .data，只能读 DOM：作者名 + 正文开头的「回复 @某人 :」。
+  // 父评论 = 在它之前、作者是「某人」的最近一条；没有前缀的是直接回复楼主（第 0 层）。
+  const info = reps.map((r) => {
+    const rs = r.shadowRoot;
+    const ui = rs?.querySelector('bili-comment-user-info')?.shadowRoot;
+    const name = (ui?.querySelector('#user-name')?.textContent ?? '').trim();
+    const text = (rs?.querySelector('bili-rich-text')?.shadowRoot?.querySelector('#contents')?.textContent ?? '').trim();
+    return { name, to: /^回复\s*@(.+?)\s*[:：]/.exec(text)?.[1]?.trim() ?? '' , ok: !!name && !!text };
+  });
+  if (info.some((x) => !x.ok)) {
+    const t = (retry.get(sr) ?? 0) + 1;
+    retry.set(sr, t);
+    if (t <= 20) setTimeout(() => layout(sr), 150);
+    return;
+  }
+  retry.delete(sr);
+  const kids = new Map<number, number[]>();
+  const tops: number[] = [];
+  info.forEach((x, i) => {
+    let p = -1;
+    if (x.to) for (let j = i - 1; j >= 0; j--) if (info[j].name === x.to) { p = j; break; }
+    if (p < 0) tops.push(i); else { const k = kids.get(p) ?? []; k.push(i); kids.set(p, k); }
+  });
+  let n = 0;
+  const walk = (i: number, d: number) => {
+    const r = reps[i];
+    r.style.order = String(n++);
+    if (d) r.dataset.mDepth = String(Math.min(d, 3)); else delete r.dataset.mDepth;
+    for (const k of kids.get(i) ?? []) walk(k, d + 1);
+  };
+  for (const t of tops) walk(t, 0);
+}
+
+function tree(bc: Element): void {
+  const root = bc.shadowRoot;
+  if (!root) return;
+  if (!treeSheet) { treeSheet = new CSSStyleSheet(); treeSheet.replaceSync(TREE_CSS); }
+  for (const t of root.querySelectorAll('bili-comment-thread-renderer')) {
+    const sr = t.shadowRoot?.querySelector('bili-comment-replies-renderer')?.shadowRoot;
+    if (!sr || treeSeen.has(sr)) continue;
+    treeSeen.add(sr);
+    treeRoots.add(sr);
+    sr.adoptedStyleSheets = [...sr.adoptedStyleSheets, treeSheet];
+    let raf = 0;
+    const kick = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; layout(sr); }); };
+    new MutationObserver(kick).observe(sr, { childList: true, subtree: true });
+    kick();
+  }
+}
+
+function retreeAll(): void { for (const sr of treeRoots) { if (sr.host.isConnected) layout(sr); else treeRoots.delete(sr); } }
 
 /**
  * 回车直接发评论（v0.47.4，用户要求）：B 站原生评论框里回车只换行，要点「发布」。

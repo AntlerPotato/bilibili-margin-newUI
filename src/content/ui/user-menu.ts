@@ -302,7 +302,8 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
       const cx = cardX + cardW / 2, cy = cardY + cardH / 2;
       const dx = Math.max(-1, Math.min(1, (mouse.x - cx) / (cardW / 2)));
       const dy = Math.max(-1, Math.min(1, (mouse.y - cy) / (cardH / 2)));
-      tiltTarget.y = dx * MAX_TILT; tiltTarget.x = -dy * MAX_TILT;
+      // v0.49：固定模式（默认）不再跟着鼠标倾斜，只保留高光（B 站评论：卡片动效没必要）
+      if (stage.classList.contains('idcl-fixed')) { tiltTarget.x = 0; tiltTarget.y = 0; } else { tiltTarget.y = dx * MAX_TILT; tiltTarget.x = -dy * MAX_TILT; }
       const mx = `${Math.round(Math.max(0, Math.min(100, ((mouse.x - cardX) / cardW) * 100)))}%`;
       const my = `${Math.round(Math.max(0, Math.min(100, ((mouse.y - cardY) / cardH) * 100)))}%`;
       if (mx !== lastMx) { card.style.setProperty('--mx', mx); lastMx = mx; }

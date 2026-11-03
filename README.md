@@ -123,6 +123,7 @@ npm run build
 欢迎[报告问题或提出建议](https://github.com/jiuyang5354/bilibili-margin/issues)。提交界面修改时，请附上页面地址、复现步骤和截图；修改播放页时保留 B 站原生播放能力。设计来源与第三方署名见[设计参考与致谢](docs/design-references.md)。
 - 21st「Video Player」（chetanverma16）：播放器浮动控制坞（v0.40.0）
 - 21st「Post Card」（shadcnui-blocks）：播放页播放器 + 互动 + 简介合成一张卡片（v0.41.0）
+- 21st「Comment Thread」（klyv-ui）：楼中楼对话树的限深缩进与细引导线（v0.49.0）
 
 ## 许可
 

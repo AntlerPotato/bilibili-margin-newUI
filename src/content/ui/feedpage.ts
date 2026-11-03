@@ -2,7 +2,7 @@ import { attachPreview } from './preview';
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
 import { account, accountStat } from '../api/account';
-import { followFeed, portal, type FeedType, type LiveUp, type Up } from '../api/dyn';
+import { followFeed, portal, searchFollowing, type FeedType, type LiveUp, type Up } from '../api/dyn';
 import { hotSearch } from '../api/search';
 import { dynCard } from './dyn';
 import { compileDynFilter } from '../filter';
@@ -126,9 +126,41 @@ export class FeedApp {
       });
       return b;
     };
-    this.strip.replaceChildren(
-      mk(0, '全部动态', h('span', { class: 'fd-up-all' }, icon(ICONS.moments))),
-      ...[...ups].sort((x, y) => Number(y.fresh) - Number(x.fresh)).slice(0, 30).map((u) => mk(u.mid, u.name, face(u.face, '', 96), u.fresh)));
+    // v0.49：不再只取前 30 个（关注多的人翻不到，B 站评论反馈）；可在自己的关注里搜昵称；滚轮横向翻
+    const all = mk(0, '全部动态', h('span', { class: 'fd-up-all' }, icon(ICONS.moments)));
+    const row = h('div', { class: 'fd-ups-row' });
+    const sorted = [...ups].sort((x, y) => Number(y.fresh) - Number(x.fresh));
+    const paint = (list: Up[], empty = '') => {
+      row.replaceChildren(...list.map((u) => mk(u.mid, u.name, face(u.face, '', 96), u.fresh)));
+      if (!list.length && empty) row.append(h('span', { class: 'fd-ups-empty' }, empty));
+      row.scrollLeft = 0;
+    };
+    const input = h('input', { class: 'fd-ups-q', type: 'search', placeholder: '搜索', 'aria-label': '在关注里搜 UP 主' }) as HTMLInputElement;
+    let qt = 0, seq = 0, me = 0;
+    input.addEventListener('input', () => {
+      clearTimeout(qt);
+      const q = input.value.trim();
+      if (!q) { paint(sorted); return; }
+      qt = window.setTimeout(async () => {
+        const my = ++seq;
+        try {
+          if (!me) me = (await account())?.mid ?? 0;
+          const r = me ? await searchFollowing(me, q) : [];
+          if (my === seq) paint(r, '没找到');
+        } catch { if (my === seq) paint([], '搜索失败'); }
+      }, 300);
+    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape' && input.value) { e.stopPropagation(); input.value = ''; paint(sorted); } });
+    const search = h('label', { class: 'fd-up fd-ups-search', title: '在关注里搜 UP 主' }, h('span', { class: 'fd-up-all' }, icon(ICONS.search)), input);
+    row.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || row.scrollWidth <= row.clientWidth) return;
+      const max = row.scrollWidth - row.clientWidth;
+      if ((e.deltaY < 0 && row.scrollLeft <= 0) || (e.deltaY > 0 && row.scrollLeft >= max - 1)) return;
+      e.preventDefault();
+      row.scrollLeft += e.deltaY;
+    }, { passive: false });
+    paint(sorted);
+    this.strip.replaceChildren(all, search, row);
   }
 
   private async renderHot(right: HTMLElement): Promise<void> {

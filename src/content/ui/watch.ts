@@ -261,21 +261,40 @@ export class WatchSkin {
         const n = Math.min(1, Math.max(0, Math.round((v0 + (up ? 0.1 : -0.1)) * 10) / 10));
         if (up && v.muted) v.muted = false;
         v.volume = n;
-        volTip(n);
+        volTip(`音量 ${Math.round(n * 100)}%`);
       }, 0);
     }, { passive: false, capture: true });
     let tipEl: HTMLElement | null = null, tipT = 0;
-    const volTip = (n: number) => {
+    const volTip = (text: string) => {
       const host = document.querySelector<HTMLElement>('.bpx-player-video-area') ?? document.body;
       if (!tipEl || !tipEl.isConnected) {
         tipEl = document.createElement('div');
         tipEl.className = 'm-voltip';
         host.appendChild(tipEl);
       }
-      tipEl.textContent = `音量 ${Math.round(n * 100)}%`;
+      tipEl.textContent = text;
       tipEl.classList.add('on');
       clearTimeout(tipT); tipT = window.setTimeout(() => tipEl?.classList.remove('on'), 900);
     };
+    // v0.49 无极倍速（B 站评论建议）：X 减 0.1×、C 加 0.1×（0.1–16×），Z 在当前倍速和 1× 之间来回切
+    let lastRate = 1;
+    document.addEventListener('keydown', (e) => {
+      if (!this.settings.speedKeys || e.ctrlKey || e.metaKey || e.altKey || e.repeat && e.key.toLowerCase() === 'z') return;
+      const k = e.key.toLowerCase();
+      if (k !== 'x' && k !== 'c' && k !== 'z') return;
+      const t = e.composedPath()[0] as HTMLElement | undefined;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const v = document.querySelector<HTMLVideoElement>('.bpx-player-video-wrap video, .bilibili-player-video video, video');
+      if (!v) return;
+      e.preventDefault(); e.stopPropagation();
+      const cur = Math.round(v.playbackRate * 10) / 10;
+      let n: number;
+      if (k === 'z') { if (cur === 1) n = lastRate === 1 ? 1 : lastRate; else { lastRate = cur; n = 1; } }
+      else n = Math.min(16, Math.max(0.1, Math.round((cur + (k === 'c' ? 0.1 : -0.1)) * 10) / 10));
+      if (k !== 'z' && n !== 1) lastRate = n;
+      v.playbackRate = n;
+      volTip(`${n.toFixed(1)}×`);
+    }, true);
     this.screenSync = () => sync(true);
     addEventListener('resize', () => { if (de.classList.contains('margin-webscroll')) webScroll(true); });
     new MutationObserver(() => sync()).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-screen'] });

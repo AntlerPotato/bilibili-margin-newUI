@@ -84,7 +84,15 @@ export interface LiveUp { mid: number; name: string; face: string; title: string
 /** 顶部「最常访问」头像条 + 正在直播 */
 export async function portal(): Promise<{ ups: Up[]; live: LiveUp[]; liveCount: number }> {
   const d = await getJSON<any>('/x/polymer/web-dynamic/v1/portal');
-  const ups = (d.up_list?.items ?? []).map((u: any) => ({ mid: u.mid, name: u.uname, face: https(u.face), fresh: !!u.has_update }));
+  // v0.49：B 站把 up_list 从 { items } 改成了直接的数组，旧写法拿到空列表，动态页头像条整条消失（B 站评论反馈）
+  const rawUps: any[] = Array.isArray(d.up_list) ? d.up_list : (d.up_list?.items ?? []);
+  const ups = rawUps.map((u: any) => ({ mid: u.mid, name: u.uname, face: https(u.face), fresh: !!u.has_update }));
   const live = (d.live_users?.items ?? []).map((u: any) => ({ mid: u.mid, name: u.uname, face: https(u.face), title: u.title ?? '', url: https(u.jump_url || `https://live.bilibili.com/${u.room_id}`) }));
   return { ups, live, liveCount: d.live_users?.count ?? live.length };
+}
+
+/** v0.49：在自己的关注里按昵称搜 UP（关注多时头像条翻不完，B 站评论反馈） */
+export async function searchFollowing(me: number, name: string): Promise<Up[]> {
+  const d = await getJSON<any>('/x/relation/followings/search', { vmid: me, pn: 1, ps: 30, name });
+  return (d.list ?? []).map((u: any) => ({ mid: u.mid, name: u.uname, face: https(u.face), fresh: false }));
 }

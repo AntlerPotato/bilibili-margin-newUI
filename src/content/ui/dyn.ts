@@ -79,7 +79,8 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
     body,
     h('div', { class: 'dy-stat' },
       h('span', {}, `转发 ${fmtCount(d.stat.forward)}`),
-      h('span', {}, `评论 ${fmtCount(d.stat.comment)}`),
+      // v0.49：评论数可点，新标签打开详情并直接滚到评论区（B 站评论反馈「看不了动态评论」）
+      d.url ? h('a', { class: 'dy-cmt', href: `${d.url}#comment`, ...ext, title: '查看评论' }, `评论 ${fmtCount(d.stat.comment)}`) : h('span', {}, `评论 ${fmtCount(d.stat.comment)}`),
       h('span', {}, `赞 ${fmtCount(d.stat.like)}`))), d.url);
   dynData.set(el, d);
   return el;

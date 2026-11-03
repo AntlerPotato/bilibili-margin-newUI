@@ -198,6 +198,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const wideT = toggle(s0.wide, '宽屏模式', (v) => save({ wide: v }));
   const autoW = toggle(s0.autoWeb, '自动网页全屏', (v) => save({ autoWeb: v }));
   const webS = toggle(s0.webScroll, '网页全屏可滚动', (v) => save({ webScroll: v }));
+  const spdK = toggle(s0.speedKeys, '倍速快捷键', (v) => save({ speedKeys: v }));
+  const treeT = toggle(s0.replyTree, '楼中楼对话树', (v) => save({ replyTree: v }));
   const msgT = toggle(s0.msgRemind, '消息提醒', (v) => save({ msgRemind: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
@@ -407,6 +409,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('宽屏模式', '有播放器时自动进入宽屏；番剧、列表和稍后再看等页面同样生效；和自动网页全屏同时开启时优先网页全屏', wideT),
       row('自动网页全屏', '有播放器的页面打开后自动铺满浏览器窗口，按 Esc 退出', autoW),
       row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS),
+      row('倍速快捷键', 'X 减速、C 加速（每次 0.1×），Z 在当前倍速和 1× 之间切换', spdK),
+      row('楼中楼对话树', '展开的楼中楼按「谁回复谁」缩进排列，用细线连起来，最多缩进三层', treeT),
       drawer('视频 CDN 节点', () => CDNS.find(([x]) => x === get().cdn)?.[1] ?? 'B 站默认',
         h('p', { class: 'sd-note' }, '卡顿或加载慢时换一个节点试试；测的是连接延迟，数字越小越好。新打开的视频生效'), cdnList, h('div', { class: 'hl-foot' }, cdnTest))),
     h('section', { class: 'group' }, h('h3', {}, '通知'),
@@ -472,6 +476,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       wideT.setAttribute('aria-checked', String(s.wide));
       autoW.setAttribute('aria-checked', String(s.autoWeb));
       webS.setAttribute('aria-checked', String(s.webScroll));
+      spdK.setAttribute('aria-checked', String(s.speedKeys));
+      treeT.setAttribute('aria-checked', String(s.replyTree));
       msgT.setAttribute('aria-checked', String(s.msgRemind));
       adsT.setAttribute('aria-checked', String(s.hideAds));
       cols.set(String(s.cols));
