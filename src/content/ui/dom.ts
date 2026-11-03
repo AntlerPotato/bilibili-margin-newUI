@@ -104,6 +104,18 @@ export function fmtDuration(s: number): string {
   return hh ? `${hh}:${p(mm)}:${p(ss)}` : `${mm}:${p(ss)}`;
 }
 
+/**
+ * 绝对发布时间，形如 `2026-11-03 20:41:05`。B 站各接口给的 pubdate 都是秒级时间戳，
+ * 所以精确到秒；没有时间就返回空串，由调用方决定不渲染。
+ */
+export function fmtDateTime(ts: number): string {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 export function fmtAgo(ts: number): string {
   if (!ts) return '';
   const d = Date.now() / 1000 - ts;

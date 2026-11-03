@@ -320,7 +320,8 @@ export class MarginApp {
   }
 
   private switchTab(id: Tab, tabs: HTMLElement): void {
-    if (id === this.tab) return;
+    // 设置里打开「点击分类标签刷新列表」后，点当前分类标签等于换一批，保留「上一批」可回退（PR #33）
+    if (id === this.tab) { if (this.settings.tabRefresh) this.reload(true); return; }
     // 每个 tab 记住自己的列表和滚动位置（v0.50，B 站评论建议）：切回来接着看，不回到顶部
     if (this.items.length) this.tabMem.set(this.tab, { s: this.snapshot()!, top: this.app.scrollTop, back: this.snap });
     this.tab = id;

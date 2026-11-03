@@ -1553,11 +1553,11 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .card-later[data-state="ok"] { background: var(--accent); }
 .card-later.err { background: rgb(220 50 60 / .85); }
 .card-block { right: auto !important; left: 8px; }
-/* 卡片信息行：UP 主 · 播放 · 弹幕 · 时间。数字不缩，UP 主名可省略；卡片太窄（6 列以上）时先把时间收起 */
-.meta { container-type: inline-size; }
+/* 卡片信息行：UP 主 · 播放 · 弹幕。数字不缩，UP 主名可省略 */
 .meta > * { flex: none; }
 .meta > .author { flex: 0 1 auto; min-width: 3em; overflow: hidden; text-overflow: ellipsis; }
-@container (max-width: 250px) { .meta > .m-ago { display: none; } }
+/* 发布时间：单独一行显示精确时间，不和标题 / 信息行混排 */
+.pubtime { display: block; margin-top: 4px; font: 11px/1.4 var(--mono); color: var(--faint); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
 /* 首页每行视频数（B 站评论建议）：自动 = 按窗口宽度 6–8 列；也可固定 4 / 5 列，窄窗口再往下收 */
 .app.home[data-cols="4"] { --cols: 4; }
 .app.home[data-cols="5"] { --cols: 5; }
