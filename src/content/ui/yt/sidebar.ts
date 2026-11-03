@@ -29,7 +29,6 @@ export function createYtSidebar(o: {
   onTab: (t: YtTab) => void;
   onFav: () => void;
   onLater: () => void;
-  onSettings: () => void;
   onDyn: () => void;
   headHide: string[];
   headOrder: string[];
@@ -53,7 +52,6 @@ export function createYtSidebar(o: {
       { label: '消息', icon: ICONS.message, href: 'https://message.bilibili.com/' },
       { label: '创作中心', icon: ICONS.creator, href: 'https://member.bilibili.com/platform/home' },
     ] },
-    { items: [{ label: '设置', icon: ICONS.gear, run: o.onSettings }] },
   ];
 
   const el = h('aside', { class: 'yt-sidebar', 'aria-label': '导航' });

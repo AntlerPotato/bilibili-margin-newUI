@@ -48,10 +48,12 @@ export class PageShell {
           onTheme: () => this.toggleTheme(),
           onMenu: () => {},
           onSearch: (q) => window.open(`https://search.bilibili.com/all?keyword=${encodeURIComponent(q)}`, '_blank', 'noopener'),
+          onSettings: () => this.panel.sheet.open(),
           msgRemind: () => this.settings.msgRemind,
         })
       : createHeader({
           onTheme: () => this.toggleTheme(),
+          onSettings: () => this.panel.sheet.open(),
           msgRemind: () => this.settings.msgRemind,
           filter: this.filter,
           tabs: [
@@ -59,7 +61,6 @@ export class PageShell {
             'separator',
             { title: '收藏', icon: ICONS.fav, run: () => fav.open() },
             { title: '稍后', icon: ICONS.later, run: () => later.open() },
-            { title: '设置', icon: ICONS.gear, run: () => this.panel.sheet.open() },
           ],
         });
     if ('sunMoon' in this.head) this.sunMoon = this.head.sunMoon;

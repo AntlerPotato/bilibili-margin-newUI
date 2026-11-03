@@ -9,7 +9,7 @@ import { attachTooltips } from './tooltip';
 import { BILI_TIGHT } from './intro/logo';
 import { liveTv } from './tv-eyes';
 import { attachHoverList, POPS, type PopHandle } from './dyn-pop';
-import { createYtSwitch } from './yt/switch';
+import { createSettingsButton } from './settings-btn';
 import type { FilterRuntime } from '../filter-runtime';
 
 /** 顶栏左上角的小电视：开场动画结束时图标就飞落到这里 */
@@ -38,7 +38,7 @@ export const SITE_LINKS: TabSpec[] = [
 ];
 
 /** 首页和播放页共用的顶栏：标志、搜索、Expandable Tabs、日月主题按钮、投稿、头像 */
-export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch?: (q: string) => void; msgRemind?: () => boolean; filter?: FilterRuntime }): Header {
+export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch?: (q: string) => void; onSettings?: () => void; msgRemind?: () => boolean; filter?: FilterRuntime }): Header {
   let msgOn = o.msgRemind?.() ?? true;
   const user = h('a', { class: 'user', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '登录');
   const userSlot = h('div', { class: 'um-wrap' }, user);
@@ -93,7 +93,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
   const el = h('header', { class: 'top' },
     h('a', { class: 'brand', href: 'https://www.bilibili.com/', title: '首页', 'aria-label': '首页' }, tv()),
     search,
-    h('div', { class: 'acts' }, tabsNav.el, createYtSwitch(false), sunMoon.el, upload, userSlot),
+    h('div', { class: 'acts' }, tabsNav.el, sunMoon.el, o.onSettings ? createSettingsButton(o.onSettings) : null, upload, userSlot),
   );
 
   account().then((a) => {

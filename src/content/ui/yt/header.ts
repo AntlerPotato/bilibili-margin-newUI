@@ -5,7 +5,7 @@ import { BILI_TIGHT } from '../intro/logo';
 import { attachTooltips } from '../tooltip';
 import { liveTv } from '../tv-eyes';
 import { createUserMenu } from '../user-menu';
-import { createYtSwitch } from './switch';
+import { createSettingsButton } from '../settings-btn';
 
 export interface YtHeader {
   el: HTMLElement;
@@ -33,6 +33,7 @@ export function createYtHeader(o: {
   onTheme: () => void;
   onMenu: () => void;
   onSearch: (q: string) => void;
+  onSettings: () => void;
   msgRemind: () => boolean;
   /** 动态未读数（首页侧栏用；播放页/接管页不需要） */
   onDyn?: (n: number) => void;
@@ -56,7 +57,7 @@ export function createYtHeader(o: {
   const user = h('a', { class: 'user', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '登录');
   const userSlot = h('div', { class: 'um-wrap' }, user);
 
-  const el = h('header', { class: 'yt-top' }, h('div', { class: 'yt-left' }, menu, brand), form, h('div', { class: 'yt-acts' }, upload, bell, createYtSwitch(true), themeBtn, userSlot));
+  const el = h('header', { class: 'yt-top' }, h('div', { class: 'yt-left' }, menu, brand), form, h('div', { class: 'yt-acts' }, upload, bell, createSettingsButton(o.onSettings), themeBtn, userSlot));
 
   account().then((a) => { if (a) userSlot.replaceWith(createUserMenu(a)); }).catch(() => {});
   attachTooltips(el);

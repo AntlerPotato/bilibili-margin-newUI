@@ -1249,25 +1249,21 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .upload svg { width: 17px; height: 17px; }
 .um-wrap { position: relative; display: flex; }
 .um-wrap .user { margin-left: 0; }
-/* 顶栏右上角的 YouTube / 映间快捷切换 */
-.yt-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--chip);
+/* 顶栏右上角：设置入口（替代可展开菜单 / 侧栏里的「设置」项） */
+.hd-settings {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
   color: var(--muted);
-  font: 500 12px/1 var(--sans);
-  white-space: nowrap;
-  transition: color .2s var(--ease-out), background .2s var(--ease-out), border-color .2s var(--ease-out);
+  cursor: pointer;
+  transition: color .2s var(--ease-out), background .2s var(--ease-out);
 }
-.yt-switch:hover { color: var(--ink); border-color: var(--line); background: color-mix(in srgb, var(--chip) 55%, var(--line)); }
-.yt-switch[data-active="true"] { color: var(--ink); border-color: var(--line); background: var(--surface); }
-.yt-switch svg { width: 16px; height: 16px; }
-@media (max-width: 760px) { .yt-switch span { display: none; } .yt-switch { padding: 0 10px; } }
+.hd-settings:hover { color: var(--ink); background: var(--chip); }
+.hd-settings svg { width: 18px; height: 18px; }
 
 /* 收藏夹：新建卡（和玻璃文件夹同宽同高，虚线框；点开变表单） */
 .fav-new { width: 236px; height: 222px; margin-top: 36px; border-radius: 16px; }

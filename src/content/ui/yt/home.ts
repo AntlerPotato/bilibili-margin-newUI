@@ -130,6 +130,7 @@ export class YtHomeApp {
       onTheme: () => this.toggleTheme(),
       onMenu: () => this.toggleSide(),
       onSearch: (q) => window.open(`https://search.bilibili.com/all?keyword=${encodeURIComponent(q)}`, '_blank', 'noopener'),
+      onSettings: () => this.panel.sheet.open(),
       msgRemind: () => this.settings.msgRemind,
       onDyn: (n) => this.side?.setDynBadge(n),
     });
@@ -137,7 +138,6 @@ export class YtHomeApp {
       onTab: (t) => this.setTab(t),
       onFav: () => this.fav.open(),
       onLater: () => later.open(),
-      onSettings: () => this.panel.sheet.open(),
       onDyn: () => { resetDynamicBaseline(); this.side.setDynBadge(0); this.closeSide(); },
       headHide: this.settings.headHide,
       headOrder: this.settings.headOrder,
