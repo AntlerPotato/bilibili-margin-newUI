@@ -34,6 +34,8 @@ export interface Background {
   shader: ShaderId;
   /** 0–1 */
   intensity: number;
+  /** 随机模式只在这些里面挑（v0.48，评论区 K-aloy：有些样式太花，想禁掉一部分）；空 = 全部 */
+  pool?: ShaderId[];
 }
 
 export interface Settings {
@@ -86,6 +88,10 @@ export interface Settings {
   msgRemind: boolean;
   /** 首页板块顺序（v0.47） */
   homeOrder: HomeSection[];
+  /** App 推荐流（v0.48 实验，默认关）：首页「推荐」改走手机 App 的推荐接口，扫码授权后与手机同一套个性化推荐 */
+  appFeed: boolean;
+  /** X 式重排（v0.48 实验，默认关）：按本机算的偏好给推荐重新排序，混入关注新稿，看过的不再出现 */
+  rerank: boolean;
   filters: Filters;
   bg: Background;
 }
@@ -131,6 +137,8 @@ export const DEFAULTS: Settings = {
   hideAds: true,
   msgRemind: true,
   homeOrder: [...HOME_SECTIONS],
+  appFeed: false,
+  rerank: false,
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -175,6 +183,8 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     hideAds: r.hideAds !== false,
     msgRemind: r.msgRemind !== false,
     homeOrder: normalizeHomeOrder(r.homeOrder),
+    appFeed: r.appFeed === true,
+    rerank: r.rerank === true,
     palette: 'classic', // 旧版存过 mist，统一回到经典
   };
 }
@@ -204,9 +214,9 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('idDrag'); bool('monoNum');
-  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind');
+  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank');
   if (typeof r.bodyFont === 'string') out.bodyFont = cleanFont(r.bodyFont);
   if (Array.isArray(r.headHide)) out.headHide = strList(r.headHide);
   if (Array.isArray(r.headOrder)) out.headOrder = strList(r.headOrder);
@@ -232,6 +242,7 @@ export function sanitizeSettings(raw: unknown): Settings | null {
     mode: (['random', 'fixed', 'image', 'off'] as BgMode[]).includes(b.mode as BgMode) ? (b.mode as BgMode) : DEFAULTS.bg.mode,
     shader: SHADERS.includes(b.shader as ShaderId) ? (b.shader as ShaderId) : DEFAULTS.bg.shader,
     intensity: num(b.intensity, 1) ?? DEFAULTS.bg.intensity,
+    pool: Array.isArray(b.pool) ? SHADERS.filter((x) => (b.pool as unknown[]).includes(x)) : [],
   };
   return merge(out);
 }

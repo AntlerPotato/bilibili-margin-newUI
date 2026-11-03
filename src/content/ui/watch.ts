@@ -242,6 +242,40 @@ export class WatchSkin {
         if (!was) scrollTo({ top: 0 });
       });
     };
+    // v0.48 网页全屏可滚动时，B 站原生「滚轮调音量」被页面滚动吃掉（B 站评论反馈）。
+    // 播放器铺满视口（还没往下滚）时：画面上滚轮 = 调音量；控制栏那一条（底部 96px）滚轮 = 往下看评论；
+    // 已经滚下去以后一律正常滚动。B 站自己处理了的话（音量已变）不重复调。
+    addEventListener('wheel', (e) => {
+      if (!de.classList.contains('margin-webscroll') || e.ctrlKey || e.deltaY === 0) return;
+      const t = e.target as Element | null;
+      if (!t?.closest?.('.bpx-player-video-area, .bpx-player-video-wrap, .bilibili-player-video-wrap')) return;
+      if (t.closest('.bpx-player-ctrl-setting-box, .bpx-player-ctrl-volume, .bpx-player-dm-wrap input')) return;
+      // 想往下看评论（已经滚下去了，或者在底部控制栏那一条）：只滚页面，不让 B 站顺手把音量也调了
+      if (scrollY > 4 || e.clientY > innerHeight - 96) { e.stopPropagation(); return; }
+      const v = document.querySelector<HTMLVideoElement>('.bpx-player-video-wrap video, .bilibili-player-video video, video');
+      if (!v) return;
+      e.preventDefault();
+      const v0 = v.volume, m0 = v.muted, up = e.deltaY < 0;
+      setTimeout(() => {
+        if (v.volume !== v0 || v.muted !== m0) return;
+        const n = Math.min(1, Math.max(0, Math.round((v0 + (up ? 0.1 : -0.1)) * 10) / 10));
+        if (up && v.muted) v.muted = false;
+        v.volume = n;
+        volTip(n);
+      }, 0);
+    }, { passive: false, capture: true });
+    let tipEl: HTMLElement | null = null, tipT = 0;
+    const volTip = (n: number) => {
+      const host = document.querySelector<HTMLElement>('.bpx-player-video-area') ?? document.body;
+      if (!tipEl || !tipEl.isConnected) {
+        tipEl = document.createElement('div');
+        tipEl.className = 'm-voltip';
+        host.appendChild(tipEl);
+      }
+      tipEl.textContent = `音量 ${Math.round(n * 100)}%`;
+      tipEl.classList.add('on');
+      clearTimeout(tipT); tipT = window.setTimeout(() => tipEl?.classList.remove('on'), 900);
+    };
     this.screenSync = () => sync(true);
     addEventListener('resize', () => { if (de.classList.contains('margin-webscroll')) webScroll(true); });
     new MutationObserver(() => sync()).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-screen'] });

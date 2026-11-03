@@ -8,6 +8,7 @@ import { block, chipInput, pillToggles, rangeSlider, row, segmented, stepSlider,
 import { fmtCount, h, icon, ICONS } from './dom';
 import { createSheet, type Sheet } from './sheet';
 import { SITE_LINKS } from './header';
+import { appPoll, appQr, appRevoke, appState } from '../api/appfeed';
 import { clearLoc, geocodeList, savedLoc, setLoc as setLocWithName } from '../api/weather';
 
 export interface SettingsPanel { sheet: Sheet; sync(s: Settings): void }
@@ -245,6 +246,24 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     b.dataset.v = id;
     swatches.append(b);
   }
+  // 随机范围：点掉不想随机到的样式（至少留一个）
+  const poolBox = h('div', { class: 'pool-chips', role: 'group', 'aria-label': '随机范围' });
+  let poolCur: ShaderId[] | null = null;  // 连点时 get() 可能还没收到上一次保存，先用本地值
+  const poolOf = () => { const p = poolCur ?? get().bg.pool ?? []; return p.length ? p : SHADER_IDS; };
+  const paintPool = () => { const p = poolOf(); poolBox.querySelectorAll<HTMLElement>('button').forEach((b) => b.setAttribute('aria-pressed', String(p.includes(b.dataset.v as ShaderId)))); };
+  for (const id of SHADER_IDS) {
+    const b = h('button', { type: 'button', class: 'pool-chip', onclick: () => {
+      const p = poolOf();
+      const next = p.includes(id) ? p.filter((x) => x !== id) : [...p, id];
+      if (!next.length) return;
+      poolCur = next.length === SHADER_IDS.length ? [] : next;
+      save({ bg: { ...get().bg, pool: poolCur } });
+      paintPool();
+    } }, SHADER_NAMES[id]);
+    b.dataset.v = id;
+    poolBox.append(b);
+  }
+  paintPool();
   const intensity = rangeSlider(s0.bg.intensity, (n) => `${Math.round(n * 100)}%`, (v) => save({ bg: { ...get().bg, intensity: v } }), '背景强度');
   const file = h('input', { type: 'file', accept: 'image/*', hidden: true, 'aria-label': '选择背景图片' });
   file.addEventListener('change', async () => {
@@ -292,6 +311,57 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const exportBtn = h('button', { type: 'button', class: 'ghost small', onclick: exportData }, h('span', {}, '导出'));
   const importBtn = h('button', { type: 'button', class: 'ghost small', onclick: () => json.click() }, h('span', {}, '导入'));
 
+
+  /* ---------- 实验功能：App 推荐流（v0.48） ---------- */
+  const appT = toggle(s0.appFeed, 'App 推荐流', (v) => save({ appFeed: v }));
+  const rankT = toggle(s0.rerank, 'X 式重排', (v) => save({ rerank: v }));
+  const appStat = h('small', { class: 'af-stat' }, '…');
+  const appQrBox = h('div', { class: 'af-qr', hidden: true });
+  const appQrNote = h('small', { class: 'af-note' });
+  const appBtn = h('button', { type: 'button', class: 'ghost small' }, h('span', {}, '扫码授权')) as HTMLButtonElement;
+  const appOff = h('button', { type: 'button', class: 'ghost small', hidden: true }, h('span', {}, '取消授权')) as HTMLButtonElement;
+  let pollT = 0;
+  let authed = false;
+  const stopPoll = () => { window.clearTimeout(pollT); pollT = 0; };
+  const paintApp = async () => {
+    const st = await appState().catch(() => null);
+    authed = !!st?.authed;
+    appStat.textContent = authed ? `已授权 · UID ${st!.mid}${st!.exp ? ` · ${new Date(st!.exp * 1000).toLocaleDateString()} 到期` : ''}` : '未授权：推荐来自 App，但不是你的个性化推荐';
+    appBtn.querySelector('span')!.textContent = authed ? '重新扫码' : '扫码授权';
+    appOff.hidden = !authed;
+    drawers.forEach((f) => f());
+  };
+  const drawQr = (text: string) => import('qrcode-generator').then(({ default: qrcode }) => {
+    const q = qrcode(0, 'M'); q.addData(text); q.make();
+    const n = q.getModuleCount();
+    let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+    const svg = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges" role="img" aria-label="授权二维码"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${d}" fill="#111"/></svg>`, 'image/svg+xml').documentElement;
+    appQrBox.replaceChildren(document.importNode(svg, true));
+  });
+  appBtn.onclick = async () => {
+    stopPoll();
+    appBtn.disabled = true;
+    const r = await appQr().catch((e) => ({ ok: false, error: String(e) } as { ok: boolean; url?: string; code?: string; error?: string }));
+    appBtn.disabled = false;
+    if (!r.ok || !r.url || !r.code) { say(`拿不到二维码：${r.error || '网络错误'}`); return; }
+    await drawQr(r.url);
+    appQrBox.hidden = false;
+    appQrNote.textContent = '用手机 B 站 App 扫一扫，在手机上点「确认登录」';
+    const code = r.code;
+    const started = Date.now();
+    const tick = async () => {
+      if (!sheet.el.isConnected || Date.now() - started > 180_000) { appQrBox.hidden = true; appQrNote.textContent = '二维码已过期，再点一次「扫码授权」'; return; }
+      const p = await appPoll(code).catch(() => null);
+      if (p?.state === 'done') { appQrBox.hidden = true; appQrNote.textContent = ''; say('授权好了，推荐换成你手机上的那套'); if (!get().appFeed) await save({ appFeed: true }); await paintApp(); return; }
+      if (p?.state === 'expired') { appQrBox.hidden = true; appQrNote.textContent = '二维码已过期，再点一次「扫码授权」'; return; }
+      if (p?.state === 'scanned') appQrNote.textContent = '已扫码，请在手机上确认';
+      pollT = window.setTimeout(tick, 2000);
+    };
+    pollT = window.setTimeout(tick, 2000);
+  };
+  appOff.onclick = async () => { stopPoll(); await appRevoke(); say('已取消授权，本机的授权凭证已删除'); await paintApp(); };
+  paintApp();
 
   /**
    * 抽屉（v0.47.4，用户：非必要的设置收进抽屉）：标题行 + 当前值摘要 + 箭头，点开后高度用 grid 0fr→1fr 过渡，
@@ -354,6 +424,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     h('section', { class: 'group' }, h('h3', {}, '背景'),
       block('模式', '随机：每次打开换一款，不连续重复', mode),
       block('样式', null, swatches),
+      drawer('随机范围', () => { const n = get().bg.pool?.length ?? 0; return n ? `${n} / ${SHADER_IDS.length} 款` : '全部'; },
+        h('p', { class: 'sd-note' }, '随机模式只在点亮的样式里挑；太花的点掉就不会再随机到'), poolBox),
       drawer('强度与自定义图片', () => '',
         block('强度', null, intensity),
         h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '自定义图片'), h('small', {}, '压缩后只保存在本机')), upload, file))),
@@ -364,6 +436,12 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         block('最低播放量', null, views),
         block('最短时长', null, dur)),
       row('隐藏广告', '隐藏播放页、搜索页、热门排行和番剧页的推广内容', adsT)),
+    h('section', { class: 'group' }, h('h3', {}, '实验功能'),
+      row('App 推荐流', '首页「推荐」改用手机 App 的推荐；关掉就是网页版原来的推荐', appT),
+      drawer('App 授权', () => (authed ? '已授权' : '未授权'),
+        h('p', { class: 'sd-note' }, '用 B 站 App 扫一次码，推荐就和你手机上一样。授权凭证只存在本机，随时可以取消'),
+        h('div', { class: 'af-row' }, appStat, h('div', { class: 'data-acts' }, appBtn, appOff)), appQrBox, appQrNote),
+      row('X 式重排', '按你的观看历史重新排：常看完的 UP 往前，秒退和「不感兴趣」的往后，混入关注的人 48 小时内的新稿，看过的不再出现。只在本机计算，可和 App 推荐流一起用', rankT)),
     h('section', { class: 'group' }, h('h3', {}, '数据'),
       h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '备份与迁移'), h('small', {}, '设置和足迹导出成 JSON 文件；不含自定义背景图片')),
         h('div', { class: 'data-acts' }, exportBtn, importBtn), json)),
@@ -372,11 +450,15 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   return {
     sheet,
     sync(s) {
+      poolCur = null;
       drawers.forEach((f) => f());
+      paintPool();
       theme.set(s.theme);
       preview.setAttribute('aria-checked', String(s.hoverPreview));
       intro.setAttribute('aria-checked', String(s.intro));
       reduceM.setAttribute('aria-checked', String(s.reduceMotion));
+      appT.setAttribute('aria-checked', String(s.appFeed));
+      rankT.setAttribute('aria-checked', String(s.rerank));
       watch.setAttribute('aria-checked', String(s.watch));
       foot.setAttribute('aria-checked', String(s.footprint));
       wxT.setAttribute('aria-checked', String(s.weather));

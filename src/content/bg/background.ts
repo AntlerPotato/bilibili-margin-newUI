@@ -78,7 +78,8 @@ export class BackgroundLayer {
     if (cfg.mode === 'random') {
       if (first || prevMode !== 'random' || !this.current) {
         const prev = localStorage.getItem(LAST_KEY);
-        const pool = SHADER_IDS.filter((s) => s !== prev);
+        const allowed = cfg.pool?.length ? SHADER_IDS.filter((s) => cfg.pool!.includes(s)) : SHADER_IDS;
+        const pool = allowed.length > 1 ? allowed.filter((s) => s !== prev) : allowed;
         id = pool[Math.floor(Math.random() * pool.length)];
         localStorage.setItem(LAST_KEY, id);
       } else id = this.current;

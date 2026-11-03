@@ -98,9 +98,10 @@ export function startTriple(): void {
   };
   const tick = (t: number) => {
     if (holding) p = Math.min(1, (t - t0) / HOLD);
+    else if (held) p = 1;
     else p = Math.max(0, p - 0.06);
     paint();
-    if ((holding && p < 1) || (!holding && p > 0)) raf = requestAnimationFrame(tick);
+    if ((holding && p < 1) || (!holding && !held && p > 0)) raf = requestAnimationFrame(tick);
     else raf = 0;
     if (holding && p >= 1) armedUntil = performance.now() + 5000;
   };
@@ -115,13 +116,38 @@ export function startTriple(): void {
     holding = true; t0 = performance.now() - p * HOLD;
     if (!raf) raf = requestAnimationFrame(tick);
   }, true);
-  const release = () => {
+  // v0.48：映间的进度环 1.5 秒就画满，但 B 站自己的长按要更久才触发三连；
+  // 用户看到环满就松手 → B 站收到松开、取消长按，只剩一圈转完（B 站评论反馈）。
+  // 现在环满后先把松开扣住，等 B 站三连生效（投币、收藏变 .on）或最多 2.5 秒，再把松开补发给按钮。
+  let held: HTMLElement | null = null, heldT = 0, swallowClick = false;
+  const flush = () => {
+    if (!held) return;
+    const el = held; held = null; clearTimeout(heldT);
+    const o = { bubbles: true, cancelable: true, composed: true, button: 0 };
+    el.dispatchEvent(new PointerEvent('pointerup', { ...o, pointerType: 'mouse', isPrimary: true }));
+    el.dispatchEvent(new MouseEvent('mouseup', o));
+    setTimeout(() => { swallowClick = false; }, 0);
+    if (!raf) raf = requestAnimationFrame(tick);
+  };
+  const tripled = () => { const e = items(); return !!e && e[1].classList.contains('on') && e[2].classList.contains('on'); };
+  const release = (e: Event) => {
+    if (held) { if (e.isTrusted) { e.stopImmediatePropagation(); } return; }
     if (!holding) return;
     holding = false;
-    if (p >= 1) { armedUntil = performance.now() + 5000; watchOn(); }
+    if (p >= 1) {
+      armedUntil = performance.now() + 5000; watchOn();
+      const like = els?.[0];
+      if (e.type !== 'pointercancel' && like && !tripled()) {
+        e.stopImmediatePropagation();
+        held = like; swallowClick = true;
+        heldT = window.setTimeout(flush, 2500);
+      }
+    }
     if (!raf) raf = requestAnimationFrame(tick);
   };
   addEventListener('pointerup', release, true);
+  addEventListener('mouseup', (e) => { if (held && e.isTrusted) e.stopImmediatePropagation(); }, true);
+  addEventListener('click', (e) => { if (swallowClick && e.isTrusted) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   addEventListener('pointercancel', release, true);
 
   // B 站三连成功后投币、收藏都会变成 .on；只在长按完成后的 5 秒内、只监听这三个按钮，避免整页 class 变动带来的开销
@@ -132,7 +158,7 @@ export function startTriple(): void {
     mo?.disconnect();
     mo = new MutationObserver(() => {
       if (performance.now() > armedUntil) { mo?.disconnect(); mo = null; return; }
-      if (e[1].classList.contains('on') && e[2].classList.contains('on')) { mo?.disconnect(); mo = null; armedUntil = 0; p = 0; paint(); burst(e); }
+      if (e[1].classList.contains('on') && e[2].classList.contains('on')) { mo?.disconnect(); mo = null; armedUntil = 0; p = 0; paint(); burst(e); flush(); }
     });
     e.forEach((el) => mo!.observe(el, { attributes: true, attributeFilter: ['class'], subtree: true }));
     setTimeout(() => { mo?.disconnect(); mo = null; }, 5200);

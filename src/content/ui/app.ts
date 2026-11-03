@@ -1,4 +1,6 @@
 import { dislike, popular, recommended, type Video } from '../api/feed';
+import { appDislike, appRecommended } from '../api/appfeed';
+import { noteNegative, rerank, resetRank } from '../rank';
 import { followClassics, resetClassics } from '../api/space';
 import { account } from '../api/account';
 import { normalizeHomeOrder, saveSettings, type HomeSection, type Settings } from '../../shared/settings';
@@ -46,6 +48,9 @@ export class MarginApp {
   private wx: HTMLElement | null = null;
   private tab: Tab = 'rcmd';
   private round = 1;
+  /** App 推荐流的翻页游标（上一批最后一张卡的 idx），换一批时归零 */
+  private appIdx = 0;
+  private appHinted = false;
   private page = 1;
   private loading = false;
   private done = false;
@@ -69,6 +74,7 @@ export class MarginApp {
     const prev = this.settings;
     this.settings = s;
     if (this.filter.update(s)) this.repaint();
+    if ((prev.appFeed !== s.appFeed || prev.rerank !== s.rerank) && this.tab === 'rcmd') this.reload();
     if (prev.footprint !== s.footprint || prev.weather !== s.weather) this.syncDash();
     this.app.dataset.cols = String(s.cols || "auto");
     if (prev.homeHide.join() !== s.homeHide.join()) { this.syncHide(); this.repaint(); }
@@ -112,9 +118,11 @@ export class MarginApp {
     el.classList.add('gone');
     window.setTimeout(() => { el.remove(); this.fillIfShort(); }, 220);
     try {
-      await dislike(v, 1);
+      noteNegative(v.mid);
+      const fb = (cancel = false) => (v.goto === 'app' ? appDislike(v, 1, cancel) : dislike(v, 1, cancel));
+      await fb();
       toast(this.app, '好的，以后少推这类视频', { label: '撤销', run: async () => {
-        await dislike(v, 1, true).catch(() => {});
+        await fb(true).catch(() => {});
         if (!this.items.includes(v)) { this.items.splice(Math.max(0, at), 0, v); this.repaint(); }
       } });
     } catch (e) {
@@ -197,7 +205,9 @@ export class MarginApp {
       return b;
     };
     tabs.append(mkTab('rcmd', '推荐'), mkTab('popular', '热门'), mkTab('classic', '关注老片'));
-    const refresh = h('button', { class: 'ghost refresh', type: 'button', title: '换一批', onclick: () => this.reload() }, icon(ICONS.refresh), h('span', {}, '换一批'));
+    const refresh = h('button', { class: 'ghost refresh', type: 'button', title: '换一批', onclick: () => this.reload(true) }, icon(ICONS.refresh), h('span', {}, '换一批'));
+    // 上一批（评论区 K-aloy：习惯 biliplus 的首页回退）：换一批之后可以回到刚才那批，再点一次又回来
+    this.backBtn = h('button', { class: 'ghost refresh back', type: 'button', title: '回到上一批', hidden: true, onclick: () => this.restore() }, icon(ICONS.back), h('span', {}, '上一批'));
 
     // 吸顶时分类栏变成液态玻璃胶囊，日期行收起
     head.el.classList.add('no-search');
@@ -206,7 +216,7 @@ export class MarginApp {
     const heroS = createHeroSearch(() => this.app);
     const hero = heroS.el;
     this.headEl = head.el; this.heroEl = hero;
-    const bar = h('div', { class: 'bar' }, h('div', { class: 'eyebrow' }, h('span', {}, todayLabel()), h('span', { class: 'en' }, 'For You'), h('span', { class: 'no' }, issueNo())), h('div', { class: 'bar-row' }, tabs, refresh));
+    const bar = h('div', { class: 'bar' }, h('div', { class: 'eyebrow' }, h('span', {}, todayLabel()), h('span', { class: 'en' }, 'For You'), h('span', { class: 'no' }, issueNo())), h('div', { class: 'bar-row' }, tabs, h('div', { class: 'bar-acts' }, this.backBtn, refresh)));
 
     this.grid = h('section', { class: 'grid home-grid', 'aria-live': 'polite' });
     this.status = h('div', { class: 'status' });
@@ -314,7 +324,30 @@ export class MarginApp {
     this.reload();
   }
 
-  private reload(): void {
+  private backBtn: HTMLElement | null = null;
+  private snap: { tab: Tab; items: Video[]; page: number; appIdx: number; done: boolean; round: number } | null = null;
+
+  private snapshot(): typeof this.snap {
+    return { tab: this.tab, items: this.items.slice(), page: this.page, appIdx: this.appIdx, done: this.done, round: this.round };
+  }
+
+  private restore(): void {
+    const s = this.snap;
+    if (!s || s.tab !== this.tab) return;
+    this.snap = this.snapshot();
+    this.gen++;
+    this.items = s.items.slice();
+    this.seen = new Set(s.items.map((v) => v.bvid));
+    this.page = s.page; this.appIdx = s.appIdx; this.done = s.done; this.round = s.round;
+    this.loading = false;
+    this.status.replaceChildren();
+    this.app.scrollTo({ top: 0 });
+    this.repaint();
+  }
+
+  private reload(keep = false): void {
+    this.snap = keep && this.items.length ? this.snapshot() : null;
+    if (this.backBtn) this.backBtn.hidden = !this.snap;
     this.gen++;
     this.grid.replaceChildren();
     this.items = [];
@@ -323,6 +356,8 @@ export class MarginApp {
     this.loading = false;
     this.page = 1;
     this.round++;
+    this.appIdx = 0;
+    resetRank();
     resetClassics();
     this.app.scrollTo({ top: 0 });
     this.load();
@@ -341,7 +376,9 @@ export class MarginApp {
     if (before.includes(v.author) || before.includes(String(v.mid))) return;
     await saveSettings({ filters: { ...this.settings.filters, ups: [...before, v.author] } });
     // 顺便告诉 B 站推荐「不想看此 UP 主」（失败不影响本地屏蔽）
-    if (v.trackId) dislike(v, 4).catch(() => {});
+    noteNegative(v.mid, 2);
+    if (v.goto === 'app') appDislike(v, 4).catch(() => {});
+    else if (v.trackId) dislike(v, 4).catch(() => {});
     toast(this.app, `已屏蔽「${v.author}」`, { label: '撤销', run: () => saveSettings({ filters: { ...this.settings.filters, ups: this.settings.filters.ups.filter((u) => u !== v.author) } }) });
   }
 
@@ -366,7 +403,14 @@ export class MarginApp {
     let added = 0;
     try {
       let list: Video[];
-      if (this.tab === 'rcmd') {
+      if (this.tab === 'rcmd' && this.settings.appFeed) {
+        // App 推荐流（v0.48 实验）：一批 10 来个，连取两批凑够一屏
+        const a = await appRecommended(this.appIdx);
+        const b = await appRecommended(a.next);
+        this.appIdx = b.next;
+        list = [...a.list, ...b.list];
+        if (!a.personal && !this.appHinted) { this.appHinted = true; toast(this.app, '正在用 App 推荐（未授权，不是个性化的）。在设置 → 实验功能里扫码授权'); }
+      } else if (this.tab === 'rcmd') {
         const batches = await Promise.all([recommended(this.round), recommended(this.round + 1)]);
         this.round += 2;
         list = batches.flat();
@@ -381,6 +425,7 @@ export class MarginApp {
         list = r.list;
         this.done = r.done;
       }
+      if (this.tab === 'rcmd' && this.settings.rerank) list = await rerank(list, this.items.slice(-3).map((x) => x.mid), this.seen).catch(() => list);
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
       const start = this.grid.children.length;

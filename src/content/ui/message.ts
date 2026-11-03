@@ -64,6 +64,22 @@ export class MessageApp {
     }).catch(() => this.show());
   }
 
+  /**
+   * 私信面板铺满到视口底部（评论区 K-aloy：小屏上面板太矮、整页还能滚）。
+   * 只在窗口尺寸变化时量一次位置，不在滚动里读布局。
+   */
+  private fitWhisper(wh: HTMLElement): void {
+    const fit = () => {
+      if (!wh.isConnected) { removeEventListener('resize', onResize); return; }
+      const top = wh.getBoundingClientRect().top + scrollY;
+      wh.style.height = `${Math.max(360, Math.round(innerHeight - top - 24))}px`;
+    };
+    let q = 0;
+    const onResize = () => { if (!q) q = requestAnimationFrame(() => { q = 0; fit(); }); };
+    requestAnimationFrame(fit);
+    addEventListener('resize', onResize, { passive: true });
+  }
+
   private async refreshUnread(): Promise<void> {
     const u = await unread().catch(() => null);
     if (!u) return;
@@ -167,8 +183,9 @@ export class MessageApp {
           h('p', { class: 'ms-sent' }, h('span', { class: 'ms-who' }, ...who), ' ', h('span', { class: 'ms-verb' }, n.verb),
             n.title ? h('a', { class: 'ms-obj', href: n.url || '#', ...ext }, n.title) : null),
           h('time', {}, fmtAgo(n.time))),
+        // 先给上下文（你被回复 / @ 的那条），再给对方说的话；引用用左侧细线而不是同样的正文，避免短句看起来像两句回复（评论区 K-aloy）
+        showQuote ? h('a', { class: 'ms-quote', href: n.url || '#', ...ext }, h('span', { class: 'ms-q-k' }, n.kind === 'reply' ? '你的评论' : '原文'), n.quote) : null,
         n.content ? h('p', { class: 'ms-text' }, n.content) : null,
-        showQuote ? h('a', { class: 'ms-quote', href: n.url || '#', ...ext }, h('span', { class: 'ms-q-k' }, '原文'), n.quote) : null,
         n.kind === 'reply' && n.url ? h('div', { class: 'ms-acts' }, h('a', { class: 'ms-act ghost', href: n.url, ...ext }, icon(ICONS.message), '去回复')) : null),
       n.image ? h('a', { class: 'ms-thumb', href: n.url || '#', 'aria-label': n.title ? `打开「${n.title}」` : '打开原内容', ...ext }, h('img', { src: `${n.image}@240w_150h_1c.webp`, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' })) : null);
   }
@@ -178,7 +195,9 @@ export class MessageApp {
     const gen = this.gen;
     const list = h('div', { class: 'wh-list' });
     const chat = h('div', { class: 'wh-chat' }, this.empty('选一个会话开始聊天'));
-    this.pane.append(h('div', { class: 'wh' }, list, chat));
+    const wh = h('div', { class: 'wh' }, list, chat);
+    this.pane.append(wh);
+    this.fitWhisper(wh);
     const want = Number(location.hash.match(/mid(\d+)/)?.[1] || 0);
     sessions().then((ss) => {
       if (gen !== this.gen) return;
