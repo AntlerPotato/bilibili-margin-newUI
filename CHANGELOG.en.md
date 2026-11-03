@@ -2,6 +2,13 @@
 
 # Changelog
 
+## [v0.50.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.50.1) · 2026-11-04
+
+- Fix: only top/bottom fixed danmaku showed, no scrolling danmaku (GitHub #36). With the OS "reduce motion" on (e.g. Windows "Animation effects" off) or Margin's own reduce-motion setting, Margin shortened all page animations to an instant, which also made scrolling danmaku jump straight to the end. The player and danmaku layer are now excluded.
+- Fix: native space sub-pages (favorites, bangumi, follows) weren't themed, and clicking Home / Dynamic / Uploads there needed a refresh to show Margin's space page (GitHub #30). Bilibili blue is now Margin ink, and moving to a space page Margin takes over now loads it automatically.
+- Home cards show the exact publish time (e.g. 2026-10-24 16:17:44) on its own line; new setting "Click category tab to refresh" (Settings → Home widgets, off by default). From PR #33 (@me1dlinger), for GitHub #25.
+- Fix: footprint month strip jittering on horizontal scroll and clipping dates at both ends. From PR #14 (@Coffeiz).
+
 ## [v0.50.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.50.0) · 2026-11-03
 
 - Home "Footprint + Weather" on narrower screens (1280–1859px) no longer pushes weather onto its own row leaving a big gap: the footprint card shrinks with the window (smaller cells) and weather stays alongside; they stack only below 1280px. The trailing partial month (<3 weeks) on the heatmap is no longer labeled, so labels don't overlap.
