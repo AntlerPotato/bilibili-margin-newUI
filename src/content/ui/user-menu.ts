@@ -54,7 +54,7 @@ function barcode(mid: number): HTMLElement {
 
 // 设置「账号卡片可拖拽」（v0.46，B 站评论建议）：关掉后卡片固定挂着，只能点击翻面
 let idDrag = true;
-// 消息提醒（v0.47）：关闭后账号卡片不再请求未读总数
+// 消息提醒（v0.47）：关闭后账号卡片不再请求未读总数和新动态
 let msgRemind = true;
 const msgCards = new Set<(on: boolean) => void>();
 loadSettings().then((s) => { idDrag = s.idDrag; msgRemind = s.msgRemind; }).catch(() => {});
@@ -195,8 +195,13 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
   let mouse = { x: -9999, y: -9999 };
   let raf = 0, isOpen = false, dpr = 1, t = 0, restX = 0, gx = 0, restAngle = 0;
   const syncMsgRemind = (on: boolean) => {
-    if (!on) { unreadN.textContent = '—'; unreadN.classList.remove('hot'); }
-    else if (isOpen) unreadTotal().then((v) => mark(unreadN, v)).catch(() => {});
+    if (!on) {
+      unreadN.textContent = '—'; unreadN.classList.remove('hot');
+      dynN.textContent = '—'; dynN.classList.remove('hot');
+    } else if (isOpen) {
+      unreadTotal().then((v) => mark(unreadN, v)).catch(() => {});
+      dynamicUpdates().then((v) => mark(dynN, v)).catch(() => {});
+    }
   };
   msgCards.add(syncMsgRemind);
 
@@ -431,10 +436,14 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
     addEventListener('blur', onOut);
     cancelAnimationFrame(raf); loop();
     wrap.setAttribute('data-open', '');
-    // 未读和新动态每次打开都刷新（会变）；关闭消息提醒时不请求未读
-    if (msgRemind) unreadTotal().then((v) => mark(unreadN, v)).catch(() => {});
-    else { unreadN.textContent = '—'; unreadN.classList.remove('hot'); }
-    dynamicUpdates().then((v) => mark(dynN, v)).catch(() => {});
+    // 未读和新动态每次打开都刷新（会变）；关闭消息提醒时两者都不请求
+    if (msgRemind) {
+      unreadTotal().then((v) => mark(unreadN, v)).catch(() => {});
+      dynamicUpdates().then((v) => mark(dynN, v)).catch(() => {});
+    } else {
+      unreadN.textContent = '—'; unreadN.classList.remove('hot');
+      dynN.textContent = '—'; dynN.classList.remove('hot');
+    }
     if (!loaded) {
       loaded = true;
       accountStat().then((s) => { following.textContent = fmtCount(s.following); follower.textContent = fmtCount(s.follower); }).catch(() => { loaded = false; });

@@ -21,7 +21,7 @@ export interface Header {
   /** 液态玻璃块：搜索框、快捷入口胶囊、选中滑块 */
   glass: HTMLElement[];
   thumb: HTMLElement;
-  /** 消息提醒开关（v0.47）：关闭时不再轮询 unread，并清掉消息角标 */
+  /** 消息提醒开关（v0.47）：关闭时不再轮询 unread / 动态更新，并清掉两个角标 */
   setMsgRemind(on: boolean): void;
 }
 
@@ -105,7 +105,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
       clearTimeout(unreadT); unreadT = window.setTimeout(() => unreadTotal().then((n) => tabsNav.badge('msg', n)).catch(() => {}), 600);
     });
     // 未读角标：页面可见时每 2 分钟问一次；切回标签页时立即刷新。
-    // 消息和动态分开轮询：关闭消息提醒只停消息，动态角标保持原逻辑。
+    // 消息提醒同时管动态：关闭后消息和动态的角标都不再轮询。
     let polled = 0;
     const pollMsg = () => {
       if (!msgOn || document.hidden) return;
@@ -113,7 +113,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
       unreadTotal().then((n) => tabsNav.badge('msg', n)).catch(() => {});
     };
     const pollDyn = () => {
-      if (document.hidden) return;
+      if (!msgOn || document.hidden) return;
       polled = Date.now();
       dynamicUpdates().then((n) => tabsNav.badge('dyn', n)).catch(() => {});
     };
@@ -129,9 +129,11 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     msgOn = on;
     if (!on) {
       tabsNav.badge('msg', 0);
+      tabsNav.badge('dyn', 0);
       msgPop?.close();
     } else if (!document.hidden) {
       unreadTotal().then((n) => tabsNav.badge('msg', n)).catch(() => {});
+      dynamicUpdates().then((n) => tabsNav.badge('dyn', n)).catch(() => {});
     }
   };
 

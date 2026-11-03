@@ -374,11 +374,15 @@ for (const theme of THEMES) {
       await page.waitForTimeout(3200);
       const miss = [];
       if (requests.some((u) => u.includes('msgfeed/unread') || u.includes('single_unread'))) miss.push('message unread still requested');
-      if (!requests.some((u) => u.includes('web-dynamic/v1/feed/all'))) miss.push('dynamic updates not requested');
+      if (requests.some((u) => u.includes('web-dynamic/v1/feed/all'))) miss.push('dynamic updates still requested');
       miss.push(...await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
-        const btn = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('消息'));
-        return btn?.querySelector('.et-badge') ? ['message badge still shown'] : [];
+        const msg = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('消息'));
+        const dyn = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('动态'));
+        return [
+          ...(msg?.querySelector('.et-badge') ? ['message badge still shown'] : []),
+          ...(dyn?.querySelector('.et-badge') ? ['dynamic badge still shown'] : []),
+        ];
       }));
       // 消息页自身仍要显示未读数（开关只控制主动提醒）
       requests = [];
