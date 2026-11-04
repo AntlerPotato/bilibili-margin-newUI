@@ -21,7 +21,7 @@ import type { Sheet } from '../sheet';
 import { ytCard, ytSkeleton } from './card';
 import { createYtHeader, type YtHeader } from './header';
 import { createYtSidebar, type YtSidebar, type YtTab } from './sidebar';
-import css from '../../styles.css?inline';
+import css from '../../styles/index';
 import ytCss from '../../yt.css?inline';
 
 const PARTITIONS: [string, string][] = [
