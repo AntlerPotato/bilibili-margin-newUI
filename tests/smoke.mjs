@@ -22,6 +22,10 @@ const PAGES = [
   ['home', 'https://www.bilibili.com/', `(() => { const r = ${R}; if (!r) return ['#margin-root'];
     const miss = []; if (r.querySelectorAll('.grid .card').length < 4) miss.push('.grid .card ×4');
     for (const s of ['header', '.fp-card .fp-cells', '.hero-search, .hs', '.dash']) if (!r.querySelector(s)) miss.push(s);
+    // 发布时间的绝对时间要单独一行显示
+    const dates = [...r.querySelectorAll('.grid .card .pubtime')].map((e) => e.textContent.trim())
+      .filter((t) => t.length === 19 && t[4] === '-' && t[10] === ' ' && t[13] === ':' && t[16] === ':');
+    if (dates.length < 4) miss.push('card publish time missing');
     return miss; })()`],
   ['watch', 'https://www.bilibili.com/video/BV1mdxN68E7F/', `(() => { const miss = [];
     if (!document.documentElement.classList.contains('margin-watch')) miss.push('html.margin-watch');
@@ -165,7 +169,7 @@ for (const theme of THEMES) {
       await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
       await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
-        r?.querySelector('.hd-settings')?.click();
+        r?.querySelector('.et-btn[aria-label="设置"]')?.click();
       });
       await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.home-order-row'), null, { timeout: 8000 }).catch(() => {});
       await sleep(300);
@@ -178,8 +182,8 @@ for (const theme of THEMES) {
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '减少动画')) m.push('reduce motion row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '宽屏模式')) m.push('wide row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '消息提醒')) m.push('message row missing');
-        if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === 'YouTube 风格')) m.push('youtube row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '隐藏广告')) m.push('ads row missing');
+        if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '点击分类标签刷新列表')) m.push('tab-refresh row missing');
         return m;
       });
       await page.evaluate(() => {
@@ -197,6 +201,34 @@ for (const theme of THEMES) {
       return miss;
     });
 
+    await feature('tab-refresh', async () => {
+      await reset();
+      await seed({ tabRefresh: true });
+      await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
+      await sleep(500);
+      const state = () => page.evaluate(() => {
+        const r = document.getElementById('margin-root').shadowRoot;
+        return {
+          backHidden: r.querySelector('.refresh.back')?.hidden,
+          cards: r.querySelectorAll('.grid .card:not(.sk)').length,
+          sel: r.querySelector('.tab[aria-selected="true"]')?.dataset.tab,
+        };
+      });
+      const before = await state();
+      // 打开设置后，点当前分类标签应该等于换一批
+      await page.evaluate(() => document.getElementById('margin-root').shadowRoot.querySelector('.tab[data-tab=rcmd]')?.click());
+      await sleep(1800);
+      const after = await state();
+      const m = [];
+      if (before.backHidden !== true) m.push('back button visible before refreshing');
+      if (after.backHidden !== false) m.push('back button missing after clicking the active tab');
+      if (after.sel !== 'rcmd') m.push(`tab changed unexpectedly: ${after.sel}`);
+      if (!after.cards) m.push('no cards after refreshing');
+      await reset();
+      return m;
+    });
+
     await feature('home-filter', async () => {
       await reset();
       await seed({ filters: { ...filterOff, keywords: ['芯片'] } });
@@ -210,6 +242,21 @@ for (const theme of THEMES) {
         if (!titles.length) miss.push('no cards');
         if (titles.some((t) => t.includes('芯片'))) miss.push('keyword card still shown');
         if (titles.some((t) => t.includes('广告推广视频'))) miss.push('data-level ad shown with hideAds default');
+        return miss;
+      });
+    });
+
+    await feature('space-charge-badge', async () => {
+      await reset();
+      await page.goto('https://space.bilibili.com/2/video', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
+      await sleep(400);
+      return page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        const badges = [...r?.querySelectorAll('.grid .card .tag-charge') ?? []].map((e) => e.textContent ?? '');
+        const miss = [];
+        if (!badges.length) miss.push('no .tag-charge on space cards');
+        if (badges.some((t) => t !== '充电专属')) miss.push('unexpected badge text');
         return miss;
       });
     });
@@ -411,21 +458,6 @@ for (const theme of THEMES) {
       });
     });
 
-await feature('space-charge-badge', async () => {
-      await reset();
-      await page.goto('https://space.bilibili.com/2/video', { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
-      await sleep(400);
-      return page.evaluate(() => {
-        const r = document.getElementById('margin-root')?.shadowRoot;
-        const badges = [...r?.querySelectorAll('.grid .card .tag-charge') ?? []].map((e) => e.textContent ?? '');
-        const miss = [];
-        if (!badges.length) miss.push('no .tag-charge on space cards');
-        if (badges.some((t) => t !== '充电专属')) miss.push('unexpected badge text');
-        return miss;
-      });
-    });
-
     await feature('space-no-filter', async () => {
       await reset();
       await seed({ filters: { ...filterOff, keywords: ['旗舰手机芯片'], minDuration: 600 } });
@@ -454,6 +486,25 @@ await feature('space-charge-badge', async () => {
         return dyn.some((d) => d.hasAttribute('data-margin-filtered')) ? ['space dynamic filtered'] : [];
       }));
       return miss;
+    });
+
+    await feature('native-tag-filter', async () => {
+      await reset();
+      await seed({ filters: { ...filterOff, keywords: ['隐藏标签词'] } });
+      await page.goto(SEARCH, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => {
+        const el = document.querySelector('[data-k="tag"]');
+        return !!el && getComputedStyle(el).display === 'none';
+      }, null, { timeout: 12_000 }).catch(() => {});
+      await sleep(200);
+      return page.evaluate(() => {
+        const el = document.querySelector('[data-k="tag"]');
+        const normal = document.querySelector('[data-k="normal"]');
+        const m = [];
+        if (!el || getComputedStyle(el).display !== 'none') m.push('tag card not hidden');
+        if (normal && getComputedStyle(normal).display === 'none') m.push('normal card hidden');
+        return m;
+      });
     });
 
     await feature('extension-filters', async () => {
@@ -545,25 +596,6 @@ await feature('space-charge-badge', async () => {
       });
     });
 
-    await feature('native-tag-filter', async () => {
-      await reset();
-      await seed({ filters: { ...filterOff, keywords: ['隐藏标签词'] } });
-      await page.goto(SEARCH, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(() => {
-        const el = document.querySelector('[data-k="tag"]');
-        return !!el && getComputedStyle(el).display === 'none';
-      }, null, { timeout: 12_000 }).catch(() => {});
-      await sleep(200);
-      return page.evaluate(() => {
-        const el = document.querySelector('[data-k="tag"]');
-        const normal = document.querySelector('[data-k="normal"]');
-        const m = [];
-        if (!el || getComputedStyle(el).display !== 'none') m.push('tag card not hidden');
-        if (normal && getComputedStyle(normal).display === 'none') m.push('normal card hidden');
-        return m;
-      });
-    });
-
     await feature('ads-toggle', async () => {
       await reset();
       await seed({ hideAds: true });
@@ -642,20 +674,20 @@ await feature('space-charge-badge', async () => {
       await page.waitForTimeout(3200);
       const miss = [];
       if (requests.some((u) => u.includes('msgfeed/unread') || u.includes('single_unread'))) miss.push('message unread still requested');
-      if (requests.some((u) => u.includes('web-dynamic/v1/feed/all'))) miss.push('dynamic updates still requested');
+      if (!requests.some((u) => u.includes('web-dynamic/v1/feed/all'))) miss.push('dynamic updates not requested');
       miss.push(...await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
-        const msg = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('消息'));
-        const dyn = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('动态'));
-        return [
-          ...(msg?.querySelector('.et-badge') ? ['message badge still shown'] : []),
-          ...(dyn?.querySelector('.et-badge') ? ['dynamic badge still shown'] : []),
-        ];
+        const btn = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('消息'));
+        return btn?.querySelector('.et-badge') ? ['message badge still shown'] : [];
       }));
       // 消息页自身仍要显示未读数（开关只控制主动提醒）
       requests = [];
       await page.goto(MESSAGE, { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(2200);
+      // 未读数要等 /nav 返回后才请求；CI 上伪造接口偶尔要 2~3 秒才回 /nav，固定等 2.2s 会误报，改为等计数出现（最多 10s）
+      await page.waitForFunction(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        return [...r?.querySelectorAll('.ms-n') ?? []].some((n) => n.textContent?.trim());
+      }, null, { timeout: 10_000 }).catch(() => {});
       if (!requests.some((u) => u.includes('msgfeed/unread') || u.includes('single_unread'))) miss.push('message page own unread not requested');
       miss.push(...await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
