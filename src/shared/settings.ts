@@ -47,6 +47,8 @@ export interface Settings {
   watch: boolean;
   /** 首页开场动画（每次打开浏览器后首次进入首页播放一次） */
   intro: boolean;
+  /** YouTube 风格首页（可选，默认关）：只借布局结构，配色和主题不变；只影响首页 */
+  ytHome: boolean;
   /** 首页顶部「B 站足迹」热力图（关掉只是不显示，后台照样记录） */
   footprint: boolean;
   /** 首页顶部天气卡（关掉就不请求天气和定位） */
@@ -128,6 +130,7 @@ export const DEFAULTS: Settings = {
   hoverPreview: true,
   watch: true,
   intro: true,
+  ytHome: false,
   footprint: true,
   weather: true,
   favDirect: false,
@@ -205,6 +208,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     homeOrder: normalizeHomeOrder(r.homeOrder),
     appFeed: r.appFeed === true,
     rerank: r.rerank === true,
+    ytHome: r.ytHome === true,
     radius: r.radius === 0 || r.radius === 50 || r.radius === 150 ? r.radius : 100,
     commentSize: r.commentSize === 15 || r.commentSize === 16 || r.commentSize === 17 ? r.commentSize : 14,
     headHover: r.headHover !== false,
@@ -237,9 +241,9 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank' | 'headHover' | 'tabRefresh') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank' | 'ytHome' | 'headHover' | 'tabRefresh') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('speedKeys'); bool('replyTree'); bool('idDrag'); bool('monoNum');
-  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank'); bool('headHover'); bool('tabRefresh');
+  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank'); bool('ytHome'); bool('headHover'); bool('tabRefresh');
   if (r.radius === 0 || r.radius === 50 || r.radius === 100 || r.radius === 150) out.radius = r.radius;
   if (r.commentSize === 14 || r.commentSize === 15 || r.commentSize === 16 || r.commentSize === 17) out.commentSize = r.commentSize;
   if (typeof r.bodyFont === 'string') out.bodyFont = cleanFont(r.bodyFont);

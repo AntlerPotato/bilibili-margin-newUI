@@ -1255,6 +1255,21 @@ canvas.gf-sheet-art[data-ready] { opacity: 1; filter: none; }
 .upload svg { width: 17px; height: 17px; }
 .um-wrap { position: relative; display: flex; }
 .um-wrap .user { margin-left: 0; }
+/* 顶栏右上角：设置入口（替代可展开菜单 / 侧栏里的「设置」项） */
+.hd-settings {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .2s var(--ease-out), background .2s var(--ease-out);
+}
+.hd-settings:hover { color: var(--ink); background: var(--chip); }
+.hd-settings svg { width: 18px; height: 18px; }
 
 /* 收藏夹：新建卡（和玻璃文件夹同宽同高，虚线框；点开变表单） */
 .fav-new { width: 236px; height: 222px; margin-top: 36px; border-radius: 16px; }

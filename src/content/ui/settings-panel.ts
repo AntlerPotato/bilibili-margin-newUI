@@ -204,6 +204,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const spdK = toggle(s0.speedKeys, '倍速快捷键', (v) => save({ speedKeys: v }));
   const treeT = toggle(s0.replyTree, '楼中楼对话树', (v) => save({ replyTree: v }));
   const msgT = toggle(s0.msgRemind, '消息提醒', (v) => save({ msgRemind: v }));
+  const ytT = toggle(s0.ytHome, 'YouTube 风格', (v) => save({ ytHome: v }));
   const tabRefreshT = toggle(s0.tabRefresh, '点击分类标签刷新列表', (v) => save({ tabRefresh: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
@@ -395,6 +396,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('减少动画', '暂停背景、天气和悬停动画，并减少界面过渡；系统减少动态效果始终生效', reduceM),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
+      row('YouTube 风格', '首页、播放页、空间、消息等页面借用 YouTube 布局；配色、主题和背景不变', ytT),
       drawer('字体与缩放', () => { const st = get(); return [st.titleFont === 'sans' ? '无衬线标题' : '衬线标题', st.bodyFont || '', st.zoom !== 100 ? `${st.zoom}%` : ''].filter(Boolean).join(' · '); },
         block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
         block('正文字体', '填本机已经装好的字体名；标题选「无衬线」时标题也用它。留空 = 映间默认', fontBox),
@@ -411,7 +413,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('Ctrl+K 打开命令面板', 'B 站自己没有 Ctrl+K；和浏览器或其他扩展冲突时关掉，按 / 照样能打开', cmdKT),
       row('悬停展开文字', '鼠标移到顶栏图标上就展开名字；关掉后只在点击时展开', hoverT),
       drawer('顶栏入口', () => { const n = get().headHide.length; return n ? `已隐藏 ${n} 个` : '全部显示'; },
-        h('p', { class: 'sd-note' }, '关掉的入口不在顶栏显示；B 站入口可以用箭头调顺序。「设置」始终保留'), headList, h('div', { class: 'hl-foot' }, headReset))),
+        h('p', { class: 'sd-note' }, '关掉的入口不在顶栏显示；YouTube 模式下这些入口在左侧导航里隐藏 / 排序。B 站入口可以用箭头调顺序。「设置」始终保留'), headList, h('div', { class: 'hl-foot' }, headReset))),
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
       row('宽屏模式', '有播放器时自动进入宽屏；番剧、列表和稍后再看等页面同样生效；和自动网页全屏同时开启时优先网页全屏', wideT),
       row('自动网页全屏', '有播放器的页面打开后自动铺满浏览器窗口，按 Esc 退出', autoW),
@@ -442,7 +444,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         block('强度', null, intensity),
         h('div', { class: 'row' }, h('div', { class: 'row-label' }, h('span', {}, '自定义图片'), h('small', {}, '压缩后只保存在本机')), upload, file))),
     h('section', { class: 'group' }, h('h3', {}, '内容过滤'),
-      block('屏蔽关键词', '标题包含即隐藏（首页、搜索、播放页推荐、动态等全站生效）', kw),
+      block('屏蔽关键词', '标题或视频标签包含即隐藏（首页、搜索、播放页推荐、动态等全站生效）', kw),
       block('屏蔽 UP 主', '卡片右上角也能一键屏蔽', ups),
       drawer('播放量与时长', () => '',
         block('最低播放量', null, views),

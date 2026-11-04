@@ -3,6 +3,7 @@ import { historyList } from '../api/history';
 import { folders } from '../api/fav';
 import { watchLater } from '../api/search';
 import { unread } from '../api/msg';
+import { bvidFromHref } from '../tags';
 import { h } from './dom';
 import type { FilterRuntime } from '../filter-runtime';
 import type { FilterTarget } from '../filter';
@@ -96,6 +97,10 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: Filter
   const visible = (rows: PopRow[]) => filter && spec.filterRow
     ? rows.filter((r) => { const t = spec.filterRow!(r); return !t || filter.allows(t); })
     : rows;
+  // 关键词也要能命中视频标签：列表过滤前先预热标签
+  const prepareRows = async (rows: PopRow[]) => {
+    if (filter && spec.filterRow) await filter.prepare(rows.map((r) => bvidFromHref(r.href)));
+  };
   // 分页：滚到离底部 120px 内追加下一页；列表不够高时一直补到出现滚动条
   // 用 IntersectionObserver 看列表末尾的哨兵，滚动时不读布局
   const tail = h('i', { class: 'dp-tail', 'aria-hidden': 'true' });
@@ -107,9 +112,10 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: Filter
     busy = true;
     const sk = h('div', { class: 'dp-skel' });
     tail.before(sk);
-    spec.more().then((rows) => {
+    spec.more().then(async (rows) => {
       sk.remove();
       if (!rows.length) { done = true; tail.before(h('p', { class: 'dp-end' }, '没有更多了')); return; }
+      await prepareRows(rows);
       const shown = visible(rows);
       tail.before(...shown.map(row));
       if (!shown.length) requestAnimationFrame(fill);
@@ -122,8 +128,9 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: Filter
     if (Date.now() - loadedAt < 60_000 && list.querySelector('.dp-row')) return;
     loadedAt = Date.now();
     list.replaceChildren(...Array.from({ length: spec.compact ? 5 : 4 }, () => h('div', { class: 'dp-skel' })));
-    spec.load().then((rows) => {
+    spec.load().then(async (rows) => {
       if (rows === null) { loadedAt = 0; list.replaceChildren(h('p', { class: 'dp-empty' }, `登录后可在这里看到${spec.title}`)); return; }
+      await prepareRows(rows);
       const shown = visible(rows);
       list.replaceChildren(...(shown.length ? shown.map(row) : [h('p', { class: 'dp-empty' }, spec.empty)]));
       done = !spec.more || !rows.length;
