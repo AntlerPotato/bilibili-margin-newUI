@@ -24,12 +24,17 @@ export function createHistoryDrawer(): Panel {
     class: 'dw-head',
     style: 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)',
   }, h('div', {}, h('h2', { style: 'margin:0;font-size:15px;font-weight:600' }, '历史记录', count)), closeBtn);
+  const foot = h('a', {
+    href: 'https://www.bilibili.com/history', target: '_blank', rel: 'noopener',
+    style: 'display:block;padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;opacity:.7;text-decoration:none;color:inherit',
+  }, '在 B 站打开完整历史 →');
+  const col = h('div', { style: 'display:flex;flex-direction:column;flex:1;min-height:0' }, body, more, foot);
   const panel = h('aside', {
     role: 'dialog', 'aria-modal': 'true', 'aria-label': '历史记录', tabindex: '-1',
     style: `position:fixed;top:0;right:0;height:100vh;width:min(${WIDTH}px,92vw);display:flex;flex-direction:column;`
       + 'background:var(--card,#1b1d21);color:var(--foreground,#eee);box-shadow:-24px 0 60px rgba(0,0,0,.45);'
       + 'transform:translateX(102%);transition:transform .34s cubic-bezier(.22,.61,.36,1);z-index:61',
-  }, head, body, more);
+  }, head, col);
   const scrim = h('div', {
     style: 'position:fixed;inset:0;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .3s;z-index:60',
   });
@@ -41,7 +46,6 @@ export function createHistoryDrawer(): Panel {
   let done = false;
   let returnTo: HTMLElement | null = null;
 
-  const KEY = 'margin:hist-open';
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
 
   function open(): void {
@@ -53,7 +57,6 @@ export function createHistoryDrawer(): Panel {
     scrim.onclick = () => close();
     panel.focus();
     document.body.style.overflow = 'hidden';
-    document.body.dataset[KEY] = '1';
     if (!loaded) void load();
   }
   function close(): void {
