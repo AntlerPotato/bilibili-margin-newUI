@@ -32,7 +32,7 @@ export function createHistoryDrawer(): Panel {
   const panel = h('aside', {
     role: 'dialog', 'aria-modal': 'true', 'aria-label': '历史记录', tabindex: '-1',
     style: `position:fixed;top:0;right:0;height:100vh;width:min(${WIDTH}px,92vw);display:flex;flex-direction:column;`
-      + 'background:var(--card,#1b1d21);color:var(--foreground,#eee);box-shadow:-24px 0 60px rgba(0,0,0,.45);'
+      + 'background:var(--surface,#1b1d21);color:var(--ink,#eee);box-shadow:-24px 0 60px rgba(0,0,0,.45);'
       + 'transform:translateX(102%);transition:transform .34s cubic-bezier(.22,.61,.36,1);z-index:61',
   }, head, col);
   const scrim = h('div', {
@@ -45,28 +45,53 @@ export function createHistoryDrawer(): Panel {
   let loading = false;
   let done = false;
   let returnTo: HTMLElement | null = null;
+  let isOpen = false;
+  let closeTimer = 0;
+  let openFrame = 0;
+  let scrollRoot: HTMLElement | null = null;
+  let previousOverflow = '';
+  let previousBodyOverflow = '';
 
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
 
   function open(): void {
-    returnTo = document.activeElement as HTMLElement | null;
+    if (isOpen) return;
+    isOpen = true;
+    clearTimeout(closeTimer);
+    closeTimer = 0;
+    returnTo = (el.getRootNode() as ShadowRoot | Document).activeElement as HTMLElement | null;
+    scrollRoot = el.closest<HTMLElement>('.app') ?? document.body;
+    previousOverflow = scrollRoot.style.overflow;
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    scrollRoot.style.overflow = 'hidden';
     el.hidden = false;
-    document.body.append(el);
-    requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; scrim.style.opacity = '1'; scrim.style.pointerEvents = 'auto'; });
+    el.inert = false;
+    el.style.pointerEvents = 'auto';
+    openFrame = requestAnimationFrame(() => {
+      openFrame = 0;
+      panel.style.transform = 'translateX(0)'; scrim.style.opacity = '1'; scrim.style.pointerEvents = 'auto';
+    });
     document.addEventListener('keydown', onKey, true);
     scrim.onclick = () => close();
-    panel.focus();
-    document.body.style.overflow = 'hidden';
+    panel.focus({ preventScroll: true });
     if (!loaded) void load();
   }
   function close(): void {
+    if (!isOpen) return;
+    isOpen = false;
+    cancelAnimationFrame(openFrame);
+    openFrame = 0;
     panel.style.transform = 'translateX(102%)';
     scrim.style.opacity = '0';
     scrim.style.pointerEvents = 'none';
     document.removeEventListener('keydown', onKey, true);
-    document.body.style.overflow = '';
-    setTimeout(() => { el.hidden = true; el.remove(); }, 360);
-    returnTo?.focus?.();
+    el.inert = true;
+    el.style.pointerEvents = 'none';
+    if (scrollRoot) scrollRoot.style.overflow = previousOverflow;
+    document.body.style.overflow = previousBodyOverflow;
+    closeTimer = window.setTimeout(() => { el.hidden = true; closeTimer = 0; }, 360);
+    returnTo?.focus?.({ preventScroll: true });
   }
 
   function row(it: HistItem): HTMLElement {
@@ -75,9 +100,10 @@ export function createHistoryDrawer(): Panel {
       referrerpolicy: 'no-referrer',
       style: 'width:96px;height:54px;object-fit:cover;border-radius:8px;flex:none;background:rgba(255,255,255,.06)',
     });
+    const pct = it.progress === -1 ? 100 : it.duration > 0 ? Math.max(0, Math.min(100, it.progress / it.duration * 100)) : 0;
     const prog = h('span', {
       style: 'position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.2)',
-    }, h('i', { style: `display:block;height:100%;width:${Math.max(0, Math.min(100, it.progress ?? 0))}%;background:var(--accent,#7aa2ff)` }));
+    }, h('i', { style: `display:block;height:100%;width:${pct}%;background:var(--accent,#7aa2ff)` }));
     return h('a', {
       href: it.url, target: '_blank', rel: 'noopener',
       style: 'display:flex;gap:10px;align-items:flex-start;padding:6px;border-radius:10px;text-decoration:none;color:inherit',

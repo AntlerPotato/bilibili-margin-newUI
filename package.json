@@ -9,6 +9,7 @@
     "pack": "npm run build && cd dist && rm -f ../margin.zip && zip -qrX ../margin.zip .",
     "pack:firefox": "npm run pack && node scripts/firefox.mjs",
     "test:smoke": "node tests/smoke.mjs",
+    "test:drawers": "node tests/drawers.mjs",
     "test:unit": "vitest run",
     "fonts": "python3 scripts/slice-fonts.py"
   },

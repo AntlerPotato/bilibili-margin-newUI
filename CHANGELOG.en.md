@@ -2,6 +2,14 @@
 
 # Changelog
 
+## Unreleased
+
+- Fixed the full-screen overlay blocking native space pages after drawers close.
+- Kept the history drawer in its original style container so it appears above the space page.
+- Cancelled pending close callbacks when reopening history; closing restores the previous scroll state and focus.
+- Calculated history progress from watched seconds and duration, including the completed marker.
+- Added browser regression tests for space drawers in light and dark themes, and included them in CI.
+
 ## [v0.52.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.52.0) · 2026-11-04
 
 - **Removed the YouTube-style layout** (#51): 映间 now ships a single visual language. Deleted `ui/yt/` (648 lines), both YT stylesheets, the `ytHome` setting and all branches that depended on it. Tag filtering, the space-page waiver and the message-toggle linkage are unaffected.
