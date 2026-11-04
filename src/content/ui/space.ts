@@ -240,7 +240,8 @@ export class SpaceApp {
       h('span', { class: 'vr-no' }, String(n).padStart(2, '0')),
       h('a', { class: 'cover', href, ...ext, title: v.title },
         h('img', { src: v.cover ? `${v.cover}@320w_180h_1c.webp` : '', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }),
-        v.duration ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null),
+        v.duration ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
+        v.badge ? h('span', { class: 'tag-charge', title: v.badge }, v.badge) : null),
       h('a', { class: 'vr-title', href, ...ext }, v.title),
       h('span', { class: 'vr-note' }, h('span', {}, `${fmtCount(v.views)} 播放`), h('span', {}, fmtAgo(v.pubdate))),
       h('a', { class: 'vr-go', href, ...ext, 'aria-label': '打开' }, icon(ICONS.arrow)));

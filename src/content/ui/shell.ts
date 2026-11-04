@@ -1,7 +1,7 @@
 import type { Settings } from '../../shared/settings';
 import { saveSettings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
-import { h, ICONS } from './dom';
+import { h, ICONS, guardTyping } from './dom';
 import { createHeader, type Header, SITE_LINKS } from './header';
 import { createYtHeader, type YtHeader } from './yt/header';
 import { createSettingsPanel, type SettingsPanel } from './settings-panel';
@@ -38,6 +38,7 @@ export class PageShell {
     this.yt = settings.ytHome;
     this.host = h('div', { id: 'margin-root' });
     this.root = this.host.attachShadow({ mode: 'open' });
+    guardTyping(this.host);
     this.root.append(h('style', {}, css + '\n' + pagesCss + (this.yt ? '\n' + ytCss : '')));
     this.filter = new FilterRuntime(settings);
     this.panel = createSettingsPanel(() => this.settings, () => this.bg.shader);

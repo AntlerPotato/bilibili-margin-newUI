@@ -92,7 +92,7 @@ export function apiBody(u) {
   if (u.includes('relation/stat')) return { code: 0, data: { following: 218, follower: 1284000 } };
   if (u.includes('upstat')) return { code: 0, data: { likes: 3620000, archive: { view: 98700000 } } };
   if (u.includes('navnum')) return { code: 0, data: { video: P.length } };
-  if (u.includes('arc/search')) return { code: 0, data: { list: { vlist: P.map((v) => ({ bvid: v.bvid, title: v.title, pic: v.pic, length: mmss(v.dur), author: '映间编辑部', mid: 1, play: v.play, video_review: 100, created: v.pub })) }, page: { count: P.length } } };
+  if (u.includes('arc/search')) return { code: 0, data: { list: { vlist: P.map((v, i) => ({ bvid: v.bvid, title: v.title, pic: v.pic, length: mmss(v.dur), author: '映间编辑部', mid: 1, play: v.play, video_review: 100, created: v.pub, elec_arc_badge: i % 3 === 0 ? '充电专属' : '', is_charging_arc: i % 3 === 0 ? 1 : 0 })) }, page: { count: P.length } } };
   if (u.includes('msgfeed/unread')) return { code: 0, data: { at: 2, chat: 0, like: 18, reply: 5, sys_msg: 1, up: 0 } };
   if (u.includes('single_unread')) return { code: 0, data: { follow_unread: 3, unfollow_unread: 0 } };
   if (u.includes('msgfeed/reply')) return { code: 0, data: { cursor: { is_end: true }, items: [0, 1, 2].map((i) => ({ id: i, user: { mid: P[i].mid, nickname: P[i].name, avatar: P[i].face }, item: { type: 'video', title: P[i + 5].title, image: P[i + 5].pic, uri: `https://www.bilibili.com/video/${P[i + 5].bvid}`, source_content: ['这个缓动曲线太舒服了', '那个转场是怎么做的？', 'up 的字体搭配真的绝'][i], target_reply_content: '' }, reply_time: NOW - 1800 * (i + 1) })) } };

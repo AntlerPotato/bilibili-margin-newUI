@@ -2,6 +2,28 @@
 
 # Changelog
 
+## [v0.50.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.50.1) · 2026-11-04
+
+- Fix: only top/bottom fixed danmaku showed, no scrolling danmaku (GitHub #36). With the OS "reduce motion" on (e.g. Windows "Animation effects" off) or Margin's own reduce-motion setting, Margin shortened all page animations to an instant, which also made scrolling danmaku jump straight to the end. The player and danmaku layer are now excluded.
+- Fix: native space sub-pages (favorites, bangumi, follows) weren't themed, and clicking Home / Dynamic / Uploads there needed a refresh to show Margin's space page (GitHub #30). Bilibili blue is now Margin ink, and moving to a space page Margin takes over now loads it automatically.
+- Home cards show the exact publish time (e.g. 2026-10-24 16:17:44) on its own line; new setting "Click category tab to refresh" (Settings → Home widgets, off by default). From PR #33 (@me1dlinger), for GitHub #25.
+- Fix: footprint month strip jittering on horizontal scroll and clipping dates at both ends. From PR #14 (@Coffeiz).
+
+## [v0.50.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.50.0) · 2026-11-03
+
+- Home "Footprint + Weather" on narrower screens (1280–1859px) no longer pushes weather onto its own row leaving a big gap: the footprint card shrinks with the window (smaller cells) and weather stays alongside; they stack only below 1280px. The trailing partial month (<3 weeks) on the heatmap is no longer labeled, so labels don't overlap.
+- Feed page: like, repost and comment right on the card, no detail page needed. Like toggles instantly; Repost opens an inline box (optional text, sent only when you press Repost); Comment opens hot comments and an input inline (Enter to send), with "All comments" still opening the detail page. Endpoints per bilibili-API-collect. Thanks to @昵途人 for suggesting it, and @今天鱼块了吗 for the feedback.
+- Fix: pressing Space in the search box on the watch page played the video and the space never got typed. Margin's inputs live in Shadow DOM and the Bilibili player only checks the event target; keys typed in Margin inputs no longer reach the page. Thanks to @AAA卡利古拉 for reporting.
+- Home: Recommended / Popular / Followed classics each keep their list and scroll position, so switching back picks up where you left off instead of jumping to the top. Thanks to @Ctrl_Shift_N for suggesting it.
+- Reply tree now also works with the legacy comment section Bilibili still serves to some accounts (v0.49 only handled the new one). Note it applies to replies after you expand them. Thanks to @飞行雪羢 for reporting.
+- New "Corner radius" setting (Appearance → Layout): square / small / default / large for cards, buttons and panels; avatars stay round. Thanks to @博尔加诺斯 for suggesting it.
+- New "Comment font size" setting (Appearance → Fonts): 14–17px. Thanks to @月明溪潺 for suggesting it.
+- New "Expand labels on hover" toggle (Header): when off, header icons only expand their label on click. Thanks to @百叶间 for suggesting it.
+- Home card titles show the full title on hover. Thanks to @大きい林檎番組 for reporting.
+- Co-created videos get a "合作" tag on the cover in Popular, Followed classics and space uploads; the recommendation API doesn't expose this flag, so the main feed can't show it yet. Thanks to @優希堂沙也香 for suggesting it.
+- Followed classics are now sorted newest first within each batch instead of shuffled. Thanks to @Order_阿包 for suggesting it.
+- Includes PRs #13, #15, #17 and #28 merged on GitHub.
+
 ## [v0.49.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.49.1) · 2026-11-03
 
 - Messages: a "Load more chats" button now sits at the end of the chat list, so you can load more by hand if auto-loading doesn't fire; auto-loading at the bottom is also more reliable (it re-checks after each page).

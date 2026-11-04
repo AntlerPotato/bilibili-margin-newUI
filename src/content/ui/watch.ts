@@ -1,7 +1,7 @@
 import { every } from '../sched';
 import type { Settings } from '../../shared/settings';
 import { saveSettings } from '../../shared/settings';
-import { h, ICONS } from './dom';
+import { h, ICONS, guardTyping } from './dom';
 import { toast } from './controls';
 import { addWatchLater } from '../api/search';
 import { createFavorites } from './favorites';
@@ -67,6 +67,7 @@ export class WatchSkin {
 
     this.host = h('div', { id: 'margin-watch-top' });
     const root = this.host.attachShadow({ mode: 'open' });
+    guardTyping(this.host);
     root.append(h('style', {}, css));
     if (this.yt) root.append(h('style', {}, ytCss));
     // 搜索页本身有大号搜索框，顶栏那个就不再重复（Ctrl+K / / 仍可唤出命令面板）

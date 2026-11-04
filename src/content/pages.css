@@ -139,3 +139,18 @@ html.margin-search .search-fixed-header, html.margin-search .search-sticky-heade
 /* v0.49：深色模式下 B 站原生关注页 / 粉丝页侧栏分组悬停底色仍是浅灰（#f1f2f3），而文字已经变白，悬停后一片白看不到字（B 站评论反馈） */
 html.margin-skin[data-margin-theme="dark"] .vui_sidebar-item:not(.vui_sidebar-item--active):hover,
 html.margin-skin[data-margin-theme="dark"] .vui_sidebar-item:not(.vui_sidebar-item--active):focus-visible { background: rgb(255 255 255 / .08) !important; }
+
+/* v0.50.1（GitHub #30）：空间里映间没接管的原生子页（收藏夹、追番、关注、设置）——B 站蓝统一换成映间的墨色，和映间空间页一致 */
+html.margin-space-native { --brand_blue: var(--m-ink); --brand_blue_thin: color-mix(in srgb, var(--m-ink) 10%, transparent); --Ba0: var(--m-ink); }
+html.margin-space-native .nav-tab__item, html.margin-space-native .nav-tab__item-icon, html.margin-space-native .nav-tab__item-num { color: var(--m-muted) !important; }
+html.margin-space-native .nav-tab__item--active .nav-tab__item-text, html.margin-space-native .nav-tab__item--active .nav-tab__item-icon,
+html.margin-space-native .nav-tab__item--active .nav-tab__item-num, html.margin-space-native .nav-tab__item:hover .nav-tab__item-text { color: var(--m-ink) !important; }
+html.margin-space-native .nav-tab-cursor { background: var(--m-ink) !important; }
+html.margin-space-native .vui_sidebar-item { border-radius: 12px !important; }
+html.margin-space-native .vui_sidebar-item--active, html.margin-space-native .playall-btn, html.margin-space-native .action-btn.blue,
+html.margin-space-native .radio-filter__item--active, html.margin-space-native .vui_button--active-blue,
+html.margin-space-native .vui_pagenation--btn.vui_button--active { background: var(--m-ink) !important; border-color: var(--m-ink) !important; color: var(--m-canvas) !important; }
+html.margin-space-native .vui_sidebar-item--active *, html.margin-space-native .playall-btn *, html.margin-space-native .radio-filter__item--active * { color: var(--m-canvas) !important; }
+html.margin-space-native .playall-btn, html.margin-space-native .radio-filter__item, html.margin-space-native .vui_pagenation--btn { border-radius: 999px !important; }
+html.margin-space-native .bili-video-card__cover, html.margin-space-native .bili-cover-card, html.margin-space-native .bili-video-card__image,
+html.margin-space-native .favlist-info-cover, html.margin-space-native .bili-video-card__image img { border-radius: 12px !important; }

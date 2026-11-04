@@ -411,6 +411,21 @@ for (const theme of THEMES) {
       });
     });
 
+await feature('space-charge-badge', async () => {
+      await reset();
+      await page.goto('https://space.bilibili.com/2/video', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
+      await sleep(400);
+      return page.evaluate(() => {
+        const r = document.getElementById('margin-root')?.shadowRoot;
+        const badges = [...r?.querySelectorAll('.grid .card .tag-charge') ?? []].map((e) => e.textContent ?? '');
+        const miss = [];
+        if (!badges.length) miss.push('no .tag-charge on space cards');
+        if (badges.some((t) => t !== '充电专属')) miss.push('unexpected badge text');
+        return miss;
+      });
+    });
+
     await feature('space-no-filter', async () => {
       await reset();
       await seed({ filters: { ...filterOff, keywords: ['旗舰手机芯片'], minDuration: 600 } });

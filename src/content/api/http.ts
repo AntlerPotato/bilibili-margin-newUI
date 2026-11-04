@@ -69,3 +69,12 @@ export async function postForm<T>(path: string, form: Record<string, string | nu
   if (j.code !== 0) throw new Error(j.message || `code ${j.code}`);
   return j.data as T;
 }
+
+/** JSON 体 POST，csrf 走查询串（动态点赞 / 转发这类新接口） */
+export async function postJSON<T>(path: string, body: unknown, query: Record<string, string> = {}): Promise<T> {
+  const q = new URLSearchParams({ ...query, csrf: csrfToken() });
+  const r = await fetch(`${API}${path}?${q}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (j.code !== 0) throw new Error(j.message || `code ${j.code}`);
+  return j.data as T;
+}

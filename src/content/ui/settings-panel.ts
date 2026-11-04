@@ -154,6 +154,9 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   paintHead();
   const headReset = h('button', { type: 'button', class: 'ghost small', onclick: () => save({ headHide: [], headOrder: [] }).then(paintHead) }, h('span', {}, '恢复默认'));
   const zoomS = segmented<string>([['100', '100%'], ['110', '110%'], ['120', '120%']], String(s0.zoom), (v) => save({ zoom: Number(v) as 100 | 110 | 120 }));
+  const radS = segmented<string>([['0', '直角'], ['50', '小'], ['100', '默认'], ['150', '大']], String(s0.radius), (v) => save({ radius: Number(v) as 0 | 50 | 100 | 150 }));
+  const cfsS = segmented<string>([['14', '14'], ['15', '15'], ['16', '16'], ['17', '17']], String(s0.commentSize), (v) => save({ commentSize: Number(v) as 14 | 15 | 16 | 17 }));
+  const hoverT = toggle(s0.headHover, '顶栏悬停展开文字', (v) => save({ headHover: v }));
   const cmdKT = toggle(s0.cmdK, 'Ctrl+K 打开命令面板', (v) => save({ cmdK: v }));
   // 视频 CDN 节点（v0.47.2）：列表 + 延迟测速；选中后新打开的视频生效
   const CDNS: [string, string][] = [
@@ -202,6 +205,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const treeT = toggle(s0.replyTree, '楼中楼对话树', (v) => save({ replyTree: v }));
   const msgT = toggle(s0.msgRemind, '消息提醒', (v) => save({ msgRemind: v }));
   const ytT = toggle(s0.ytHome, 'YouTube 风格', (v) => save({ ytHome: v }));
+  const tabRefreshT = toggle(s0.tabRefresh, '点击分类标签刷新列表', (v) => save({ tabRefresh: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
   const ups = chipInput(s0.filters.ups, 'UP 主昵称或 MID', (v) => save({ filters: { ...get().filters, ups: v } }));
@@ -397,14 +401,17 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
         block('正文字体', '填本机已经装好的字体名；标题选「无衬线」时标题也用它。留空 = 映间默认', fontBox),
         row('数字用等宽字体', '播放量、时间、UID 这些小字；关掉后和正文字体一致', monoT),
-        block('内容缩放', '字太小时放大首页、空间、消息、历史、动态的内容区；播放页和搜索页用浏览器缩放（Ctrl +）', zoomS)),
-      drawer('布局与细节', () => { const st = get(); return st.cols ? `每行 ${st.cols} 个` : '每行自动'; },
+        block('内容缩放', '字太小时放大首页、空间、消息、历史、动态的内容区；播放页和搜索页用浏览器缩放（Ctrl +）', zoomS),
+        block('评论字号', '视频和动态评论区的正文大小（px）', cfsS)),
+      drawer('布局与细节', () => { const st = get(); return [st.cols ? `每行 ${st.cols} 个` : '每行自动', st.radius === 0 ? '直角' : st.radius === 50 ? '小圆角' : st.radius === 150 ? '大圆角' : ''].filter(Boolean).join(' · '); },
+        block('圆角', '卡片、按钮、面板的圆角大小；头像这类圆形不受影响', radS),
         block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
         row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
         row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
         row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD))),
     h('section', { class: 'group' }, h('h3', {}, '顶栏'),
       row('Ctrl+K 打开命令面板', 'B 站自己没有 Ctrl+K；和浏览器或其他扩展冲突时关掉，按 / 照样能打开', cmdKT),
+      row('悬停展开文字', '鼠标移到顶栏图标上就展开名字；关掉后只在点击时展开', hoverT),
       drawer('顶栏入口', () => { const n = get().headHide.length; return n ? `已隐藏 ${n} 个` : '全部显示'; },
         h('p', { class: 'sd-note' }, '关掉的入口不在顶栏显示；YouTube 模式下这些入口在左侧导航里隐藏 / 排序。B 站入口可以用箭头调顺序。「设置」始终保留'), headList, h('div', { class: 'hl-foot' }, headReset))),
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
@@ -421,6 +428,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('搜索框', '关掉后用顶栏的小搜索框', searchT),
       row('日期栏', '推荐上方的日期和「For You」', dateT),
       row('换一批按钮', null, refreshT),
+      row('点击分类标签刷新列表', null, tabRefreshT),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT),
       drawer('天气城市与卡片信息', () => { const l = savedLoc(); return l?.manual ? l.name : '自动定位'; },
@@ -471,6 +479,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       searchT.setAttribute('aria-checked', String(!s.homeHide.includes('search')));
       dateT.setAttribute('aria-checked', String(!s.homeHide.includes('date')));
       refreshT.setAttribute('aria-checked', String(!s.homeHide.includes('refresh')));
+      tabRefreshT.setAttribute('aria-checked', String(s.tabRefresh));
       cardBits.set(shownCard(s.homeHide));
       order = normalizeHomeOrder(s.homeOrder);
       paintOrder();
@@ -486,6 +495,9 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       fontS.set(s.titleFont);
       monoT.setAttribute('aria-checked', String(s.monoNum));
       zoomS.set(String(s.zoom));
+      radS.set(String(s.radius));
+      cfsS.set(String(s.commentSize));
+      hoverT.setAttribute('aria-checked', String(s.headHover));
       cmdKT.setAttribute('aria-checked', String(s.cmdK));
       paintCdn();
       paintHead();

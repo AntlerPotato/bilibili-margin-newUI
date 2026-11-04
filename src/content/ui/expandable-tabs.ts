@@ -1,5 +1,11 @@
 import { h, icon } from './dom';
 import { reducedMotion } from '../motion';
+import { loadSettings, onSettingsChange } from '../../shared/settings';
+
+// 悬停展开文字可以关（v0.50，B 站评论建议）：关掉后只在点选时展开
+let hoverOn = true;
+loadSettings().then((s) => { hoverOn = s.headHover; }).catch(() => {});
+onSettingsChange((s) => { hoverOn = s.headHover; });
 
 export interface TabSpec {
   title: string;
@@ -85,7 +91,7 @@ export function createExpandableTabs(items: TabItem[], onChange?: (i: number | n
     b.addEventListener('click', () => { clearTimeout(hoverT); pinned = idx; select(idx); it.run?.(); });
     // 悬停即展开文字（不执行动作），离开后回到点选的那一项
     b.addEventListener('pointerenter', (e) => {
-      if ((e as PointerEvent).pointerType === 'touch') return;
+      if ((e as PointerEvent).pointerType === 'touch' || !hoverOn) return;
       clearTimeout(hoverT);
       select(idx);
     });
