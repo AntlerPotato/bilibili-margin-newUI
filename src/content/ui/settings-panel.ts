@@ -280,6 +280,9 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     const url = await compressImage(f);
     await chrome.storage.local.set({ [BG_IMAGE_KEY]: url });
     save({ bg: { ...get().bg, mode: 'image' } });
+    // 已经是 image 模式时设置对象没变，storage.onChanged 不会触发，背景层得靠这个事件重读（#31）
+    dispatchEvent(new CustomEvent('margin:bg-image'));
+    say('背景图已更新');
   });
   const upload = h('button', { type: 'button', class: 'ghost small', onclick: () => file.click() }, icon(ICONS.image), h('span', {}, '上传图片'));
 
