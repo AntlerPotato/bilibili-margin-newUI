@@ -89,8 +89,8 @@ export function createExpandableTabs(items: TabItem[], onChange?: (i: number | n
     const idx = buttons.length;
     const label = h('span', {}, it.title);
     const b = it.href
-      ? h('a', { class: 'act et-btn', href: it.href, target: '_blank', rel: 'noopener', 'aria-label': it.title }, icon(it.icon), label)
-      : h('button', { class: 'act et-btn', type: 'button', 'aria-label': it.title }, icon(it.icon), label);
+      ? h('a', { class: 'act et-btn', href: it.href, target: '_blank', rel: 'noopener', 'aria-label': it.title, title: it.title }, icon(it.icon), label)
+      : h('button', { class: 'act et-btn', type: 'button', 'aria-label': it.title, title: it.title }, icon(it.icon), label);
     b.addEventListener('click', () => { clearTimeout(hoverT); hover = -1; pinned = idx; select(idx); it.run?.(); });
     // 悬停即展开文字（不执行动作），离开后回到点选的那一项
     b.addEventListener('pointerenter', (e) => {
