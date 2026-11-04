@@ -46,8 +46,8 @@ export class MessageApp {
   private gen = 0;
   /** 上次刷新当前视图的时间：标签页切回来太久没刷就自动重拉（点赞/回复不刷新的反馈） */
   private shownAt = 0;
-  /** 页面加载后的那次「刷新」按钮点击是否已经触发过（防循环：点了按钮会重走 feed） */
-  private bootClick = false;
+  /** 已推过已读游标的视图：15 秒轮询会反复走 feed()，游标只推一次 */
+  private marked = new Set<View>();
 
   constructor(settings: Settings) {
     this.shell = new PageShell(settings, 'msg');
@@ -60,7 +60,8 @@ export class MessageApp {
     const nav0 = performance.getEntriesByType('navigation')[0] as (PerformanceNavigationTiming & { activationStart?: number }) | undefined;
     const act = nav0?.activationStart ?? 0;
     if (doc.prerendering === true) {
-      addEventListener('prerenderingchange', () => this.boot(), { once: true });
+      // 事件 fire 在 document 上且不冒泡，挂在 window 上永远收不到（会停在挂起分支不渲染）
+      document.addEventListener('prerenderingchange', () => this.boot(), { once: true });
       return;
     }
     this.boot(act);
@@ -182,6 +183,7 @@ export class MessageApp {
       return;
     }
     this.view = v;
+    this.marked.delete(v);
     history.replaceState(null, '', `#/${HASH_OF[v]}`);
     this.show();
   }
@@ -228,13 +230,11 @@ export class MessageApp {
         if (!cursor) {
           // 第一页拉到就算看过了：B 站在拉列表时已经记了已读，系统通知还要把游标推到最新
           const v = this.view;
-          if (v === 'system' && p.top) systemRead(p.top, csrf()).catch(() => {}).finally(() => this.setCount(v, () => 0));
-          else this.setCount(v, () => 0);
-          // 页面加载完成后，触发一次「刷新」按钮的点击操作（原样点按钮；每次页面加载只点一次）
-          if (!this.bootClick) {
-            this.bootClick = true;
-            this.pane.querySelector<HTMLButtonElement>('.ms-refresh')?.click();
-          }
+          // 15 秒轮询会反复走 feed()，system 的已读游标只推一次（切分类回来会重新计）
+          if (v === 'system' && p.top && !this.marked.has(v)) {
+            this.marked.add(v);
+            systemRead(p.top, csrf()).catch(() => {}).finally(() => this.setCount(v, () => 0));
+          } else this.setCount(v, () => 0);
         }
         cursor = p.cursor;
         more.hidden = !cursor;
