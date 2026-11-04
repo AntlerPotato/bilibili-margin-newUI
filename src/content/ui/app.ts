@@ -26,7 +26,7 @@ import { createContextMenu } from './context-menu';
 import { bindCardMenu } from './card-menu';
 import { createLaterDrawer } from './drawer';
 import { reducedMotion } from '../motion';
-import css from '../styles.css?inline';
+import css from '../styles/index';
 
 type Tab = 'rcmd' | 'popular' | 'classic';
 type Snap = { tab: Tab; items: Video[]; page: number; appIdx: number; done: boolean; round: number };

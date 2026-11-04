@@ -12,7 +12,7 @@ import { attachPreview } from './preview';
 import type { SunMoon } from './sun-moon';
 import { FilterRuntime } from '../filter-runtime';
 import { reducedMotion } from '../motion';
-import css from '../styles.css?inline';
+import css from '../styles/index';
 import pagesCss from '../takeover.css?inline';
 import ytCss from '../yt.css?inline';
 

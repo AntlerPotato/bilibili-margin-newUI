@@ -18,7 +18,7 @@ import { bindCardMenu } from './card-menu';
 import { createLaterDrawer } from './drawer';
 import { createScrollRuler } from './scroll-ruler';
 import { skinComments } from './comment-skin';
-import css from '../styles.css?inline';
+import css from '../styles/index';
 import ytCss from '../yt.css?inline';
 import ytWatchCss from '../yt-watch.css?inline';
 import { BackgroundLayer } from '../bg/background';
