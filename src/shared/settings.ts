@@ -64,7 +64,7 @@ export interface Settings {
   /** v0.49：楼中楼按回复关系缩进成对话树（参考 BewlyCat，B 站评论建议） */
   replyTree: boolean;
   /** 首页每行几个视频：0 = 按窗口宽度自动，4 / 5 = 固定 */
-  cols: 0 | 4 | 5;
+  cols: 0 | 4 | 5 | 6;
   /** 点击「推荐 / 热门 / 关注老片」分类标签刷新列表 */
   tabRefresh: boolean;
   /** 首页隐藏的部件；空 = 全部显示 */
@@ -253,7 +253,7 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (typeof r.cdn === 'string') out.cdn = cleanHost(r.cdn);
   if (r.zoom === 100 || r.zoom === 110 || r.zoom === 120) out.zoom = r.zoom;
   if (r.titleFont === 'serif' || r.titleFont === 'sans') out.titleFont = r.titleFont;
-  if (r.cols === 0 || r.cols === 4 || r.cols === 5) out.cols = r.cols;
+  if (r.cols === 0 || r.cols === 4 || r.cols === 5 || r.cols === 6) out.cols = r.cols;
   if (Array.isArray(r.homeHide)) out.homeHide = HOME_BITS.filter((b) => (r.homeHide as unknown[]).includes(b));
   if (Array.isArray(r.homeOrder)) out.homeOrder = normalizeHomeOrder(r.homeOrder);
   if (r.theme === 'auto' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
