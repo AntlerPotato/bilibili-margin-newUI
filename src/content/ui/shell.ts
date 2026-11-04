@@ -6,6 +6,7 @@ import { createHeader, type Header, SITE_LINKS } from './header';
 import { createSettingsPanel, type SettingsPanel } from './settings-panel';
 import { attachGlass, filtersIn } from './liquid-glass';
 import { createLaterDrawer } from './drawer';
+import { createHistoryDrawer } from './history-drawer';
 import { createFavorites } from './favorites';
 import { attachPreview } from './preview';
 import type { SunMoon } from './sun-moon';
@@ -40,8 +41,10 @@ export class PageShell {
     this.panel = createSettingsPanel(() => this.settings, () => this.bg.shader);
     const fav = createFavorites((g) => attachPreview(g, () => this.settings.hoverPreview), undefined, this.filter);
     const later = createLaterDrawer(() => this.app, this.filter);
+    const hist = createHistoryDrawer();
     panels.fav = fav;
     panels.later = later;
+    panels.hist = hist;
     this.head = createHeader({
       onTheme: () => this.toggleTheme(),
       msgRemind: () => this.settings.msgRemind,
@@ -60,7 +63,7 @@ export class PageShell {
     this.app = h('div', { class: 'app' },
       this.bg.el, this.head.el, this.main,
       h('footer', { class: 'foot tk-foot' }, exit, h('span', {}, '映间 MARGIN · 非 B 站官方')),
-      this.panel.sheet.el, fav.el, later.el,
+      this.panel.sheet.el, fav.el, later.el, hist.el,
     );
     // 侧板开着时背景定格：侧板的毛玻璃（backdrop-filter）只有在底下画面变化时才需要每帧重算（v0.45）
     this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); this.bg.hold('sheet', on); });
@@ -128,4 +131,4 @@ export const csrf = () => document.cookie.match(/(?:^|;\s*)bili_jct=([^;]+)/)?.[
 export const https = (u: string | undefined) => String(u ?? '').replace(/^\/\//, 'https://').replace(/^http:/, 'https:');
 
 /** 空间页等外部页面复用顶栏已有的抽屉（收藏夹 / 稍后再看） */
-export const panels: { fav?: { open(): void }; later?: { open(): void } } = {};
+export const panels: { fav?: { open(): void }; later?: { open(): void }; hist?: { open(): void } } = {};
