@@ -2,6 +2,13 @@
 
 # Changelog
 
+## [v0.52.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.52.0) · 2026-11-04
+
+- **Removed the YouTube-style layout** (#51): 映间 now ships a single visual language. Deleted `ui/yt/` (648 lines), both YT stylesheets, the `ytHome` setting and all branches that depended on it. Tag filtering, the space-page waiver and the message-toggle linkage are unaffected.
+- **Header no longer reflows on hover** (#49, #50, GitHub #11): items keep a fixed width, a sliding indicator moves instead of expanding text, and each icon now has a native tooltip.
+- **New "6 per row" grid option** (#48, GitHub #11): auto / 4 / 5 / 6, falling back 6 → 5 → 3 on narrow windows.
+- **Background image applies immediately after upload** (#47, GitHub #31): `chrome.storage.onChanged` never fired when the settings object was unchanged; the uploader now notifies the background layer explicitly.
+
 ## [v0.51.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.51.0) · 2026-11-04
 
 - **YouTube-style layout** (Settings → Appearance, off by default): Home, watch page, channel page and search page use a large-thumbnail + two-line-info arrangement; the header "Settings" entry becomes its own button instead of a row in the expandable menu. From PR #32 (@zwh-study); conflicts with `main` resolved as unions by the maintainer.
