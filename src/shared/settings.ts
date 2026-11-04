@@ -191,6 +191,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     bg: { ...DEFAULTS.bg, ...(r.bg ?? {}) },
     homeHide: Array.isArray(r.homeHide) ? HOME_BITS.filter((b) => r.homeHide!.includes(b)) : [],
     titleFont: r.titleFont === 'sans' ? 'sans' : 'serif',
+    theme: r.theme === 'light' || r.theme === 'dark' ? r.theme : 'auto',
     monoNum: r.monoNum !== false,
     headHide: strList(r.headHide),
     headOrder: strList(r.headOrder),

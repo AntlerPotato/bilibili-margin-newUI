@@ -18,6 +18,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Unit test (settings / filter / md5 / footprint)
+        run: npm run test:unit
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - name: Smoke test (offline mocked bilibili)
