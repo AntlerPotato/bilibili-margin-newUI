@@ -114,7 +114,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   cityAuto.addEventListener('click', () => { clearLoc(); paintCity(); say('天气改回按 IP 自动定位'); });
   paintCity();
   const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
-  const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 }));
+  const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个'], ['6', '6 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 | 6 }));
   const fontS = segmented<'serif' | 'sans'>([['serif', '衬线'], ['sans', '无衬线']], s0.titleFont, (v) => save({ titleFont: v }));
   const monoT = toggle(s0.monoNum, '数字用等宽字体', (v) => save({ monoNum: v }));
   const fontIn = h('input', { type: 'text', class: 'city-in font-in', value: s0.bodyFont, placeholder: '比如 微软雅黑、HarmonyOS Sans SC', 'aria-label': '自定义字体', spellcheck: 'false' }) as HTMLInputElement;
@@ -408,7 +408,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         block('评论字号', '视频和动态评论区的正文大小（px）', cfsS)),
       drawer('布局与细节', () => { const st = get(); return [st.cols ? `每行 ${st.cols} 个` : '每行自动', st.radius === 0 ? '直角' : st.radius === 50 ? '小圆角' : st.radius === 150 ? '大圆角' : ''].filter(Boolean).join(' · '); },
         block('圆角', '卡片、按钮、面板的圆角大小；头像这类圆形不受影响', radS),
-        block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 个或 5 个，卡片更大', cols),
+        block('首页每行视频', '自动按窗口宽度排 6–8 个；也可以固定 4 / 5 / 6 个，卡片更大', cols),
         row('开场动画', '每次打开浏览器后第一次进首页播放，点一下可跳过', intro),
         row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
         row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD))),
