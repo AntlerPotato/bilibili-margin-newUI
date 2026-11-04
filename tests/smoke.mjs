@@ -169,7 +169,7 @@ for (const theme of THEMES) {
       await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.grid .card:not(.sk)'), null, { timeout: 15_000 });
       await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
-        r?.querySelector('.et-btn[aria-label="设置"]')?.click();
+        r?.querySelector('.hd-settings')?.click();
       });
       await page.waitForFunction(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.home-order-row'), null, { timeout: 8000 }).catch(() => {});
       await sleep(300);
@@ -183,6 +183,7 @@ for (const theme of THEMES) {
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '宽屏模式')) m.push('wide row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '消息提醒')) m.push('message row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '隐藏广告')) m.push('ads row missing');
+        if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === 'YouTube 风格')) m.push('youtube row missing');
         if (![...r?.querySelectorAll('.row-label span') ?? []].some((e) => e.textContent === '点击分类标签刷新列表')) m.push('tab-refresh row missing');
         return m;
       });
@@ -674,11 +675,15 @@ for (const theme of THEMES) {
       await page.waitForTimeout(3200);
       const miss = [];
       if (requests.some((u) => u.includes('msgfeed/unread') || u.includes('single_unread'))) miss.push('message unread still requested');
-      if (!requests.some((u) => u.includes('web-dynamic/v1/feed/all'))) miss.push('dynamic updates not requested');
+      if (requests.some((u) => u.includes('web-dynamic/v1/feed/all'))) miss.push('dynamic updates still requested');
       miss.push(...await page.evaluate(() => {
         const r = document.getElementById('margin-root')?.shadowRoot;
-        const btn = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('消息'));
-        return btn?.querySelector('.et-badge') ? ['message badge still shown'] : [];
+        const msg = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('消息'));
+        const dyn = [...r?.querySelectorAll('.et-btn') ?? []].find((b) => (b.getAttribute('aria-label') ?? '').startsWith('动态'));
+        return [
+          ...(msg?.querySelector('.et-badge') ? ['message badge still shown'] : []),
+          ...(dyn?.querySelector('.et-badge') ? ['dynamic badge still shown'] : []),
+        ];
       }));
       // 消息页自身仍要显示未读数（开关只控制主动提醒）
       requests = [];
