@@ -210,7 +210,7 @@ export class SpaceApp {
       const goPanel = (label: string, ic: string, run: () => void) => h('button', { class: 'sp-msg', type: 'button', onclick: run, style: 'background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer' }, icon(ic), label);
       acts.replaceChildren(
         goPanel('收藏夹', ICONS.fav, () => panels.fav?.open()),
-        go('历史记录', ICONS.history, 'https://www.bilibili.com/history'),
+        goPanel('历史记录', ICONS.history, () => panels.hist?.open()),
         goPanel('稍后再看', ICONS.later, () => panels.later?.open()));
       acts.classList.add('sp-acts-self');
     }).catch(() => {});
