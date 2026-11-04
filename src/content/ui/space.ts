@@ -1,3 +1,4 @@
+import { panels } from './shell';
 import type { Settings } from '../../shared/settings';
 import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceRecent, spaceVideos, type SpaceInfo, type VideoOrder } from '../api/space';
 import { spaceDynamics } from '../api/dyn';
@@ -206,10 +207,11 @@ export class SpaceApp {
     account().then((me) => {
       if (!me || me.mid !== i.mid) return;
       const go = (label: string, ic: string, href: string) => h('a', { class: 'sp-msg', href, target: '_blank', rel: 'noopener' }, icon(ic), label);
+      const goPanel = (label: string, ic: string, run: () => void) => h('button', { class: 'sp-msg', type: 'button', onclick: run, style: 'background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer' }, icon(ic), label);
       acts.replaceChildren(
-        go('收藏夹', ICONS.fav, 'https://www.bilibili.com/#fav'),
+        goPanel('收藏夹', ICONS.fav, () => panels.fav?.open()),
         go('历史记录', ICONS.history, 'https://www.bilibili.com/history'),
-        go('稍后再看', ICONS.later, 'https://www.bilibili.com/#later'));
+        goPanel('稍后再看', ICONS.later, () => panels.later?.open()));
       acts.classList.add('sp-acts-self');
     }).catch(() => {});
     return h('section', { class: 'sp-hero' },

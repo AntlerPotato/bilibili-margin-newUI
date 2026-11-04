@@ -40,6 +40,8 @@ export class PageShell {
     this.panel = createSettingsPanel(() => this.settings, () => this.bg.shader);
     const fav = createFavorites((g) => attachPreview(g, () => this.settings.hoverPreview), undefined, this.filter);
     const later = createLaterDrawer(() => this.app, this.filter);
+    panels.fav = fav;
+    panels.later = later;
     this.head = createHeader({
       onTheme: () => this.toggleTheme(),
       msgRemind: () => this.settings.msgRemind,
@@ -124,3 +126,6 @@ export class PageShell {
 /** B 站的 csrf：bili_jct cookie */
 export const csrf = () => document.cookie.match(/(?:^|;\s*)bili_jct=([^;]+)/)?.[1] ?? '';
 export const https = (u: string | undefined) => String(u ?? '').replace(/^\/\//, 'https://').replace(/^http:/, 'https:');
+
+/** 空间页等外部页面复用顶栏已有的抽屉（收藏夹 / 稍后再看） */
+export const panels: { fav?: { open(): void }; later?: { open(): void } } = {};
