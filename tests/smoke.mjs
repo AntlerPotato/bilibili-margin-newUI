@@ -508,6 +508,26 @@ for (const theme of THEMES) {
       });
     });
 
+    await feature('refresh-keeps-scroll', async () => {
+      // #39：滚到下面点「换一批」，列表重建后不该被拽回顶部
+      await reset();
+      await seed({ filters: filterOff });
+      await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => (document.getElementById('margin-root')?.shadowRoot?.querySelectorAll('.grid .card:not(.sk)').length ?? 0) >= 8, null, { timeout: 15_000 });
+      const before = await page.evaluate(() => {
+        const app = document.getElementById('margin-root')?.shadowRoot?.querySelector('.app');
+        if (!app) return -1;
+        app.scrollTop = app.scrollHeight;
+        return app.scrollTop;
+      });
+      if (before < 300) return [`page too short to scroll: ${before}`];
+      await page.evaluate(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.ghost.refresh:not(.back)')?.click());
+      await page.waitForFunction(() => (document.getElementById('margin-root')?.shadowRoot?.querySelectorAll('.grid .card:not(.sk)').length ?? 0) >= 8, null, { timeout: 15_000 });
+      await sleep(500);
+      const after = await page.evaluate(() => document.getElementById('margin-root')?.shadowRoot?.querySelector('.app')?.scrollTop ?? 0);
+      return after > before * 0.5 ? [] : [`scroll jumped to top: ${before} -> ${after}`];
+    });
+
     await feature('extension-filters', async () => {
       await reset();
       await seed({ filters: { ...filterOff, keywords: ['芯片'] } });

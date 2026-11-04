@@ -54,6 +54,8 @@ export class MarginApp {
   private appHinted = false;
   private page = 1;
   private loading = false;
+  /** #39：换一批后要恢复的滚动位置；切分类标签或首次加载时为 null（正常回到顶部） */
+  private restoreTop: number | null = null;
   private done = false;
   private items: Video[] = [];
   private seen = new Set<string>();
@@ -365,6 +367,8 @@ export class MarginApp {
   }
 
   private reload(keep = false): void {
+    // #39：点「换一批」时记住当前滚动位置，等首批卡片渲染完再恢复；切分类标签（keep=false）仍回到顶部
+    this.restoreTop = keep ? this.app.scrollTop || null : null;
     this.snap = keep && this.items.length ? this.snapshot() : null;
     if (this.backBtn) this.backBtn.hidden = !this.snap;
     this.gen++;
@@ -378,7 +382,8 @@ export class MarginApp {
     this.appIdx = 0;
     resetRank();
     resetClassics();
-    this.app.scrollTo({ top: 0 });
+    // 换一批不动滚动位置（#39）；其余情况回到顶部
+    if (!keep) this.app.scrollTo({ top: 0 });
     this.load();
   }
 
@@ -463,6 +468,12 @@ export class MarginApp {
         this.grid.append(videoCard(v, start + added++, this.cardOpts()));
       }
       if (this.done) this.status.replaceChildren(h('span', {}, '没有更多了'));
+      // #39：首批卡片进 DOM 后再恢复换一批前的滚动位置（列表重建时 scrollTop 会归零）
+      if (this.restoreTop != null) {
+        const y = Math.max(0, Math.min(this.restoreTop, this.app.scrollHeight - this.app.clientHeight));
+        this.restoreTop = null;
+        this.app.scrollTo({ top: y });
+      }
     } catch (err) {
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
