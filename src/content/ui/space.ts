@@ -223,6 +223,10 @@ export class SpaceApp {
       if (!me || me.mid !== i.mid) return;
       // 21st「Glass Button」(jahed, 4922)：玻璃胶囊 + 图标底片，hover 微抬。抽屉在这里本地创建，
       // 不依赖 shell（空间页是独立 PageShell，顶层 Shell 可能没构造，panels 为空会导致点了没反应）
+      const openPanel = (kind: 'fav' | 'hist' | 'later', fallback: string) => {
+        try { drawers(this.shell.app)[kind].open(); }
+        catch (e) { console.warn('[映间] 抽屉打开失败，退回原页面', e); window.open(fallback, '_blank', 'noopener'); }
+      };
       const tile = (label: string, ic: string, run: () => void) => {
         const b = h('button', {
           class: 'sp-tile', type: 'button', onclick: run,
@@ -238,9 +242,9 @@ export class SpaceApp {
         return b;
       };
       acts.replaceChildren(
-        tile('收藏夹', ICONS.fav, () => drawers(this.shell.app).fav.open()),
-        tile('历史记录', ICONS.history, () => drawers(this.shell.app).hist.open()),
-        tile('稍后再看', ICONS.later, () => drawers(this.shell.app).later.open()));
+        tile('收藏夹', ICONS.fav, () => openPanel('fav', 'https://www.bilibili.com/#fav')),
+        tile('历史记录', ICONS.history, () => openPanel('hist', 'https://www.bilibili.com/history')),
+        tile('稍后再看', ICONS.later, () => openPanel('later', 'https://www.bilibili.com/#later')));
       acts.classList.add('sp-acts-self');
     }).catch(() => {});
     return h('section', { class: 'sp-hero' },
