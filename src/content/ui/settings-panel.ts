@@ -204,7 +204,6 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const spdK = toggle(s0.speedKeys, '倍速快捷键', (v) => save({ speedKeys: v }));
   const treeT = toggle(s0.replyTree, '楼中楼对话树', (v) => save({ replyTree: v }));
   const msgT = toggle(s0.msgRemind, '消息提醒', (v) => save({ msgRemind: v }));
-  const ytT = toggle(s0.ytHome, 'YouTube 风格', (v) => save({ ytHome: v }));
   const tabRefreshT = toggle(s0.tabRefresh, '点击分类标签刷新列表', (v) => save({ tabRefresh: v }));
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
@@ -399,7 +398,6 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('减少动画', '暂停背景、天气和悬停动画，并减少界面过渡；系统减少动态效果始终生效', reduceM),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
-      row('YouTube 风格', '首页、播放页、空间、消息等页面借用 YouTube 布局；配色、主题和背景不变', ytT),
       drawer('字体与缩放', () => { const st = get(); return [st.titleFont === 'sans' ? '无衬线标题' : '衬线标题', st.bodyFont || '', st.zoom !== 100 ? `${st.zoom}%` : ''].filter(Boolean).join(' · '); },
         block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
         block('正文字体', '填本机已经装好的字体名；标题选「无衬线」时标题也用它。留空 = 映间默认', fontBox),
