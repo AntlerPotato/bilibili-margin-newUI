@@ -44,13 +44,64 @@ export class MessageApp {
   private pane!: HTMLElement;
   private me = 0;
   private gen = 0;
+  /** 上次刷新当前视图的时间：标签页切回来太久没刷就自动重拉（点赞/回复不刷新的反馈） */
+  private shownAt = 0;
+  /** 已推过已读游标的视图：15 秒轮询会反复走 feed()，游标只推一次 */
+  private marked = new Set<View>();
 
   constructor(settings: Settings) {
     this.shell = new PageShell(settings, 'msg');
     const m = location.hash.match(/^#\/?(\w+)/);
     this.view = HASH[m?.[1] ?? ''] ?? 'reply';
+    // 预渲染防护：Chrome 会对「可能要访问的页面」提前预渲染（悬停链接 / 地址栏联想），取数发生在激活前，
+    // 激活后看到的就是取数那一刻的旧列表——新开标签必旧、页内切换必新、F5 必新的元凶。
+    // ① 还在预渲染：挂起，等激活（prerenderingchange）再开始渲染取数；② 已激活但 activationStart 很大（泡了很久）：自刷新一次。
+    const doc = document as Document & { prerendering?: boolean };
+    const nav0 = performance.getEntriesByType('navigation')[0] as (PerformanceNavigationTiming & { activationStart?: number }) | undefined;
+    const act = nav0?.activationStart ?? 0;
+    if (doc.prerendering === true) {
+      // 事件 fire 在 document 上且不冒泡，挂在 window 上永远收不到（会停在挂起分支不渲染）
+      document.addEventListener('prerenderingchange', () => this.boot(), { once: true });
+      return;
+    }
+    this.boot(act);
+  }
+
+  /** 预渲染激活（或正常加载）后启动：所有取数都发生在激活之后，保证是当下数据 */
+  private boot(act = 0): void {
+    if (act > 3000) {
+      // 这页在预渲染池里泡了很久（取数发生在激活前），自刷新一次换当下数据（reload 后 activationStart=0，不会循环）
+      location.reload();
+      return;
+    }
+    // 从顶栏消息面板进来的链接带 ?margin-fresh=1：立刻自刷新一次（先剥掉参数再 reload，不会循环）
+    if (new URLSearchParams(location.search).has('margin-fresh')) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      location.reload();
+      return;
+    }
     this.shell.filter.onChange(() => this.applyFilters());
     this.render();
+    // 进入页面（广义）就强制取数：① 标签页切走超过 10 秒后切回；② bfcache 前进/后退恢复（DOM 是旧的）；
+    // ③ 页面开着时每 15 秒检查一次；④ 窗口获得焦点（部分标签页恢复路径不发 visibilitychange，focus 兜底）。
+    // 私信视图不自动刷（会冲掉正在输入的草稿）；重拉后滚动位置原样还回去。
+    let hiddenAt = 0;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { hiddenAt = Date.now(); return; }
+      if (hiddenAt && Date.now() - hiddenAt > 10_000) { hiddenAt = 0; this.hardRefresh('切回标签页'); }
+    });
+    addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) this.hardRefresh('bfcache 恢复'); });
+    addEventListener('focus', () => this.hardRefresh('窗口焦点'));
+    setInterval(() => { if (!document.hidden) this.hardRefresh('轮询'); }, 15_000);
+  }
+
+  /** 强制重拉当前视图（广义的「进入页面」都会走到这里）；10 秒内不重复，私信视图不刷（护住输入中的草稿） */
+  private hardRefresh(why: string): void {
+    if (this.view === 'whisper' || Date.now() - this.shownAt < 10_000) return;
+    const y = scrollY;
+    this.refreshUnread();
+    this.show();
+    scrollTo({ top: y });
   }
 
   /** 只标记私信里的分享卡片，不动聊天文字、通知行和时间 */
@@ -74,7 +125,14 @@ export class MessageApp {
       }));
     this.pane = h('section', { class: 'ms-pane' });
     this.shell.main.append(h('div', { class: 'ms' }, this.nav, this.pane));
-    addEventListener('hashchange', () => { const m = location.hash.match(/^#\/?(\w+)/); const v = HASH[m?.[1] ?? '']; if (v && v !== this.view) { this.view = v; this.show(); } });
+    // hash 变化：切到已知视图就重渲染；hash 被清空 = 从顶栏「消息」重新进入本页
+    // （顶栏链接没有 # 号，浏览器视为同文档导航、不刷新页面，列表会一直是上次的数据）→ 强制重拉
+    addEventListener('hashchange', () => {
+      const m = location.hash.match(/^#\/?(\w+)/);
+      const v = HASH[m?.[1] ?? ''];
+      if (v && v !== this.view) { this.view = v; this.show(); }
+      else if (!v && this.shownAt) this.hardRefresh('顶栏重新进入');
+    });
     nav().then((n) => {
       if (!n?.isLogin) { this.pane.replaceChildren(this.empty('登录后查看消息', h('a', { class: 'sp-follow', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '去登录'))); return; }
       this.me = n.mid ?? 0;
@@ -104,6 +162,8 @@ export class MessageApp {
     if (!u) return;
     const n: Record<View, number> = { whisper: u.chat, reply: u.reply, at: u.at, like: u.like, system: u.system };
     this.nav.querySelectorAll<HTMLElement>('.ms-item').forEach((b) => { const v = b.dataset.view as View; const c = v === this.view && v !== 'whisper' ? 0 : n[v]; b.querySelector('.ms-n')!.textContent = c ? (c > 99 ? '99+' : String(c)) : ''; });
+    // 顶栏角标同步：进页面拿到最新未读后，让顶栏「消息」角标也跟着对齐
+    dispatchEvent(new CustomEvent('margin:unread'));
   }
 
   /** 左侧分类的未读数（v0.46：点开后立刻清掉 / 减掉，顶栏消息角标跟着刷新，不用等刷新页面） */
@@ -117,17 +177,26 @@ export class MessageApp {
   }
 
   private go(v: View): void {
-    if (v === this.view && !location.hash.includes('/mid')) return;
+    if (v === this.view) {
+      // 重选当前分类 = 手动要求刷新（原先直接忽略，用户只能切走再切回来）
+      if (!location.hash.includes('/mid')) this.hardRefresh('重选当前分类');
+      return;
+    }
     this.view = v;
+    this.marked.delete(v);
     history.replaceState(null, '', `#/${HASH_OF[v]}`);
     this.show();
   }
 
   private show(): void {
     this.gen++;
+    this.shownAt = Date.now();
     this.nav.querySelectorAll<HTMLElement>('.ms-item').forEach((b) => b.toggleAttribute('data-selected', b.dataset.view === this.view));
     const [, label, eb] = VIEWS.find((x) => x[0] === this.view)!;
-    this.pane.replaceChildren(h('header', { class: 'ms-head' }, h('div', { class: 'eyebrow' }, h('span', { class: 'en' }, eb)), h('h2', {}, label)));
+    // 刷新按钮：列表更新偶尔慢半拍，手动一下立刻重拉
+    this.pane.replaceChildren(h('header', { class: 'ms-head' },
+      h('div', { class: 'eyebrow' }, h('span', { class: 'en' }, eb)), h('h2', {}, label),
+      this.view !== 'whisper' ? h('button', { class: 'ghost small ms-refresh', type: 'button', title: '重新拉取最新消息', onclick: () => this.show() }, '刷新') : null));
     if (this.view === 'whisper') this.whisper();
     else this.feed();
   }
@@ -151,6 +220,7 @@ export class MessageApp {
       try {
         const p = await fetcher(cursor);
         if (gen !== this.gen) return;
+        const first = !cursor;
         list.querySelectorAll('.sk').forEach((n) => n.remove());
         p.list.forEach((n) => {
           const b = dayBucket(n.time, true);
@@ -160,8 +230,11 @@ export class MessageApp {
         if (!cursor) {
           // 第一页拉到就算看过了：B 站在拉列表时已经记了已读，系统通知还要把游标推到最新
           const v = this.view;
-          if (v === 'system' && p.top) systemRead(p.top, csrf()).catch(() => {}).finally(() => this.setCount(v, () => 0));
-          else this.setCount(v, () => 0);
+          // 15 秒轮询会反复走 feed()，system 的已读游标只推一次（切分类回来会重新计）
+          if (v === 'system' && p.top && !this.marked.has(v)) {
+            this.marked.add(v);
+            systemRead(p.top, csrf()).catch(() => {}).finally(() => this.setCount(v, () => 0));
+          } else this.setCount(v, () => 0);
         }
         cursor = p.cursor;
         more.hidden = !cursor;
