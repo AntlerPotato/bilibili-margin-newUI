@@ -1,4 +1,3 @@
-import { panels } from './shell';
 import type { Settings } from '../../shared/settings';
 import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceRecent, spaceVideos, type SpaceInfo, type VideoOrder } from '../api/space';
 import { spaceDynamics } from '../api/dyn';
@@ -10,6 +9,9 @@ import type { Video } from '../api/feed';
 import { cardData } from './card';
 import { attachPreview } from './preview';
 import { csrf, PageShell } from './shell';
+import { createFavorites } from './favorites';
+import { createLaterDrawer } from './drawer';
+import { createHistoryDrawer } from './history-drawer';
 import { account } from '../api/account';
 import { targetOfVideo, targetOfDyn } from '../filter-targets';
 import type { FilterTarget } from '../filter';
@@ -19,6 +21,19 @@ type Layout = 'grid' | 'list';
 const LAYOUT_KEY = 'margin:space-layout';
 
 /** 个人空间：封面 + 编辑部式身份栏 + 视频 / 动态 两栏切换 */
+type LocalDrawers = { fav: { open: () => void }; hist: { open: () => void }; later: { open: () => void } };
+let local: LocalDrawers | null = null;
+/** 空间页自己的三个抽屉：挂在页面根节点上，不依赖顶层 Shell */
+function drawers(root: HTMLElement): LocalDrawers {
+  if (local) return local;
+  const fav = createFavorites(() => { /* 空间页不做悬停预览 */ });
+  const hist = createHistoryDrawer();
+  const later = createLaterDrawer(() => root);
+  root.append(fav.el, hist.el, later.el);
+  local = { fav: fav as unknown as LocalDrawers['fav'], hist, later };
+  return local;
+}
+
 export class SpaceApp {
   readonly shell: PageShell;
   private tab: Tab;
@@ -206,12 +221,26 @@ export class SpaceApp {
     // 自己的空间：关注 / 私信换成收藏夹、历史记录、稍后再看（用户反馈：不想每次去顶栏找）
     account().then((me) => {
       if (!me || me.mid !== i.mid) return;
-      const go = (label: string, ic: string, href: string) => h('a', { class: 'sp-msg', href, target: '_blank', rel: 'noopener' }, icon(ic), label);
-      const goPanel = (label: string, ic: string, run: () => void) => h('button', { class: 'sp-msg', type: 'button', onclick: run, style: 'background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer' }, icon(ic), label);
+      // 21st「Glass Button」(jahed, 4922)：玻璃胶囊 + 图标底片，hover 微抬。抽屉在这里本地创建，
+      // 不依赖 shell（空间页是独立 PageShell，顶层 Shell 可能没构造，panels 为空会导致点了没反应）
+      const tile = (label: string, ic: string, run: () => void) => {
+        const b = h('button', {
+          class: 'sp-tile', type: 'button', onclick: run,
+          style: 'display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:13px;border:1px solid rgba(255,255,255,.14);'
+            + 'background:rgba(255,255,255,.06);color:inherit;font:inherit;font-size:13px;cursor:pointer;'
+            + 'backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);'
+            + 'transition:transform .18s cubic-bezier(.22,.61,.36,1),background .18s,border-color .18s,box-shadow .18s',
+        },
+          h('span', { style: 'display:grid;place-items:center;width:24px;height:24px;border-radius:9px;background:rgba(255,255,255,.1)' }, icon(ic)),
+          label);
+        b.onmouseenter = () => { b.style.transform = 'translateY(-2px)'; b.style.background = 'rgba(255,255,255,.13)'; b.style.borderColor = 'rgba(255,255,255,.28)'; b.style.boxShadow = '0 8px 24px rgba(0,0,0,.28)'; };
+        b.onmouseleave = () => { b.style.transform = ''; b.style.background = 'rgba(255,255,255,.06)'; b.style.borderColor = 'rgba(255,255,255,.14)'; b.style.boxShadow = ''; };
+        return b;
+      };
       acts.replaceChildren(
-        goPanel('收藏夹', ICONS.fav, () => panels.fav?.open()),
-        goPanel('历史记录', ICONS.history, () => panels.hist?.open()),
-        goPanel('稍后再看', ICONS.later, () => panels.later?.open()));
+        tile('收藏夹', ICONS.fav, () => drawers(this.shell.app).fav.open()),
+        tile('历史记录', ICONS.history, () => drawers(this.shell.app).hist.open()),
+        tile('稍后再看', ICONS.later, () => drawers(this.shell.app).later.open()));
       acts.classList.add('sp-acts-self');
     }).catch(() => {});
     return h('section', { class: 'sp-hero' },
