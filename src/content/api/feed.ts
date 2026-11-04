@@ -19,6 +19,10 @@ export interface Video {
   goto?: string;
   /** 接口明确标记的广告/推广（v0.47），不靠标题猜测 */
   ad?: boolean;
+  /** 合作稿件（v0.50，B 站评论建议）：热门 / 空间接口带 rights.is_cooperation，推荐接口不给这个字段 */
+  coop?: boolean;
+  /** 封面角标文案（v0.51）：空间接口的 elec_arc_badge，如「充电专属」；推荐接口不给这个字段 */
+  badge?: string;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -42,6 +46,7 @@ const toVideo = (v: any): Video => ({
   trackId: v.track_id || undefined,
   goto: v.goto || undefined,
   ad: isAd(v) || undefined,
+  coop: v.rights?.is_cooperation === 1 || v.is_union_video === 1 || undefined,
 });
 
 /**

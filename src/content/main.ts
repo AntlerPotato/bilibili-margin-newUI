@@ -146,10 +146,32 @@ async function startWatch(kind: SkinKind = 'watch'): Promise<void> {
       document.documentElement.classList.add('margin-detail-narrow');
     });
   }
+  if (kind === 'page' && location.hostname === 'space.bilibili.com') spaceNative();
   onSettingsChange((next, prev) => {
     if (next.enabled !== prev.enabled || next.watch !== prev.watch) location.reload();
     else skin.update(next);
   });
+}
+
+/**
+ * 空间页里映间没接管的子页（收藏夹、追番、关注/粉丝、设置…）用 B 站原生页面 + 映间配色（v0.50.1，GitHub #30）。
+ * 原生空间是单页应用：在这里点「主页 / 动态 / 投稿」只改地址不刷新，映间的空间页就挂不上，要刷新才有样式。
+ * 地址一变成映间接管的空间路径就整页跳转。Chrome 用 Navigation API，Firefox 没有，退回到地址轮询（只比字符串，很便宜）。
+ */
+function spaceNative(): void {
+  document.documentElement.classList.add('margin-space-native');
+  let last = location.href;
+  const check = (href: string) => {
+    if (href === last) return;
+    last = href;
+    const u = new URL(href, location.href);
+    if (u.hostname !== 'space.bilibili.com') return;
+    if (new RegExp(`^/${LOC}(\\d+)(?:/(video|upload/video|dynamic|upload))?/?$`).test(u.pathname)) location.assign(u.href);
+  };
+  const nav = (window as unknown as { navigation?: EventTarget }).navigation;
+  if (nav) nav.addEventListener('navigatesuccess', () => check(location.href));
+  else setInterval(() => check(location.href), 400);
+  addEventListener('popstate', () => check(location.href));
 }
 
 /**
@@ -303,6 +325,8 @@ function applyFont(s: Settings): void {
   // 视频 CDN 节点：页面主环境的 cdn.js 同步读 localStorage（v0.47.2）
   try { if (on && s.cdn) localStorage.setItem('margin:cdn', s.cdn); else localStorage.removeItem('margin:cdn'); } catch { /* 隐私模式 */ }
   set('--margin-zoom', on && s.zoom !== 100 ? String(s.zoom / 100) : null);
+  set('--margin-rk', on && s.radius !== 100 ? String(s.radius / 100) : null);
+  set('--margin-cfs', on && s.commentSize !== 14 ? `${s.commentSize}px` : null);
 }
 if (!offByUrl() && !sessionStorage.getItem('margin:off')) {
   loadSettings().then((s) => { applyFont(s); applyGlobalUi(s); }).catch(() => {});

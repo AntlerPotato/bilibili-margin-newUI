@@ -64,6 +64,15 @@ export function createLaterDrawer(toastRoot: () => HTMLElement, filter?: FilterR
       body.replaceChildren(h('div', { class: 'dw-empty' }, icon(ICONS.later), h('p', {}, '还没登录'), h('a', { class: 'ghost', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '去登录')));
       return;
     }
+    const f = filter;
+    if (f) {
+      // 关键词也要能命中视频标签：先预热标签（没有关键词时立即返回）
+      void f.prepare(list.map((it) => it.bvid)).then(() => { if (raw === list) renderNow(list); });
+      return;
+    }
+    renderNow(list);
+  }
+  function renderNow(list: LaterItem[]): void {
     const shown = filter ? list.filter((it) => filter.allows(targetOfLater(it))) : list;
     count.textContent = String(shown.length);
     sub.textContent = shown.length ? '右键视频卡片也能加进来' : '右键视频卡片 →「稍后再看」';

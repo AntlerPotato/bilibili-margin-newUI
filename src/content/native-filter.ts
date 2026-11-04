@@ -2,6 +2,7 @@ import { onSettingsChange, type Settings } from '../shared/settings';
 import { FilterRuntime } from './filter-runtime';
 import type { FilterTarget } from './filter';
 import { parseCountText, parseDurationText } from './parse';
+import { cachedTags, ensureTags } from './tags';
 
 /**
  * 原生页面（搜索 / 播放页推荐 / 热门排行 / 番剧）的屏蔽词过滤器。
@@ -57,12 +58,16 @@ function targetOfNative(el: Element, rule: NativeRule): FilterTarget | null {
   const author = textOf(el, rule.author) || null;
   const space = el.querySelector<HTMLAnchorElement>('a[href*="space.bilibili.com/"]')?.href;
   const mid = space?.match(/space\.bilibili\.com\/(?:\d+\/)?(\d+)/)?.[1];
+  const video = el.querySelector<HTMLAnchorElement>('a[href*="/video/"]')?.href;
+  const bvid = /\/video\/(BV[0-9A-Za-z]+)/.exec(video ?? '')?.[1];
   return {
     title,
     author,
     mid: mid ? Number(mid) : null,
     views: parseCountText(textOf(el, rule.views)),
     duration: parseDurationText(textOf(el, rule.duration)),
+    bvid,
+    tags: cachedTags(bvid),
   };
 }
 
@@ -75,6 +80,8 @@ export function startNativeFilter(kind: NativeKind, settings: Settings): () => v
   let marked = new Set<HTMLElement>();
   let scanT = 0;
   let href = location.href;
+  /** 本次页面生命周期内已经请求过标签的 bvid，避免失败后反复扫描打接口 */
+  const requested = new Set<string>();
 
   const clearMarks = () => {
     for (const el of marked) if (el.getAttribute('data-margin-filtered') === 'native') el.removeAttribute('data-margin-filtered');
@@ -102,6 +109,11 @@ export function startNativeFilter(kind: NativeKind, settings: Settings): () => v
       if (el.closest('#margin-root, #margin-watch-top, #margin-bg, #margin-aside')) continue;
       const target = targetOfNative(el, found.get(el)!);
       if (!target) continue;
+      // 关键词也要能命中视频标签：缺标签时补拉一次，回来后再扫描并标记
+      if (current.filters.keywords.length && target.bvid && !cachedTags(target.bvid) && !requested.has(target.bvid)) {
+        requested.add(target.bvid);
+        void ensureTags(target.bvid).then(() => schedule());
+      }
       if (filter.allows(target)) {
         if (el.getAttribute('data-margin-filtered') === 'native') el.removeAttribute('data-margin-filtered');
       } else {

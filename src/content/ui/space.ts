@@ -11,6 +11,7 @@ import { attachPreview } from './preview';
 import { csrf, PageShell } from './shell';
 import { account } from '../api/account';
 import { targetOfVideo, targetOfDyn } from '../filter-targets';
+import type { FilterTarget } from '../filter';
 
 type Tab = 'video' | 'dynamic' | 'coin' | 'like';
 type Layout = 'grid' | 'list';
@@ -97,16 +98,20 @@ export class SpaceApp {
     }
   }
 
-  /** 屏蔽词/广告条件变化后重新标记已渲染的卡片 */
+  /** 用户明确点进某个 UP 的空间：只保留「隐藏广告」，关键词 / UP / 播放量 / 时长 / 标签等全局过滤都不套用 */
+  private allows(t: FilterTarget): boolean {
+    return !(this.shell.settings.hideAds && t.ad === true);
+  }
+
+  /** 屏蔽设置变化后重新标记已渲染的卡片（空间页只受「隐藏广告」影响） */
   private applyFilters(): void {
-    const filter = this.shell.filter;
     this.list.querySelectorAll<HTMLElement>('.card').forEach((card) => {
       const v = cardData.get(card);
-      if (v) card.toggleAttribute('data-margin-filtered', !filter.allows(targetOfVideo(v)));
+      if (v) card.toggleAttribute('data-margin-filtered', !this.allows(targetOfVideo(v)));
     });
     this.list.querySelectorAll<HTMLElement>('.dy').forEach((card) => {
       const d = dynData.get(card);
-      if (d) card.toggleAttribute('data-margin-filtered', !filter.allows(targetOfDyn(d)));
+      if (d) card.toggleAttribute('data-margin-filtered', !this.allows(targetOfDyn(d)));
     });
   }
 
@@ -235,7 +240,8 @@ export class SpaceApp {
       h('span', { class: 'vr-no' }, String(n).padStart(2, '0')),
       h('a', { class: 'cover', href, ...ext, title: v.title },
         h('img', { src: v.cover ? `${v.cover}@320w_180h_1c.webp` : '', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }),
-        v.duration ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null),
+        v.duration ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
+        v.badge ? h('span', { class: 'tag-charge', title: v.badge }, v.badge) : null),
       h('a', { class: 'vr-title', href, ...ext }, v.title),
       h('span', { class: 'vr-note' }, h('span', {}, `${fmtCount(v.views)} 播放`), h('span', {}, fmtAgo(v.pubdate))),
       h('a', { class: 'vr-go', href, ...ext, 'aria-label': '打开' }, icon(ICONS.arrow)));
@@ -293,7 +299,7 @@ export class SpaceApp {
         const start = this.list.children.length;
         r.list.forEach((v, i) => {
           const card = listMode ? this.row(v, start + i + 1) : videoCard(v, start + i, { compact: false });
-          card.toggleAttribute('data-margin-filtered', !this.shell.filter.allows(targetOfVideo(v)));
+          card.toggleAttribute('data-margin-filtered', !this.allows(targetOfVideo(v)));
           this.list.append(card);
         });
         this.done = r.list.length === 0 || this.list.children.length >= r.total;
@@ -305,7 +311,7 @@ export class SpaceApp {
         this.offset = r.offset;
         r.list.forEach((d) => {
           const card = dynCard(d);
-          card.toggleAttribute('data-margin-filtered', !this.shell.filter.allows(targetOfDyn(d)));
+          card.toggleAttribute('data-margin-filtered', !this.allows(targetOfDyn(d)));
           this.list.append(card);
         });
         this.done = !r.more;

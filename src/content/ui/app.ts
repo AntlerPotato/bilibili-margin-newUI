@@ -9,7 +9,7 @@ import { FilterRuntime } from '../filter-runtime';
 import { targetOfVideo } from '../filter-targets';
 import { videoCard, skeleton } from './card';
 import { toast } from './controls';
-import { h, icon, ICONS } from './dom';
+import { h, icon, ICONS, guardTyping } from './dom';
 import { createFavorites } from './favorites';
 import { createHeader, SITE_LINKS, type Header } from './header';
 import { shouldPlayIntro, setIntroActive } from './intro/gate';
@@ -26,9 +26,10 @@ import { createContextMenu } from './context-menu';
 import { bindCardMenu } from './card-menu';
 import { createLaterDrawer } from './drawer';
 import { reducedMotion } from '../motion';
-import css from '../styles.css?inline';
+import css from '../styles/index';
 
 type Tab = 'rcmd' | 'popular' | 'classic';
+type Snap = { tab: Tab; items: Video[]; page: number; appIdx: number; done: boolean; round: number };
 
 export class MarginApp {
   readonly host: HTMLElement;
@@ -53,6 +54,8 @@ export class MarginApp {
   private appHinted = false;
   private page = 1;
   private loading = false;
+  /** #39：换一批后要恢复的滚动位置；切分类标签或首次加载时为 null（正常回到顶部） */
+  private restoreTop: number | null = null;
   private done = false;
   private items: Video[] = [];
   private seen = new Set<string>();
@@ -64,6 +67,7 @@ export class MarginApp {
     this.filter = new FilterRuntime(settings);
     this.host = h('div', { id: 'margin-root' });
     this.root = this.host.attachShadow({ mode: 'open' });
+    guardTyping(this.host);
     this.root.append(h('style', {}, css));
     this.render();
     this.applyTheme();
@@ -186,13 +190,12 @@ export class MarginApp {
       { id: 'off', title: '本次回到 B 站原版', cat: '操作', icon: ICONS.exit, keys: ['原版', '关闭'], run: () => { sessionStorage.setItem('margin:off', '1'); location.reload(); } },
     ]);
     const cm = createContextMenu();
-    const head = createHeader({ onTheme: () => this.toggleTheme(), onSearch: (q) => palette.open(q), msgRemind: () => this.settings.msgRemind, filter: this.filter, tabs: [
+    const head = createHeader({ onTheme: () => this.toggleTheme(), onSearch: (q) => palette.open(q), onSettings: () => this.panel.sheet.open(), msgRemind: () => this.settings.msgRemind, filter: this.filter, tabs: [
       ...SITE_LINKS,
       'separator',
       { title: '收藏', icon: ICONS.fav, run: () => this.fav.open() },
       { title: '稍后', icon: ICONS.later, run: () => later.open() },
       { title: '足迹', icon: ICONS.heat, run: () => this.showFoot() },
-      { title: '设置', icon: ICONS.gear, run: () => this.panel.sheet.open() },
     ] });
     this.sunMoon = head.sunMoon;
     this.head = head;
@@ -265,10 +268,10 @@ export class MarginApp {
     let scrollT = 0;
     this.app.addEventListener('scroll', () => {
       this.bg.redraw();
-      if (!scrollT) { this.app.classList.add('scrolling'); this.bg.hold('scroll', true); }
+      if (!scrollT) this.app.classList.add('scrolling');
       clearTimeout(scrollT);
       scrollT = window.setTimeout(() => {
-        scrollT = 0; this.app.classList.remove('scrolling'); this.bg.hold('scroll', false);
+        scrollT = 0; this.app.classList.remove('scrolling');
         // 滚过首屏后背景基本被卡片盖住，30 帧就够
         this.bg.cap(this.app.scrollTop > innerHeight * 0.8 ? 30 : 0);
         this.fillIfShort();
@@ -318,14 +321,32 @@ export class MarginApp {
   }
 
   private switchTab(id: Tab, tabs: HTMLElement): void {
-    if (id === this.tab) return;
+    // 设置里打开「点击分类标签刷新列表」后，点当前分类标签等于换一批，保留「上一批」可回退（PR #33）
+    if (id === this.tab) { if (this.settings.tabRefresh) this.reload(true); return; }
+    // 每个 tab 记住自己的列表和滚动位置（v0.50，B 站评论建议）：切回来接着看，不回到顶部
+    if (this.items.length) this.tabMem.set(this.tab, { s: this.snapshot()!, top: this.app.scrollTop, back: this.snap });
     this.tab = id;
     tabs.querySelectorAll<HTMLElement>('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === id)));
-    this.reload();
+    const m = this.tabMem.get(id);
+    if (!m) { this.reload(); return; }
+    this.tabMem.delete(id);
+    const s = m.s!;
+    this.gen++;
+    this.items = s.items.slice();
+    this.seen = new Set(s.items.map((v) => v.bvid));
+    this.page = s.page; this.appIdx = s.appIdx; this.done = s.done; this.round = s.round;
+    this.loading = false;
+    this.snap = m.back;
+    if (this.backBtn) this.backBtn.hidden = !this.snap;
+    this.status.replaceChildren();
+    this.repaint();
+    this.app.scrollTo({ top: m.top });
   }
 
+  private tabMem = new Map<Tab, { s: Snap; top: number; back: Snap | null }>();
+
   private backBtn: HTMLElement | null = null;
-  private snap: { tab: Tab; items: Video[]; page: number; appIdx: number; done: boolean; round: number } | null = null;
+  private snap: Snap | null = null;
 
   private snapshot(): typeof this.snap {
     return { tab: this.tab, items: this.items.slice(), page: this.page, appIdx: this.appIdx, done: this.done, round: this.round };
@@ -346,6 +367,8 @@ export class MarginApp {
   }
 
   private reload(keep = false): void {
+    // #39：点「换一批」时记住当前滚动位置，等首批卡片渲染完再恢复；切分类标签（keep=false）仍回到顶部
+    this.restoreTop = keep ? this.app.scrollTop || null : null;
     this.snap = keep && this.items.length ? this.snapshot() : null;
     if (this.backBtn) this.backBtn.hidden = !this.snap;
     this.gen++;
@@ -359,16 +382,21 @@ export class MarginApp {
     this.appIdx = 0;
     resetRank();
     resetClassics();
-    this.app.scrollTo({ top: 0 });
+    // 换一批不动滚动位置（#39）；其余情况回到顶部
+    if (!keep) this.app.scrollTo({ top: 0 });
     this.load();
   }
 
   /** 过滤条件变化后，用已加载的数据重画网格 */
   private repaint(): void {
-    const shown = this.items.filter((v) => this.filter.allows(targetOfVideo(v)));
-    this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, this.cardOpts())));
-    this.grid.querySelectorAll('.card').forEach((c) => c.classList.add('still'));
-    this.fillIfShort();
+    const gen = this.gen;
+    void this.filter.prepare(this.items.map((v) => v.bvid)).then(() => {
+      if (gen !== this.gen) return;
+      const shown = this.items.filter((v) => this.filter.allows(targetOfVideo(v)));
+      this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, this.cardOpts())));
+      this.grid.querySelectorAll('.card').forEach((c) => c.classList.add('still'));
+      this.fillIfShort();
+    });
   }
 
   private async blockUp(v: Video): Promise<void> {
@@ -427,6 +455,9 @@ export class MarginApp {
       }
       if (this.tab === 'rcmd' && this.settings.rerank) list = await rerank(list, this.items.slice(-3).map((x) => x.mid), this.seen).catch(() => list);
       if (gen !== this.gen) return;
+      // 关键词也要能命中视频标签：先把这批视频的标签取回来（没有关键词时立即返回）
+      await this.filter.prepare(list.map((v) => v.bvid));
+      if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
       const start = this.grid.children.length;
       for (const v of list) {
@@ -437,6 +468,12 @@ export class MarginApp {
         this.grid.append(videoCard(v, start + added++, this.cardOpts()));
       }
       if (this.done) this.status.replaceChildren(h('span', {}, '没有更多了'));
+      // #39：首批卡片进 DOM 后再恢复换一批前的滚动位置（列表重建时 scrollTop 会归零）
+      if (this.restoreTop != null) {
+        const y = Math.max(0, Math.min(this.restoreTop, this.app.scrollHeight - this.app.clientHeight));
+        this.restoreTop = null;
+        this.app.scrollTo({ top: y });
+      }
     } catch (err) {
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());

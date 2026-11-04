@@ -6,6 +6,7 @@ import { followFeed, portal, searchFollowing, type FeedType, type LiveUp, type U
 import { hotSearch } from '../api/search';
 import { dynCard } from './dyn';
 import { compileDynFilter } from '../filter';
+import { cachedTags } from '../tags';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { PageShell } from './shell';
 import { targetOfDyn } from '../filter-targets';
@@ -199,8 +200,11 @@ export class FeedApp {
     try {
       const r = await followFeed(this.host ? 'all' : this.type, this.offset, this.host);
       if (gen !== this.gen) return;
+      // 动态里转发的视频也按标签过滤：先预热标签，再编译保留条件
+      await this.shell.filter.prepare(r.list.map((d) => d.video?.bvid));
+      if (gen !== this.gen) return;
       sk.forEach((n) => n.remove());
-      const keep = compileDynFilter(this.shell.settings.filters);
+      const keep = compileDynFilter(this.shell.settings.filters, cachedTags);
       r.list.filter(keep).forEach((d) => {
         const card = dynCard(d, false, true);
         card.toggleAttribute('data-margin-filtered', !this.shell.filter.allows(targetOfDyn(d)));

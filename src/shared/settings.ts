@@ -47,6 +47,8 @@ export interface Settings {
   watch: boolean;
   /** 首页开场动画（每次打开浏览器后首次进入首页播放一次） */
   intro: boolean;
+  /** YouTube 风格首页（可选，默认关）：只借布局结构，配色和主题不变；只影响首页 */
+  ytHome: boolean;
   /** 首页顶部「B 站足迹」热力图（关掉只是不显示，后台照样记录） */
   footprint: boolean;
   /** 首页顶部天气卡（关掉就不请求天气和定位） */
@@ -63,6 +65,8 @@ export interface Settings {
   replyTree: boolean;
   /** 首页每行几个视频：0 = 按窗口宽度自动，4 / 5 = 固定 */
   cols: 0 | 4 | 5;
+  /** 点击「推荐 / 热门 / 关注老片」分类标签刷新列表 */
+  tabRefresh: boolean;
   /** 首页隐藏的部件；空 = 全部显示 */
   homeHide: HomeBit[];
   /** 标题字体（v0.46，B 站评论建议）：衬线 = 宋体系，无衬线 = 黑体系 */
@@ -96,6 +100,12 @@ export interface Settings {
   appFeed: boolean;
   /** X 式重排（v0.48 实验，默认关）：按本机算的偏好给推荐重新排序，混入关注新稿，看过的不再出现 */
   rerank: boolean;
+  /** 圆角强度（v0.50，B 站评论建议）：0 直角 / 50 小 / 100 默认 / 150 大；构建时所有 px 圆角乘 --margin-rk */
+  radius: 0 | 50 | 100 | 150;
+  /** 评论正文字号（v0.50，B 站评论：评论字太小）：14 默认 / 15 / 16 / 17 */
+  commentSize: 14 | 15 | 16 | 17;
+  /** 顶栏图标悬停展开文字（v0.50，B 站评论：想要悬停不展开）；关掉后只在点选时展开 */
+  headHover: boolean;
   filters: Filters;
   bg: Background;
 }
@@ -120,6 +130,7 @@ export const DEFAULTS: Settings = {
   hoverPreview: true,
   watch: true,
   intro: true,
+  ytHome: false,
   footprint: true,
   weather: true,
   favDirect: false,
@@ -128,6 +139,7 @@ export const DEFAULTS: Settings = {
   speedKeys: true,
   replyTree: true,
   cols: 0,
+  tabRefresh: false,
   homeHide: [],
   titleFont: 'serif',
   monoNum: true,
@@ -145,6 +157,9 @@ export const DEFAULTS: Settings = {
   homeOrder: [...HOME_SECTIONS],
   appFeed: false,
   rerank: false,
+  radius: 100,
+  commentSize: 14,
+  headHover: true,
   filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 },
   bg: { mode: 'random', shader: 'aurora', intensity: 0.6 },
 };
@@ -176,10 +191,12 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     bg: { ...DEFAULTS.bg, ...(r.bg ?? {}) },
     homeHide: Array.isArray(r.homeHide) ? HOME_BITS.filter((b) => r.homeHide!.includes(b)) : [],
     titleFont: r.titleFont === 'sans' ? 'sans' : 'serif',
+    theme: r.theme === 'light' || r.theme === 'dark' ? r.theme : 'auto',
     monoNum: r.monoNum !== false,
     headHide: strList(r.headHide),
     headOrder: strList(r.headOrder),
     zoom: r.zoom === 110 || r.zoom === 120 ? r.zoom : 100,
+    tabRefresh: r.tabRefresh === true,
     cmdK: r.cmdK !== false,
     cdn: cleanHost(r.cdn),
     bodyFont: cleanFont(r.bodyFont),
@@ -191,6 +208,10 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     homeOrder: normalizeHomeOrder(r.homeOrder),
     appFeed: r.appFeed === true,
     rerank: r.rerank === true,
+    ytHome: r.ytHome === true,
+    radius: r.radius === 0 || r.radius === 50 || r.radius === 150 ? r.radius : 100,
+    commentSize: r.commentSize === 15 || r.commentSize === 16 || r.commentSize === 17 ? r.commentSize : 14,
+    headHover: r.headHover !== false,
     palette: 'classic', // 旧版存过 mist，统一回到经典
   };
 }
@@ -220,9 +241,11 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
-  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
+  const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'msgRemind' | 'appFeed' | 'rerank' | 'ytHome' | 'headHover' | 'tabRefresh') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('enabled'); bool('hoverPreview'); bool('watch'); bool('intro'); bool('footprint'); bool('weather'); bool('favDirect'); bool('autoWeb'); bool('webScroll'); bool('speedKeys'); bool('replyTree'); bool('idDrag'); bool('monoNum');
-  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank');
+  bool('reduceMotion'); bool('wide'); bool('hideAds'); bool('msgRemind'); bool('appFeed'); bool('rerank'); bool('ytHome'); bool('headHover'); bool('tabRefresh');
+  if (r.radius === 0 || r.radius === 50 || r.radius === 100 || r.radius === 150) out.radius = r.radius;
+  if (r.commentSize === 14 || r.commentSize === 15 || r.commentSize === 16 || r.commentSize === 17) out.commentSize = r.commentSize;
   if (typeof r.bodyFont === 'string') out.bodyFont = cleanFont(r.bodyFont);
   if (Array.isArray(r.headHide)) out.headHide = strList(r.headHide);
   if (Array.isArray(r.headOrder)) out.headOrder = strList(r.headOrder);

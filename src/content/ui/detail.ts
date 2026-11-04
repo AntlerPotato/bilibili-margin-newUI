@@ -9,7 +9,7 @@
  *  2) 在右边挂一个 Shadow DOM 侧栏：作者卡（关注）、目录 + 阅读进度、UP 主最近投稿、点赞 / 投币 / 收藏 / 转发 / 评论。
  *     操作按钮转发点击给被藏起来的原生侧边工具条，计数和点亮状态从它那儿同步，行为和原版完全一致。
  */
-import { h, icon, fmtCount } from './dom';
+import { h, icon, fmtCount, guardTyping } from './dom';
 import { getJSON } from '../api/http';
 import { spaceVideos, follow } from '../api/space';
 import { csrf, https } from './shell';
@@ -171,6 +171,7 @@ export class DetailAside {
 
   constructor(private kind: Exclude<DetailKind, 'bangumi'>, private filter?: FilterRuntime) {
     this.root = this.host.attachShadow({ mode: 'open' });
+    guardTyping(this.host);
     this.root.append(h('style', {}, CSS), this.aside);
     this.host.hidden = true;
     const syncMotion = () => {

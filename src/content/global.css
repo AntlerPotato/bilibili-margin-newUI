@@ -24,9 +24,10 @@ html.margin-ads-hide .rank-item:has(.bili-video-card__info--ad),
 html.margin-ads-hide .bangumi-list .ad-report { display: none !important; }
 
 /* 用户主动减少动画：只作用于映间换皮的页面，保留最终静态帧 */
-html.margin-skin.margin-reduce *,
-html.margin-skin.margin-reduce *::before,
-html.margin-skin.margin-reduce *::after {
+/* v0.50.1：播放器（含弹幕层）不受影响——滚动弹幕靠 CSS 动画/过渡移动，被压成 0.001ms 后一出现就到终点，只剩顶部/底部固定弹幕（GitHub #36） */
+html.margin-skin.margin-reduce *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *),
+html.margin-skin.margin-reduce *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::before,
+html.margin-skin.margin-reduce *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::after {
   animation-duration: .001ms !important;
   animation-delay: 0s !important;
   animation-iteration-count: 1 !important;
@@ -37,9 +38,9 @@ html.margin-skin.margin-reduce *::after {
 
 /* 系统减少动态效果：同样作用于换皮页面的原生 DOM */
 @media (prefers-reduced-motion: reduce) {
-  html.margin-skin *,
-  html.margin-skin *::before,
-  html.margin-skin *::after {
+  html.margin-skin *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *),
+  html.margin-skin *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::before,
+  html.margin-skin *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::after {
     animation-duration: .001ms !important;
     animation-delay: 0s !important;
     animation-iteration-count: 1 !important;

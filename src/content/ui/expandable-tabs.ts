@@ -1,5 +1,11 @@
 import { h, icon } from './dom';
 import { reducedMotion } from '../motion';
+import { loadSettings, onSettingsChange } from '../../shared/settings';
+
+// 悬停展开文字可以关（v0.50，B 站评论建议）：关掉后只在点选时展开
+let hoverOn = true;
+loadSettings().then((s) => { hoverOn = s.headHover; }).catch(() => {});
+onSettingsChange((s) => { hoverOn = s.headHover; });
 
 export interface TabSpec {
   title: string;
@@ -23,8 +29,8 @@ export interface ExpandableTabs {
 
 /**
  * 21st「Expandable Tabs」的原生移植：平时只露图标，选中项弹性展开出文字；
- * 点组件外任意处收起。原版用 framer-motion 动 width:auto，这里用
- * grid-template-columns 0fr→1fr 做同样的弹簧展开（delay .1s / .6s / 无回弹）。
+ * 点组件外任意处收起。原版用 framer-motion 动 width:auto，这里通过
+ * max-width 和间距过渡展开文字（500ms / 无延迟 / 无回弹）。
  */
 export function createExpandableTabs(items: TabItem[], onChange?: (i: number | null) => void): ExpandableTabs {
   const el = h('nav', { class: 'et', 'aria-label': '快捷入口' });
@@ -69,7 +75,7 @@ export function createExpandableTabs(items: TabItem[], onChange?: (i: number | n
         thumb.animate([{ scale: '1 1' }, { scale: '1.18 1.12', offset: 0.45 }, { scale: '1 1' }], { duration: 520, easing: 'cubic-bezier(.3, 0, .2, 1)' });
       }
       shown = true;
-      until = performance.now() + 900; // 按钮展开动画 .1s 延迟 + .6s
+      until = performance.now() + 600; // 跟随按钮 500ms 展开动画，并留少量缓动余量
       if (!raf) raf = requestAnimationFrame(follow);
     }
     onChange?.(i);
@@ -85,9 +91,9 @@ export function createExpandableTabs(items: TabItem[], onChange?: (i: number | n
     b.addEventListener('click', () => { clearTimeout(hoverT); pinned = idx; select(idx); it.run?.(); });
     // 悬停即展开文字（不执行动作），离开后回到点选的那一项
     b.addEventListener('pointerenter', (e) => {
-      if ((e as PointerEvent).pointerType === 'touch') return;
+      if ((e as PointerEvent).pointerType === 'touch' || !hoverOn) return;
       clearTimeout(hoverT);
-      hoverT = window.setTimeout(() => select(idx), selected === null ? 90 : 0);
+      select(idx);
     });
     if (it.id) byId.set(it.id, b);
     buttons.push(b);

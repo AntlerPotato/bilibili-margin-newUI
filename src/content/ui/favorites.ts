@@ -55,13 +55,18 @@ export function createFavorites(onRender: (grid: HTMLElement) => void, direct: (
   const paintPreview = (id: number) => {
     const entry = previews.get(id);
     if (!entry) return;
-    const visible = filter ? entry.raw.filter((v) => filter.allows(targetOfVideo(v))) : entry.raw;
-    const files: GFFile[] = visible.slice(0, 4).reverse().map((v) => ({
-      name: v.title, meta: v.duration ? mmss(v.duration) : undefined,
-      image: v.cover ? `${v.cover}@544w_368h_1c.webp` : undefined, art: v.cover ? undefined : ARTS[v.mid % ARTS.length],
-      href: `https://www.bilibili.com/video/${v.bvid}`,
-    }));
-    entry.gf.setFiles(files);
+    const paint = () => {
+      const visible = filter ? entry.raw.filter((v) => filter.allows(targetOfVideo(v))) : entry.raw;
+      const files: GFFile[] = visible.slice(0, 4).reverse().map((v) => ({
+        name: v.title, meta: v.duration ? mmss(v.duration) : undefined,
+        image: v.cover ? `${v.cover}@544w_368h_1c.webp` : undefined, art: v.cover ? undefined : ARTS[v.mid % ARTS.length],
+        href: `https://www.bilibili.com/video/${v.bvid}`,
+      }));
+      entry.gf.setFiles(files);
+    };
+    // 关键词也要能命中视频标签：先预热标签（没有关键词时立即返回）
+    if (filter) void filter.prepare(entry.raw.map((v) => v.bvid)).then(paint);
+    else paint();
   };
 
   /** 玻璃文件夹（按 21st「Glass Folder Cards」源码原生移植）：
@@ -180,6 +185,8 @@ export function createFavorites(onRender: (grid: HTMLElement) => void, direct: (
     try {
       const r = await (page === 1 ? page1(current.id) : folderVideos(current.id, page)); page++;
       if (g !== gen) return;
+      await filter?.prepare(r.list.map((v) => v.bvid));
+      if (g !== gen) return;
       sk.forEach((n) => (n as Element).remove());
       const start = grid.children.length;
       r.list.forEach((v, i) => {
@@ -200,11 +207,16 @@ export function createFavorites(onRender: (grid: HTMLElement) => void, direct: (
 
   new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) load(); }, { root: sheet.body, rootMargin: '600px 0px' }).observe(sentinel);
   filter?.onChange(() => {
-    grid.querySelectorAll<HTMLElement>('.card').forEach((card) => {
-      const v = cardData.get(card);
-      if (v) card.toggleAttribute('data-margin-filtered', !filter.allows(targetOfVideo(v)));
+    const f = filter;
+    if (!f) return;
+    const vids = [...grid.querySelectorAll<HTMLElement>('.card')].map((card) => cardData.get(card)?.bvid);
+    void f.prepare(vids).then(() => {
+      grid.querySelectorAll<HTMLElement>('.card').forEach((card) => {
+        const v = cardData.get(card);
+        if (v) card.toggleAttribute('data-margin-filtered', !f.allows(targetOfVideo(v)));
+      });
+      for (const id of previews.keys()) paintPreview(id);
     });
-    for (const id of previews.keys()) paintPreview(id);
   });
   // 顶栏「收藏夹」弹窗里的「全部收藏」：本页有收藏夹面板就直接打开，不再新开标签页
   addEventListener('margin:open-fav', (e) => { e.preventDefault(); sheet.open(); });
