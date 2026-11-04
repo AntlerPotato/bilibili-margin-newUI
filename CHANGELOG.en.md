@@ -2,6 +2,15 @@
 
 # Changelog
 
+## [v0.51.0](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.51.0) · 2026-11-04
+
+- **YouTube-style layout** (Settings → Appearance, off by default): Home, watch page, channel page and search page use a large-thumbnail + two-line-info arrangement; the header "Settings" entry becomes its own button instead of a row in the expandable menu. From PR #32 (@zwh-study); conflicts with `main` resolved as unions by the maintainer.
+- **Tag filters** (Settings → Content filters, off by default): hide videos by tag on Home, Popular and channel uploads; space pages are exempt. Same PR #32.
+- Space video cards show a "charging exclusive" badge. From PR #41 (@yangdev02), for GitHub #40.
+- **Message page refreshes promptly**: the list reloads when you switch back to the tab, when the window regains focus, and while the page stays open; entering from the header message panel forces a fresh fetch; the header unread badge stays in sync with the list. From PR #44 (@shaojunxiong-crypto).
+- Fix: clicking "换一批" (next batch) on Home snapped the page back to the top (GitHub #39). The scroll position is preserved now; switching category tabs still returns to top.
+- Internal: `styles.css` split into 8 section files (joined in the original order, byte-identical, no cascade change); 53 vitest unit tests added and wired into CI; `settings.merge()` now validates the `theme` enum.
+
 ## [v0.50.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.50.1) · 2026-11-04
 
 - Fix: only top/bottom fixed danmaku showed, no scrolling danmaku (GitHub #36). With the OS "reduce motion" on (e.g. Windows "Animation effects" off) or Margin's own reduce-motion setting, Margin shortened all page animations to an instant, which also made scrolling danmaku jump straight to the end. The player and danmaku layer are now excluded.
