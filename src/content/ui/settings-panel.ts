@@ -9,7 +9,8 @@ import { fmtCount, h, icon, ICONS } from './dom';
 import { createSheet, type Sheet } from './sheet';
 import { SITE_LINKS } from './header';
 import { appPoll, appQr, appRevoke, appState } from '../api/appfeed';
-import { clearLoc, geocodeList, savedLoc, setLoc as setLocWithName } from '../api/weather';
+import { clearLoc, savedLoc, setLoc as setLocWithName } from '../api/weather';
+import { createCityPicker } from './city-picker';
 
 export interface SettingsPanel { sheet: Sheet; sync(s: Settings): void }
 
@@ -93,33 +94,23 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   }
   paintOrder();
   // 天气城市（#3）：输入后列出候选，点一个就固定；「自动」回到 IP 定位
-  const cityIn = h('input', { class: 'city-in', type: 'search', placeholder: '自动定位', 'aria-label': '天气城市', autocomplete: 'off' }) as HTMLInputElement;
-  const cityList = h('ul', { class: 'city-list', role: 'listbox', 'aria-label': '城市候选', hidden: '' });
   const cityAuto = h('button', { class: 'city-auto', type: 'button' }, '自动');
-  const paintCity = () => { const l = savedLoc(); cityIn.value = l?.manual ? l.name : ''; cityAuto.hidden = !l?.manual; };
-  let cityT = 0, citySeq = 0;
-  cityIn.addEventListener('keydown', (e) => e.stopPropagation());
-  cityIn.addEventListener('input', () => {
-    clearTimeout(cityT);
-    const q = cityIn.value.trim();
-    if (!q) { cityList.hidden = true; return; }
-    cityT = window.setTimeout(async () => {
-      const seq = ++citySeq;
-      const list = await geocodeList(q).catch(() => []);
-      if (seq !== citySeq) return;
-      cityList.replaceChildren(...(list.length ? list.map((p) => {
-        const li = h('li', { role: 'option', tabindex: '0' }, h('b', {}, p.name), p.region ? h('small', {}, p.region) : null);
-        const pick = () => { setLocWithName(p); cityList.hidden = true; paintCity(); say(`天气城市：${p.name}`); };
-        li.addEventListener('click', pick);
-        li.addEventListener('keydown', (e) => { if (e.key === 'Enter') pick(); });
-        return li;
-      }) : [h('li', { class: 'empty' }, '没有找到这个城市')]));
-      cityList.hidden = false;
-    }, 300);
+  const cityPicker = createCityPicker(place => {
+    setLocWithName(place);
+    say(`天气城市：${place.name} · ${place.region}`);
   });
+  cityPicker.input.placeholder = '自动定位';
+  cityPicker.row.append(cityAuto);
+  const paintCity = () => {
+    cityPicker.cancel();
+    const loc = savedLoc();
+    cityPicker.input.value = loc?.manual ? loc.name : '';
+    cityAuto.hidden = !loc?.manual;
+  };
   cityAuto.addEventListener('click', () => { clearLoc(); paintCity(); say('天气改回按 IP 自动定位'); });
+  addEventListener('margin:wx-loc', paintCity);
   paintCity();
-  const cityBox = h('div', { class: 'city-box' }, h('div', { class: 'city-row' }, cityIn, cityAuto), cityList);
+  const cityBox = cityPicker.el;
   const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个'], ['6', '6 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 | 6 }));
   const fontS = segmented<'serif' | 'sans'>([['serif', '衬线'], ['sans', '无衬线']], s0.titleFont, (v) => save({ titleFont: v }));
   const monoT = toggle(s0.monoNum, '数字用等宽字体', (v) => save({ monoNum: v }));
@@ -169,7 +160,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const zoomS = segmented<string>([['100', '100%'], ['110', '110%'], ['120', '120%']], String(s0.zoom), (v) => save({ zoom: Number(v) as 100 | 110 | 120 }));
   const radS = segmented<string>([['0', '直角'], ['50', '小'], ['100', '默认'], ['150', '大']], String(s0.radius), (v) => save({ radius: Number(v) as 0 | 50 | 100 | 150 }));
   const cfsS = segmented<string>([['14', '14'], ['15', '15'], ['16', '16'], ['17', '17']], String(s0.commentSize), (v) => save({ commentSize: Number(v) as 14 | 15 | 16 | 17 }));
-  const hoverT = toggle(s0.headHover, '顶栏悬停展开文字', (v) => save({ headHover: v }));
+  const hoverT = toggle(s0.headHover, '顶栏悬停指示', (v) => save({ headHover: v }));
   const cmdKT = toggle(s0.cmdK, 'Ctrl+K 打开命令面板', (v) => save({ cmdK: v }));
   // 视频 CDN 节点（v0.47.2）：列表 + 延迟测速；选中后新打开的视频生效
   const CDNS: [string, string][] = [
@@ -434,7 +425,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD))),
     h('section', { class: 'group' }, h('h3', {}, '顶栏'),
       row('Ctrl+K 打开命令面板', 'B 站自己没有 Ctrl+K；和浏览器或其他扩展冲突时关掉，按 / 照样能打开', cmdKT),
-      row('悬停展开文字', '鼠标移到顶栏图标上就展开名字；关掉后只在点击时展开', hoverT),
+      row('悬停指示', '指示条跟随鼠标移到的顶栏图标；关闭后跟随点击', hoverT),
       drawer('顶栏入口', () => { const n = get().headHide.length; return n ? `已隐藏 ${n} 个` : '全部显示'; },
         h('p', { class: 'sd-note' }, '关掉的入口不在顶栏显示；用箭头调整快捷入口顺序。「设置」始终保留'), headList, h('div', { class: 'hl-foot' }, headReset))),
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
@@ -456,7 +447,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT),
       drawer('天气城市与卡片信息', () => { const l = savedLoc(); return l?.manual ? l.name : '自动定位'; },
-        block('天气城市', 'IP 定位不准时手动选一个；留空 = 自动定位', cityBox),
+        block('天气城市', '选中候选固定城市；点击「自动」恢复 IP 定位', cityBox),
         block('卡片信息', '首页视频卡片下面显示哪些，点一下开关', cardBits)),
       block('版块顺序', '上移 / 下移调整首页版块；修改后立即生效', orderBox)),
     h('section', { class: 'group' }, h('h3', {}, '背景'),

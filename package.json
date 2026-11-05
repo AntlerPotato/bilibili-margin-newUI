@@ -18,6 +18,7 @@
     "test:message-loading": "node tests/message-loading.mjs",
     "test:header-surface": "node tests/header-surface.mjs",
     "test:reported-issues": "node tests/reported-issues.mjs",
+    "test:watch-share": "node tests/watch-share.mjs",
     "test:unit": "vitest run",
     "fonts": "python3 scripts/slice-fonts.py"
   },

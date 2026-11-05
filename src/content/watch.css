@@ -116,6 +116,8 @@ html.margin-watch .video-toolbar-left-item {
 html.margin-watch .video-toolbar-left-item:hover { color: var(--m-ink) !important; box-shadow: var(--ring), var(--sh-sm); transform: translateY(-1px); }
 html.margin-watch .video-toolbar-left-item.on { color: var(--m-accent) !important; box-shadow: 0 0 0 var(--hair) color-mix(in srgb, var(--m-accent) 40%, transparent), var(--sh-xs); background: color-mix(in srgb, var(--m-accent) 8%, var(--m-surface)); }
 html.margin-watch .video-toolbar-left-item .video-toolbar-item-text { font-family: var(--m-mono); font-size: 13px !important; }
+html.margin-watch .video-share-wrap .video-share-info { display: grid !important; width: auto !important; white-space: nowrap; }
+html.margin-watch .video-share-wrap .video-share-info-text { position: relative !important; grid-area: 1 / 1; }
 
 /* 简介 / 标签 / 评论：表面卡片 */
 html.margin-watch .video-desc-container,

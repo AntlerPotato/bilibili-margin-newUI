@@ -28,8 +28,9 @@ try {
   }, patch);
   await seed({ intro: false, weather: false, footprint: true, wide: false, autoWeb: false, theme: 'dark' });
   const check = async (name, run) => {
+    if (process.env.ISSUES_ONLY && !name.startsWith(process.env.ISSUES_ONLY)) return;
     try { const evidence = await run(); results.push({ name, ok: true, evidence }); console.log(`PASS ${name}`); }
-    catch (e) { results.push({ name, ok: false, error: e.message }); console.log(`FAIL ${name}: ${e.message}`); }
+    catch (e) { results.push({ name, ok: false, error: e.message }); console.log(`FAIL ${name}: ${e.message}`); await page.screenshot({ path: join(out, `${name}-failed.png`) }); }
     override = undefined;
   };
   await check('69-footprint-full-width', async () => {
@@ -423,6 +424,89 @@ try {
     await row.locator('.fd-up').first().click();
     assert.equal(await row.locator('.fd-up').first().getAttribute('aria-pressed'), 'true');
     await seed({ reduceMotion: false });
+  });
+  const shandong = { name: '珠海', latitude: 35.87124, longitude: 119.99638, admin1: '山东省', admin2: '青岛市', country: '中国' };
+  const guangdong = { name: '珠海市', latitude: 22.27694, longitude: 113.56778, admin1: '广东省', admin2: '珠海市', country: '中国' };
+  const cities = u => ({ results: new URL(u).searchParams.get('name') === '珠海市' ? [guangdong] : [shandong] });
+  await check('73-weather-city-candidates', async () => {
+    const forecasts = [];
+    override = u => {
+      if (u.includes('geocoding-api.open-meteo.com')) return cities(u);
+      if (u.includes('api.open-meteo.com')) forecasts.push(new URL(u).searchParams.get('latitude'));
+    };
+    await seed({ weather: true, footprint: true, reduceMotion: true });
+    await page.goto('https://www.bilibili.com/');
+    // Legacy same-name location must remain editable, with no automatic migration.
+    await page.evaluate(() => {
+      localStorage.setItem('margin:weather-loc', JSON.stringify({ name: '珠海', lat: 35.87124, lon: 119.99638, manual: true }));
+      localStorage.removeItem('margin:weather-cache');
+    });
+    await page.reload();
+    const city = page.locator('.wx-city');
+    await city.waitFor();
+    assert.equal(await city.textContent(), '珠海');
+    await city.click();
+    await page.locator('.wx input').fill('珠海');
+    await page.locator('.wx input').press('Enter');
+    const choice = page.locator('.wx [role="option"]').filter({ hasText: '广东省' });
+    await choice.waitFor({ timeout: 2500 });
+    assert.equal(await page.locator('.wx [role="option"]').count(), 2);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('margin:weather-loc')).lat), 35.87124);
+    for (const [width, theme] of [[1440, 'dark'], [900, 'light']]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await seed({ theme });
+      await page.screenshot({ path: join(out, `weather-city-${theme}.png`) });
+      const box = await choice.boundingBox();
+      assert(box && box.x >= 0 && box.x + box.width <= width && box.height > 24);
+    }
+    const before = forecasts.length;
+    await choice.focus(); await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelector('.wx-city')?.textContent === '珠海市');
+    const selected = await page.evaluate(() => JSON.parse(localStorage.getItem('margin:weather-loc')));
+    assert.equal(selected.lat, guangdong.latitude);
+    assert(selected.region.includes('广东省'));
+    assert.deepEqual(forecasts.slice(before), [String(guangdong.latitude)]);
+    await city.click();
+    await page.locator('.wx input').press('Escape');
+    assert.equal(await page.locator('.wx input').count(), 0);
+    assert(await city.evaluate(e => e.getRootNode().activeElement === e));
+  });
+  await check('73-settings-city-search-races', async () => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('https://www.bilibili.com/');
+    await page.locator('.top .acts > .hd-settings').click();
+    await page.locator('.sheet-layer .sd-head').filter({ hasText: '天气城市与卡片信息' }).click();
+    const input = page.locator('.sheet-layer').getByRole('searchbox', { name: '天气城市', exact: true });
+    const options = page.locator('.sheet-layer .city-list [role="option"]');
+    override = u => u.includes('geocoding-api.open-meteo.com') ? cities(u) : undefined;
+    await input.fill('珠海'); await input.press('Enter');
+    await options.filter({ hasText: '广东省' }).waitFor({ timeout: 2500 });
+    await options.filter({ hasText: '山东省' }).click();
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('margin:weather-loc')).lat), shandong.latitude);
+    // Clearing, editing during debounce, and returning to automatic location invalidate in-flight searches.
+    for (const action of ['clear', 'edit', 'auto']) {
+      const pending = [];
+      override = u => u.includes('geocoding-api.open-meteo.com') ? new Promise(resolve => pending.push(resolve)) : undefined;
+      await input.fill('慢查询'); await input.press('Enter');
+      for (let i = 0; pending.length < 2 && i < 40; i++) await page.waitForTimeout(25);
+      assert.equal(pending.length, 2);
+      if (action === 'auto') await page.locator('.sheet-layer .city-auto').click();
+      else await input.fill(action === 'clear' ? '' : '新城市');
+      pending.forEach(resolve => resolve({ results: [{ ...shandong, name: '过期城市' }] }));
+      await page.waitForTimeout(80);
+      assert.equal(await options.filter({ hasText: '过期城市' }).count(), 0);
+      await input.fill('');
+    }
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('margin:weather-loc'))?.manual !== true);
+    const failure = route => route.fulfill({ status: 503, body: 'Unavailable' });
+    await ctx.route('https://geocoding-api.open-meteo.com/**', failure);
+    try {
+      await input.fill('网络失败'); await input.press('Enter');
+      await page.locator('.sheet-layer .city-list').getByText('搜索失败，请重试').waitFor({ timeout: 2500 });
+    } finally { await ctx.unroute('https://geocoding-api.open-meteo.com/**', failure); }
+    override = u => u.includes('geocoding-api.open-meteo.com') ? { results: [] } : undefined;
+    await input.fill('无结果'); await input.press('Enter');
+    await page.locator('.sheet-layer .city-list').getByText('没有找到这个城市').waitFor({ timeout: 2500 });
   });
   assert.deepEqual(errors, []);
 } finally {

@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Fix the weather search selecting the Shandong namesake of Zhuhai. The weather card and settings share explicit location candidates with regional details, including a supplementary city-suffix search for Chinese names. Discard stale searches and weather responses after clearing, switching cities, or returning to automatic location, and validate cached weather against the current coordinates (#73).
+- Fix excessive trailing space in the native video share capsule and collapsed text after native label transitions. Cover counts, the copy prompt, and browser zoom levels (#38).
+- Update the header hover setting and its description to match the current sliding indicator behavior (#11).
+
 - Fix the creator card jumping upward and danmaku or playlist spacing changing when a wide player becomes a mini player. Preserve the preceding document layout and anchor sidebar placement to the original player placeholder, including resize, sidebar updates, and return to wide mode (#58).
 
 - Fix the wide player covering the creator card during scrolling when native sticky positioning pins the left column. Keep the wide column in document flow and cover creator hit testing, screen-mode transitions, and recovery from the mini player (#58).
