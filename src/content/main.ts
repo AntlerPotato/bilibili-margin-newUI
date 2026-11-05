@@ -39,6 +39,7 @@ type Pages = {
   history: typeof import('./pages/history');
   feed: typeof import('./pages/feed');
   detail: typeof import('./pages/detail');
+  'space-hooks': typeof import('./pages/space-hooks');
 };
 /** 按需加载页面模块；content script 不能是 ES module，但可以动态 import 扩展里的 ES 模块 */
 const load = <K extends keyof Pages>(name: K): Promise<Pages[K]> => import(/* @vite-ignore */ chrome.runtime.getURL(`pages/${name}.js`));
@@ -168,7 +169,7 @@ async function startWatch(kind: SkinKind = 'watch'): Promise<void> {
 function spaceNative(): void {
   document.documentElement.classList.add('margin-space-native');
   // 原生空间子页：拦截收藏夹 / 历史 / 稍后再看的入口，改成开映间抽屉（#52 后续）
-  void import('./space-hooks').then((mod) => mod.installSpaceHooks()).catch(() => { /* 抽屉可缺省 */ });
+  load('space-hooks').then((mod) => mod.installSpaceHooks()).catch(() => { /* 抽屉可缺省 */ });
   let last = location.href;
   const check = (href: string) => {
     if (href === last) return;

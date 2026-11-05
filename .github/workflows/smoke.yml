@@ -59,6 +59,10 @@ jobs:
         run: npm run test:watch-share
         env:
           SMOKE_OUT: smoke-artifacts/watch-share
+      - name: Player loading corners and hydration-safe card startup
+        run: |
+          SMOKE_OUT=smoke-artifacts/watch-startup node tests/watch-startup.mjs
+          SMOKE_OUT=smoke-artifacts/watch-card-startup node tests/watch-card-startup.mjs
       - if: always()
         uses: actions/upload-artifact@v4
         with:

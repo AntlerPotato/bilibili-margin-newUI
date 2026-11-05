@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Fix square corners on the black video loading surface. Apply the existing clipping before the native player sets its screen mode, covering radius settings, wide mode, mini player and fullscreen.
+- Mount the watch-page card as soon as native hydration finishes, removing the previous polling delay of up to about 1.5 seconds. Coalesce startup observation by animation frame and bound its lifetime, with periodic checks covering late nodes.
+- Load native profile-page drawers through a separate on-demand module, reducing the entry script by about 64% and lowering startup script parsing. Add regressions for initial loading, late mounting, hydration and native media node continuity.
+
 - Fix the weather search selecting the Shandong namesake of Zhuhai. The weather card and settings share explicit location candidates with regional details, including a supplementary city-suffix search for Chinese names. Discard stale searches and weather responses after clearing, switching cities, or returning to automatic location, and validate cached weather against the current coordinates (#73).
 - Fix excessive trailing space in the native video share capsule and collapsed text after native label transitions. Cover counts, the copy prompt, and browser zoom levels (#38).
 - Update the header hover setting and its description to match the current sliding indicator behavior (#11).
