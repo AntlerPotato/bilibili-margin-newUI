@@ -1,4 +1,5 @@
 import { dislike, popular, recommended, type Video } from '../api/feed';
+import { openBili } from '../navigation';
 import { appDislike, appRecommended } from '../api/appfeed';
 import { noteNegative, rerank, resetRank } from '../rank';
 import { followClassics, resetClassics } from '../api/space';
@@ -66,6 +67,7 @@ export class MarginApp {
   private seen = new Set<string>();
   private filter!: FilterRuntime;
   private gen = 0;
+  private fillRetry = 0;
   private media = matchMedia('(prefers-color-scheme: dark)');
 
   constructor(private settings: Settings) {
@@ -80,6 +82,7 @@ export class MarginApp {
   }
 
   update(s: Settings): void {
+    if (this.app) this.app.dataset.glass = s.glass;
     const prev = this.settings;
     this.settings = s;
     if (this.filter.update(s)) this.repaint();
@@ -188,10 +191,10 @@ export class MarginApp {
       { id: 'settings', title: '打开设置', cat: '操作', icon: ICONS.gear, keys: ['背景', '过滤', '屏蔽'], run: () => this.panel.sheet.open() },
       { id: 'top', title: '回到顶部', cat: '操作', icon: ICONS.top, run: () => this.app.scrollTo({ top: 0, behavior: 'smooth' }) },
       { id: 'later', title: '稍后再看', cat: '跳转', icon: ICONS.later, keys: ['watchlater'], run: () => later.open() },
-      { id: 'moments', title: '动态', cat: '跳转', icon: ICONS.moments, run: () => window.open('https://t.bilibili.com/', '_blank', 'noopener') },
-      { id: 'live', title: '直播', cat: '跳转', icon: ICONS.live, keys: ['live', 'zhibo'], run: () => window.open('https://live.bilibili.com/', '_blank', 'noopener') },
-      { id: 'message', title: '消息', cat: '跳转', icon: ICONS.message, run: () => window.open('https://message.bilibili.com/', '_blank', 'noopener') },
-      { id: 'history', title: '观看历史', cat: '跳转', icon: ICONS.history, run: () => window.open('https://www.bilibili.com/history', '_blank', 'noopener') },
+      { id: 'moments', title: '动态', cat: '跳转', icon: ICONS.moments, run: () => openBili('https://t.bilibili.com/') },
+      { id: 'live', title: '直播', cat: '跳转', icon: ICONS.live, keys: ['live', 'zhibo'], run: () => openBili('https://live.bilibili.com/') },
+      { id: 'message', title: '消息', cat: '跳转', icon: ICONS.message, run: () => openBili('https://message.bilibili.com/') },
+      { id: 'history', title: '观看历史', cat: '跳转', icon: ICONS.history, run: () => openBili('https://www.bilibili.com/history') },
       { id: 'off', title: '本次回到 B 站原版', cat: '操作', icon: ICONS.exit, keys: ['原版', '关闭'], run: () => { sessionStorage.setItem('margin:off', '1'); location.reload(); } },
     ]);
     const cm = createContextMenu();
@@ -248,7 +251,7 @@ export class MarginApp {
       ['feed', [this.grid, this.status, this.sentinel]],
       ['footer', [footer]],
     ]);
-    this.app = h('div', { class: 'app home' },
+    this.app = h('div', { class: 'app home', 'data-glass':this.settings.glass },
       this.bg.el,
       header,
       main,
@@ -258,8 +261,8 @@ export class MarginApp {
       later.el,
       cm.el,
     );
-    // 侧板开着时背景定格：侧板的毛玻璃（backdrop-filter）只有在底下画面变化时才需要每帧重算（v0.45）
-    this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); this.bg.hold('sheet', on); });
+    // 标记抽屉状态；大面板使用实底，可见背景保持动态。
+    this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); });
     this.root.append(this.app);
     this.applyOrder(this.settings.homeOrder);
     // 汇流背景的点线汇向首页搜索栏（搜索框隐藏时汇向屏幕中心）
@@ -340,6 +343,7 @@ export class MarginApp {
     this.tabMem.delete(id);
     const s = m.s!;
     this.gen++;
+    clearTimeout(this.fillRetry); this.fillRetry = 0;
     this.items = s.items.slice();
     this.seen = new Set(s.items.map((v) => v.bvid));
     this.page = s.page; this.appIdx = s.appIdx; this.done = s.done; this.round = s.round;
@@ -366,6 +370,7 @@ export class MarginApp {
     if (!s || s.tab !== this.tab) return;
     this.snap = this.snapshot();
     this.gen++;
+    clearTimeout(this.fillRetry); this.fillRetry = 0;
     this.items = s.items.slice();
     this.seen = new Set(s.items.map((v) => v.bvid));
     this.page = s.page; this.appIdx = s.appIdx; this.done = s.done; this.round = s.round;
@@ -377,8 +382,10 @@ export class MarginApp {
   }
 
   private reload(keep = false): void {
+    if (keep && this.refreshBtn?.getAttribute('aria-busy') === 'true') return;
     const prev = { snap: this.snap, page: this.page, round: this.round, appIdx: this.appIdx, done: this.done };
     const gen = ++this.gen;
+    clearTimeout(this.fillRetry); this.fillRetry = 0;
     this.snap = keep && this.items.length ? this.snapshot() : null;
     if (this.backBtn) this.backBtn.hidden = !this.snap;
     this.grid.querySelectorAll('.card.sk').forEach((n) => n.remove());
@@ -460,7 +467,7 @@ export class MarginApp {
     const cols = getComputedStyle(this.grid).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
     const cards = this.grid.querySelectorAll('.card:not(.sk)').length;
     const rows = Math.max(1, Math.ceil(cards / cols));
-    const rowH = Math.max(160, this.grid.scrollHeight / rows);
+    const rowH = Math.max(160, this.grid.getBoundingClientRect().height / rows);
     const appTop = this.app.getBoundingClientRect().top;
     const gridTop = this.grid.getBoundingClientRect().top - appTop + this.app.scrollTop;
     const wantH = Math.max(0, want + this.app.clientHeight - gridTop);
@@ -473,7 +480,8 @@ export class MarginApp {
   private videoTop(): number {
     const bar = this.barEl, mark = this.barMarkEl;
     if (!bar || !mark) return 0;
-    const sticky = parseFloat(getComputedStyle(bar).top) || 0;
+    const zoom = Number(getComputedStyle(this.app).getPropertyValue('--margin-zoom')) || 1;
+    const sticky = (parseFloat(getComputedStyle(bar).top) || 0) * zoom;
     const appTop = this.app.getBoundingClientRect().top;
     const flowTop = (el: Element) => el.getBoundingClientRect().top - appTop + this.app.scrollTop;
     const markTop = flowTop(mark), gridTop = flowTop(this.grid);
@@ -525,26 +533,33 @@ export class MarginApp {
 
   /** 按当前分类拉一批视频，游标随之前进；ctx 是换一批时用的独立去重 / 重排上下文 */
   private async fetchBatch(ctx?: { items: Video[]; seen: Set<string> }): Promise<Video[]> {
+    const gen = this.gen;
     let list: Video[];
     if (this.tab === 'rcmd' && this.settings.appFeed) {
       // App 推荐流（v0.48 实验）：一批 10 来个，连取两批凑够一屏
       const a = await appRecommended(this.appIdx);
+      if (gen !== this.gen) return [];
       const b = await appRecommended(a.next);
+      if (gen !== this.gen) return [];
       this.appIdx = b.next;
       list = [...a.list, ...b.list];
       if (!a.personal && !this.appHinted) { this.appHinted = true; toast(this.app, '正在用 App 推荐（未授权，不是个性化的）。在设置 → 实验功能里扫码授权'); }
     } else if (this.tab === 'rcmd') {
       const batches = await Promise.all([recommended(this.round), recommended(this.round + 1)]);
+      if (gen !== this.gen) return [];
       this.round += 2;
       list = batches.flat();
     } else if (this.tab === 'classic') {
       const me = (await account())?.mid;
+      if (gen !== this.gen) return [];
       if (!me) throw new Error('登录后才能看关注的 UP 主');
       const r = await followClassics(me);
+      if (gen !== this.gen) return [];
       list = r.list;
       this.done = r.done;
     } else {
       const r = await popular(this.page++);
+      if (gen !== this.gen) return [];
       list = r.list;
       this.done = r.done;
     }
@@ -582,7 +597,7 @@ export class MarginApp {
   }
 
   private async load(attempt = 0): Promise<void> {
-    if (this.loading || this.done) return;
+    if (this.loading || this.done || this.fillRetry) return;
     this.loading = true;
     const gen = this.gen;
     const sk = skeleton(this.grid.children.length ? 4 : 12);
@@ -612,9 +627,13 @@ export class MarginApp {
     // 被过滤掉太多时自动补一批
     if (gen === this.gen && added < 6 && attempt < 4) this.load(attempt + 1);
     else if (gen === this.gen) {
-      requestAnimationFrame(() => this.fillIfShort());
       // 连续几批都被过滤或重复：稍等再补，不让列表停在底部
-      if (added === 0) window.setTimeout(() => { if (gen === this.gen) this.fillIfShort(); }, 1500);
+      if (added === 0) this.fillRetry = window.setTimeout(() => {
+        if (gen !== this.gen) return;
+        this.fillRetry = 0;
+        this.fillIfShort();
+      }, 1500);
+      else requestAnimationFrame(() => this.fillIfShort());
     }
   }
 }

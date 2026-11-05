@@ -22,11 +22,39 @@ jobs:
         run: npm run test:unit
       - run: npx playwright install --with-deps chromium
       - run: npm run build
+      - name: Space drawer regressions
+        run: npm run test:drawers
+      - name: Application window navigation
+        run: npm run test:app-window
+      - name: Community advertisement skipping
+        run: npm run test:sponsor-skip
+      - name: Background frame pacing
+        run: npm run test:frame-budget
+      - name: UI interaction performance
+        run: npm run test:performance-ui
+        env:
+          SMOKE_OUT: smoke-artifacts/performance-ui
+      - name: Private message images and emojis
+        run: npm run test:message-media
+        env:
+          SMOKE_OUT: smoke-artifacts/message-media
+      - name: Session loading and cached history
+        run: npm run test:message-loading
+        env:
+          SMOKE_OUT: smoke-artifacts/message-loading
+      - name: Transparent header over high-contrast backgrounds
+        run: npm run test:header-surface
+        env:
+          SMOKE_OUT: smoke-artifacts/header-surface
       - name: Smoke test (offline mocked bilibili)
         run: npm run test:smoke
         env:
           SMOKE_BUNDLED: '1'
           SMOKE_OUT: smoke-artifacts
+      - name: Dashboard, settings, wide title and space collections regressions
+        run: npm run test:reported-issues
+        env:
+          SMOKE_OUT: smoke-artifacts/reported-issues
       - if: always()
         uses: actions/upload-artifact@v4
         with:
