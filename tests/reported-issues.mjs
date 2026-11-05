@@ -134,6 +134,55 @@ try {
     const hiddenAuthorGap = await page.evaluate(() => document.querySelector('#danmukuBox').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom);
     assert(Math.abs(hiddenAuthorGap - 24) < 3, `hidden author gap=${hiddenAuthorGap}`);
   });
+  await check('58-wide-author-scroll', async () => {
+    await page.setViewportSize({ width: 1440, height: 808 });
+    await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+    await page.locator('#margin-watch-top .top').waitFor();
+    // Native sticky columns share a row, while the wide player spans both columns.
+    await page.addStyleTag({ content: 'body{margin:0}.video-container-v1{display:flex;align-items:flex-start;width:90vw;margin:auto;gap:30px;min-height:2600px}.left-container{width:calc(100% - 380px);flex:none}.video-container-v1 .left-container.scroll-sticky{position:sticky;z-index:1}.right-container{position:relative;width:350px;flex:none}.bpx-player-container{height:686px!important}.bpx-player-container[data-screen="wide"]{width:90vw!important}.up-panel-container{height:130px!important}' });
+    await page.evaluate(() => {
+      const left = document.querySelector('.left-container');
+      left.classList.add('scroll-sticky'); left.style.top = '0px';
+      const panel = document.createElement('div'); panel.className = 'up-panel-container';
+      const name = document.createElement('a'); name.href = 'https://space.bilibili.com/1'; name.textContent = 'UP 主';
+      panel.append(name); document.querySelector('.right-container').prepend(panel);
+      document.querySelector('.bpx-player-container').dataset.screen = 'wide';
+    });
+    await page.locator('html.margin-wide').waitFor(); await page.waitForTimeout(500);
+    const geometry = () => page.evaluate(() => {
+      const panel = document.querySelector('.up-panel-container'), up = panel.getBoundingClientRect();
+      const player = document.querySelector('.bpx-player-container').getBoundingClientRect();
+      const hit = document.elementFromPoint(up.x + up.width / 2, up.y + up.height / 2);
+      return { gap: up.top - player.bottom, upTop: up.top, playerBottom: player.bottom, hit: panel.contains(hit) };
+    });
+    assert(Math.abs((await geometry()).gap - 24) < 3);
+    // Bilibili rewrites this inset during scrolling. The player must not cover the author card.
+    await page.evaluate(() => {
+      document.querySelector('.left-container').style.top = '-358px';
+      scrollTo(0, 650);
+    });
+    await page.waitForTimeout(250);
+    const scrolled = await geometry();
+    await page.screenshot({ path: join(out, 'wide-author-scroll.png') });
+    assert(Math.abs(scrolled.gap - 24) < 3 && scrolled.hit, JSON.stringify(scrolled));
+    for (const screen of ['normal', 'web', 'full']) {
+      await page.locator('.bpx-player-container').evaluate((el, value) => el.dataset.screen = value, screen);
+      await page.locator('html.margin-wide').waitFor({ state: 'detached' });
+      const style = await page.locator('.left-container').evaluate(el => ({ position: getComputedStyle(el).position, top: getComputedStyle(el).top }));
+      assert.equal(style.position, 'sticky', `${screen}: wide positioning override leaked`);
+      assert.equal(style.top, '-358px', `${screen}: native inset was overwritten`);
+    }
+    await page.evaluate(() => {
+      scrollTo(0, 0);
+      document.querySelector('.bpx-player-container').dataset.screen = 'wide';
+    });
+    await page.locator('html.margin-wide').waitFor(); await page.waitForTimeout(250);
+    assert(Math.abs((await geometry()).gap - 24) < 3);
+    await page.evaluate(() => scrollTo(0, 650)); await page.waitForTimeout(250);
+    const reopened = await geometry();
+    assert(Math.abs(reopened.gap - 24) < 3 && reopened.hit, JSON.stringify(reopened));
+    return { scrolled, reopened };
+  });
   await check('11-classic-loading-sticky-stability', async () => {
     override = async u => {
       if (!u.includes('/arc/search')) return;

@@ -231,6 +231,8 @@ html.margin-watch .fixed-sidenav-storage-item {
 html.margin-watch { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--m-ink) 22%, transparent) transparent; }
 /* 宽屏模式：右栏让到播放器下方 */
 html.margin-skin.margin-wide .right-container { padding-top: var(--m-wide-pad, 0px) !important; }
+/* 宽屏播放器跨越两栏，原生左栏吸顶会盖住继续滚动的 UP 卡片。 */
+html.margin-watch.margin-wide .left-container { position: relative !important; top: auto !important; }
 /* 整栏已由映间让到播放器下方，原生弹幕块的宽屏占位会重复推低后续推荐 / 合集。 */
 html.margin-watch.margin-wide .right-container #danmukuBox { margin-top: 0 !important; }
 
