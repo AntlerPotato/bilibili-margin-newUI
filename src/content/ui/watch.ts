@@ -201,7 +201,8 @@ export class WatchSkin {
       webScroll(screen === 'web' && !document.fullscreenElement && this.settings.webScroll);
       this.bg.hold('screen', hide);
       document.documentElement.classList.toggle('margin-webscreen', hide);
-      wide(screen === 'wide');
+      // 小窗只移动播放器本体，文档仍沿用进入小窗前的宽屏布局。
+      wide(screen === 'wide' || (screen === 'mini' && de.classList.contains('margin-wide')));
     };
     // 宽屏：按右栏实际内容对齐，扣除原生内层已有的让位，避免重复叠加高度。
     let ro: ResizeObserver | null = null;
@@ -217,15 +218,22 @@ export class WatchSkin {
       const pl = player(), rc = document.querySelector<HTMLElement>('.right-container');
       if (!pl) return;
       ro?.observe(pl);
-      const width = `${pl.getBoundingClientRect().width}px`;
-      if (de.style.getPropertyValue('--m-wide-width') !== width) de.style.setProperty('--m-wide-width', width);
+      const mini = playerScreen() === 'mini';
+      const anchor = mini ? document.querySelector<HTMLElement>('#playerWrap') : pl;
+      if (!anchor) return;
+      ro?.observe(anchor);
+      // 小窗尺寸与页面布局无关，读取原文档占位并沿用宽屏标题宽度。
+      if (!mini) {
+        const width = `${pl.getBoundingClientRect().width}px`;
+        if (de.style.getPropertyValue('--m-wide-width') !== width) de.style.setProperty('--m-wide-width', width);
+      }
       if (!rc) return;
       ro?.observe(rc);
       const inner = rc.querySelector('.right-container-inner') ?? rc;
       const first = [...inner.children].find((el) => el.getClientRects().length) ?? inner;
       if (!first.getClientRects().length) return;
       const current = parseFloat(getComputedStyle(rc).paddingTop) || 0;
-      const pad = `${Math.max(0, Math.round(current + pl.getBoundingClientRect().bottom - first.getBoundingClientRect().top + 24))}px`;
+      const pad = `${Math.max(0, Math.round(current + anchor.getBoundingClientRect().bottom - first.getBoundingClientRect().top + 24))}px`;
       if (de.style.getPropertyValue('--m-wide-pad') !== pad) de.style.setProperty('--m-wide-pad', pad);
     };
     const wide = (on: boolean) => {

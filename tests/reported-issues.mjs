@@ -183,6 +183,80 @@ try {
     assert(Math.abs(reopened.gap - 24) < 3 && reopened.hit, JSON.stringify(reopened));
     return { scrolled, reopened };
   });
+  await check('58-wide-mini-layout', async () => {
+    await page.setViewportSize({ width: 1440, height: 808 });
+    await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+    await page.locator('#margin-watch-top .top').waitFor();
+    await page.addStyleTag({ content: 'body{margin:0}.video-container-v1{display:flex;align-items:flex-start;width:90vw;margin:auto;gap:30px;min-height:3000px}.left-container{width:calc(100% - 380px);flex:none}.right-container{position:relative;width:350px;flex:none}.up-panel-container{min-height:130px}#danmukuBox{height:44px}.video-container-v1[data-layout="wide"] #danmukuBox{margin-top:714px}.video-pod{height:180px}' });
+    await page.evaluate(() => {
+      const player = document.querySelector('.bpx-player-container');
+      const wrap = document.createElement('div'); wrap.id = 'playerWrap'; wrap.className = 'player-wrap'; wrap.style.height = '686px';
+      player.before(wrap); wrap.append(player);
+      const panel = document.createElement('div'); panel.className = 'up-panel-container'; panel.textContent = 'UP 主卡片';
+      const pod = document.createElement('div'); pod.className = 'video-pod'; pod.textContent = '合集';
+      document.querySelector('.right-container').prepend(panel);
+      document.querySelector('#danmukuBox').after(pod);
+    });
+    const setScreen = async screen => {
+      await page.evaluate(value => {
+        const player = document.querySelector('.bpx-player-container');
+        player.dataset.screen = value;
+        player.style.cssText = value === 'mini'
+          ? 'position:fixed;right:16px;bottom:16px;width:320px;height:180px;background:#000;z-index:10'
+          : `position:relative;width:${value === 'wide' ? '90vw' : '100%'};height:686px;background:#000`;
+        // Native wide document layout and its spacer survive the switch to a floating player.
+        if (value !== 'mini') document.querySelector('.video-container-v1').dataset.layout = value;
+      }, screen);
+      await page.waitForTimeout(300);
+    };
+    const geometry = () => page.evaluate(() => {
+      const de = document.documentElement, panel = document.querySelector('.up-panel-container');
+      const up = panel.getBoundingClientRect(), wrap = document.querySelector('#playerWrap').getBoundingClientRect();
+      const hit = document.elementFromPoint(up.x + up.width / 2, up.y + up.height / 2);
+      return {
+        wide: de.classList.contains('margin-wide'), pad: de.style.getPropertyValue('--m-wide-pad'), width: de.style.getPropertyValue('--m-wide-width'),
+        titleWidth: document.querySelector('.video-info-container').getBoundingClientRect().width,
+        wrapWidth: wrap.width, wrapBottom: wrap.bottom + scrollY, authorTop: up.top + scrollY,
+        danmakuTop: document.querySelector('#danmukuBox').getBoundingClientRect().top + scrollY,
+        podTop: document.querySelector('.video-pod').getBoundingClientRect().top + scrollY, hit: panel.contains(hit),
+      };
+    });
+    await setScreen('wide');
+    const before = await geometry();
+    assert(before.wide && before.pad && before.width);
+    assert(before.wrapWidth < before.titleWidth, 'placeholder must stay narrower than the wide player');
+    assert(Math.abs(before.authorTop - before.wrapBottom - 24) < 3);
+    await page.evaluate(y => scrollTo(0, y), before.wrapBottom - 12);
+    await setScreen('mini');
+    const stable = async label => {
+      const current = await geometry();
+      assert(current.wide && current.hit, `${label}: ${JSON.stringify(current)}`);
+      assert.equal(current.pad, before.pad, `${label}: sidebar padding changed`);
+      assert.equal(current.width, before.width, `${label}: title width measured the floating player`);
+      for (const key of ['titleWidth', 'authorTop', 'danmakuTop', 'podTop']) {
+        assert(Math.abs(current[key] - before[key]) < 2, `${label}: ${key} changed from ${before[key]} to ${current[key]}`);
+      }
+      return current;
+    };
+    await page.screenshot({ path: join(out, 'wide-mini-layout.png') });
+    const mini = await stable('wide to mini');
+    await page.setViewportSize({ width: 1460, height: 808 });
+    await page.locator('.video-pod').evaluate(el => el.append(document.createElement('span')));
+    await page.waitForTimeout(300);
+    await stable('mini resize and sidebar mutation');
+    await page.setViewportSize({ width: 1440, height: 808 });
+    await setScreen('wide');
+    await stable('mini to wide');
+    for (const screen of ['normal', 'web', 'full']) {
+      await setScreen('wide'); await setScreen(screen);
+      const current = await geometry();
+      assert(!current.wide && current.pad === '' && current.width === '', `${screen}: wide layout was retained`);
+    }
+    await setScreen('normal'); await setScreen('mini');
+    const normalMini = await geometry();
+    assert(!normalMini.wide && normalMini.pad === '' && normalMini.width === '', 'normal to mini acquired wide layout');
+    return { before, mini, normalMini };
+  });
   await check('11-classic-loading-sticky-stability', async () => {
     override = async u => {
       if (!u.includes('/arc/search')) return;
