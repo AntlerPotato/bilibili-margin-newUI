@@ -55,7 +55,7 @@ export class FeedApp {
       b.dataset.tab = id;
       return b;
     }));
-    const post = h('a', { class: 'fd-post', href: 'https://t.bilibili.com/?margin=off', title: '在 B 站原版里发动态' }, icon('<path d="M12 5v14M5 12h14"/>'), h('span', {}, '发动态'));
+    const post = h('a', { class: 'fd-post', href: 'https://t.bilibili.com/?margin=off', title: '在 B 站原版里发动态' }, icon(ICONS.plus), h('span', {}, '发动态'));
     this.list = h('div', { class: 'dy-list fd-list' });
     attachPreview(this.list, () => this.shell.settings.hoverPreview);
     this.status = h('div', { class: 'status' });
