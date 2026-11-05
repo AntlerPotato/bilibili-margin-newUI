@@ -8,6 +8,16 @@ export interface SpaceInfo {
   likes: number; views: number; isFollowing: boolean; videoCount: number;
 }
 
+/** 直播状态独立加载，资料接口回退或统计请求较慢时也能显示开播入口。 */
+export async function spaceLive(mid: number): Promise<number | null> {
+  const response = await fetch(`https://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid=${mid}`, { credentials: 'omit' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const { code, data, message } = await response.json();
+  if (code !== 0) throw new Error(message || `code ${code}`);
+  const room = Number(data?.roomid);
+  return Number(data?.liveStatus) === 1 && Number.isSafeInteger(room) && room > 0 ? room : null;
+}
+
 /** 图片地址补全：// 开头、http:、以及 acc/info 老字段 top_photo 那种不带域名的 bfs/space/xxx.png（v0.47：空间头图不显示） */
 const https = (u: unknown) => {
   const s = String(u ?? '').trim();

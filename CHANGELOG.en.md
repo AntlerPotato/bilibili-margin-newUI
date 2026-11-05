@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Fix recommendations and playlists being pushed far below the player when automatic wide mode starts. Sidebar placement accounts for existing native spacing and removes the duplicate danmaku spacer, with coverage for automatic entry, manual toggling, late mounting, and cleanup (#58).
+- Restore a live badge below the profile avatar that opens the corresponding live room. Live status loads independently so slow or failed status requests leave profile information and actions usable (#71).
+- Add previous and next scroll buttons to the followed-creator strip on the dynamic feed. Controls reflect scroll boundaries, search results, and viewport changes, and support keyboard input and reduced motion. Keep the empty search field stable on blur so creator clicks reach their target (#72).
+
 - Add a responsive inset to profile statistics and action buttons, with left-aligned placement in narrow windows.
 
 - Let the footprint card fill the content area when weather is disabled (#69).

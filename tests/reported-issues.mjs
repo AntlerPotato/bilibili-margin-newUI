@@ -77,6 +77,63 @@ try {
     await page.waitForTimeout(250);
     assert(await page.evaluate(() => Math.abs(document.querySelector('.video-info-container').getBoundingClientRect().width - document.querySelector('.left-container').getBoundingClientRect().width) < 2));
   });
+  await check('58-auto-wide-native-spacer', async () => {
+    await seed({ wide: true });
+    const watch = await ctx.newPage();
+    try {
+      await watch.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+        const style = document.createElement('style');
+        style.textContent = '.video-container-v1{position:relative;min-height:2600px}.left-container{width:900px}.right-container{position:absolute;top:96px;right:0;width:350px}.up-panel-container{height:130px!important}.margin-wide #danmukuBox{margin-top:714px}.bpx-player-container{height:686px!important}';
+        document.head.append(style);
+        const side = document.querySelector('.right-container');
+        const inner = document.createElement('div'); inner.className = 'right-container-inner scroll-sticky';
+        inner.append(...side.childNodes); side.append(inner);
+        const up = document.createElement('div'); up.className = 'up-panel-container'; up.textContent = 'UP 主卡片'; inner.prepend(up);
+      }));
+      await watch.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+      await watch.locator('html.margin-wide').waitFor();
+      await watch.waitForTimeout(500);
+      const geometry = await watch.evaluate(() => {
+        const player = document.querySelector('.bpx-player-container').getBoundingClientRect();
+        const up = document.querySelector('.up-panel-container').getBoundingClientRect();
+        const recommendation = document.querySelector('.recommend-list-v1').getBoundingClientRect();
+        return { upGap: up.top - player.bottom, recommendationGap: recommendation.top - up.bottom };
+      });
+      await watch.screenshot({ path: join(out, 'auto-wide-native-spacer.png') });
+      assert(Math.abs(geometry.upGap - 24) < 3, JSON.stringify(geometry));
+      assert(geometry.recommendationGap >= 0 && geometry.recommendationGap < 80, JSON.stringify(geometry));
+      await watch.locator('.bpx-player-container').evaluate(e => e.dataset.screen = 'normal');
+      await watch.locator('html.margin-wide').waitFor({ state: 'detached' });
+      await watch.waitForTimeout(1200);
+      assert.equal(await watch.locator('.bpx-player-container').getAttribute('data-screen'), 'normal');
+      assert.equal(await watch.evaluate(() => document.documentElement.style.getPropertyValue('--m-wide-pad')), '');
+      return geometry;
+    } finally { await watch.close(); await seed({ wide: false }); }
+  });
+  await check('58-wide-inner-offset', async () => {
+    await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+    await page.locator('#margin-watch-top .top').waitFor();
+    await page.addStyleTag({ content: '.video-container-v1{position:relative;min-height:2400px}.left-container{width:900px}.right-container{position:absolute;top:96px;right:0;width:350px}.right-container-inner{padding-top:500px}.bpx-player-container{height:686px!important}' });
+    await page.evaluate(() => {
+      const side = document.querySelector('.right-container');
+      const inner = document.createElement('div'); inner.className = 'right-container-inner';
+      const panel = document.createElement('div'); panel.className = 'up-panel-container'; panel.textContent = '晚挂载卡片';
+      inner.append(panel, ...side.childNodes); side.append(inner);
+    });
+    await page.locator('.bpx-player-ctrl-wide').click();
+    await page.waitForTimeout(500);
+    const gap = () => page.evaluate(() => document.querySelector('.up-panel-container').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom);
+    assert(Math.abs(await gap() - 24) < 3, `native inner offset counted twice: gap=${await gap()}`);
+    await page.locator('.right-container-inner').evaluate(e => e.style.paddingTop = '300px');
+    await page.waitForTimeout(500);
+    assert(Math.abs(await gap() - 24) < 3, `late inner spacing: gap=${await gap()}`);
+    await page.evaluate(() => scrollTo(0, 300)); await page.waitForTimeout(250);
+    assert(Math.abs(await gap() - 24) < 3, `scroll gap=${await gap()}`);
+    await page.locator('.up-panel-container').evaluate(e => e.style.display = 'none');
+    await page.waitForTimeout(500);
+    const hiddenAuthorGap = await page.evaluate(() => document.querySelector('#danmukuBox').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom);
+    assert(Math.abs(hiddenAuthorGap - 24) < 3, `hidden author gap=${hiddenAuthorGap}`);
+  });
   await check('11-classic-loading-sticky-stability', async () => {
     override = async u => {
       if (!u.includes('/arc/search')) return;
@@ -172,6 +229,77 @@ try {
     await page.locator('#margin-root .status').filter({ hasText: '还没有合集或系列' }).waitFor();
     assert.equal(await page.locator('#margin-root .tab[data-tab="collections"][aria-selected="true"]').count(), 1);
     return { requests };
+  });
+  await check('71-space-live-badge', async () => {
+    let releaseLive;
+    const liveResponse = new Promise(resolve => { releaseLive = resolve; });
+    override = u => u.includes('/Room/getRoomInfoOld') ? liveResponse : undefined;
+    await page.goto('https://space.bilibili.com/50329118');
+    await page.locator('#margin-root .sp-face').waitFor();
+    assert.equal(await page.locator('#margin-root .sp-live').count(), 0);
+    releaseLive({ code: 0, data: { liveStatus: 1, roomStatus: 1, roomid: 7734200, title: '测试直播' } });
+    const badge = page.locator('#margin-root .sp-live');
+    await badge.waitFor({ timeout: 4000 });
+    assert.equal(await badge.textContent(), '直播中');
+    assert.equal(await badge.getAttribute('href'), 'https://live.bilibili.com/7734200');
+    const [room] = await Promise.all([page.waitForEvent('popup'), badge.click()]);
+    await room.waitForLoadState('domcontentloaded');
+    assert.equal(room.url(), 'https://live.bilibili.com/7734200');
+    await room.close();
+    for (const width of [1440, 900]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await seed({ theme: width === 900 ? 'light' : 'dark' });
+      await page.screenshot({ path: join(out, `space-live-${width}.png`) });
+      const face = await page.locator('#margin-root .sp-face').boundingBox();
+      const live = await badge.boundingBox();
+      assert(Math.abs(face.x + face.width / 2 - live.x - live.width / 2) < 2);
+    }
+    for (const reply of [{ code: 0, data: { liveStatus: 0, roomStatus: 1, roomid: 7734200 } }, { code: -500, message: '暂时不可用' }]) {
+      override = u => u.includes('/Room/getRoomInfoOld') ? reply : undefined;
+      await page.reload(); await page.locator('#margin-root .sp-face').waitFor();
+      await page.waitForTimeout(400);
+      assert.equal(await page.locator('#margin-root .sp-live').count(), 0);
+      assert(await page.locator('#margin-root .sp-follow').isVisible());
+    }
+    await seed({ theme: 'dark' });
+  });
+  await check('72-following-strip-buttons', async () => {
+    const portal = apiBody('https://api.bilibili.com/x/polymer/web-dynamic/v1/portal');
+    const sample = portal.data.up_list.items[0];
+    portal.data.up_list.items = Array.from({ length: 32 }, (_, i) => ({ ...sample, mid: i + 1000, uname: `UP ${i + 1}`, has_update: false }));
+    override = u => {
+      if (u.includes('/v1/portal')) return portal;
+      if (u.includes('/followings/search')) return { code: 0, data: { list: [sample] } };
+    };
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('https://t.bilibili.com/');
+    const row = page.locator('#margin-root .fd-ups-row');
+    await row.locator('.fd-up').first().waitFor();
+    const prev = page.getByRole('button', { name: '向左滚动关注列表', exact: true });
+    const next = page.getByRole('button', { name: '向右滚动关注列表', exact: true });
+    await next.waitFor({ timeout: 4000 });
+    assert(await prev.isDisabled()); assert(await next.isEnabled());
+    await next.click(); await page.waitForTimeout(600);
+    assert(await row.evaluate(e => e.scrollLeft > 100));
+    await prev.focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(600);
+    assert(await row.evaluate(e => e.scrollLeft < 1));
+    assert(await prev.isDisabled());
+    await row.evaluate(e => e.scrollLeft = e.scrollWidth); await page.waitForTimeout(100);
+    assert(await next.isDisabled()); assert(await prev.isEnabled());
+    await page.screenshot({ path: join(out, 'following-strip.png') });
+    await seed({ reduceMotion: true });
+    await prev.click();
+    assert(await row.evaluate(e => e.scrollLeft < e.scrollWidth - e.clientWidth - 100));
+    await page.getByRole('searchbox', { name: '在关注里搜 UP 主' }).fill('UP');
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.fd-ups-row .fd-up').length === 1);
+    assert(await prev.isDisabled()); assert(await next.isDisabled());
+    await page.getByRole('searchbox', { name: '在关注里搜 UP 主' }).fill('');
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.fd-ups-row .fd-up').length === 32);
+    await page.setViewportSize({ width: 900, height: 1000 }); await page.waitForTimeout(100);
+    assert(await prev.isDisabled()); assert(await next.isEnabled());
+    await row.locator('.fd-up').first().click();
+    assert.equal(await row.locator('.fd-up').first().getAttribute('aria-pressed'), 'true');
+    await seed({ reduceMotion: false });
   });
   assert.deepEqual(errors, []);
 } finally {

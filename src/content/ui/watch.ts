@@ -203,7 +203,7 @@ export class WatchSkin {
       document.documentElement.classList.toggle('margin-webscreen', hide);
       wide(screen === 'wide');
     };
-    // 宽屏：B 站把播放器拉满左右两栏，但右栏不会让位（原版靠被我们隐藏/重排掉的结构），这里把右栏推到播放器下面
+    // 宽屏：按右栏实际内容对齐，扣除原生内层已有的让位，避免重复叠加高度。
     let ro: ResizeObserver | null = null;
     let sideObserver: MutationObserver | null = null;
     let placeFrame = 0;
@@ -221,7 +221,11 @@ export class WatchSkin {
       if (de.style.getPropertyValue('--m-wide-width') !== width) de.style.setProperty('--m-wide-width', width);
       if (!rc) return;
       ro?.observe(rc);
-      const pad = `${Math.max(0, Math.round(pl.getBoundingClientRect().bottom - rc.getBoundingClientRect().top + 24))}px`;
+      const inner = rc.querySelector('.right-container-inner') ?? rc;
+      const first = [...inner.children].find((el) => el.getClientRects().length) ?? inner;
+      if (!first.getClientRects().length) return;
+      const current = parseFloat(getComputedStyle(rc).paddingTop) || 0;
+      const pad = `${Math.max(0, Math.round(current + pl.getBoundingClientRect().bottom - first.getBoundingClientRect().top + 24))}px`;
       if (de.style.getPropertyValue('--m-wide-pad') !== pad) de.style.setProperty('--m-wide-pad', pad);
     };
     const wide = (on: boolean) => {

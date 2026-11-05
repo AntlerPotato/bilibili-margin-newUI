@@ -1,5 +1,5 @@
 import type { Settings } from '../../shared/settings';
-import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceRecent, spaceVideos, spaceCollections, spaceCollectionVideos, type SpaceCollection, type SpaceInfo, type VideoOrder } from '../api/space';
+import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceLive, spaceRecent, spaceVideos, spaceCollections, spaceCollectionVideos, type SpaceCollection, type SpaceInfo, type VideoOrder } from '../api/space';
 import { spaceDynamics } from '../api/dyn';
 import { videoCard, skeleton } from './card';
 import { dynCard, dynData } from './dyn';
@@ -148,6 +148,11 @@ export class SpaceApp {
   }
 
   private hero(i: SpaceInfo): HTMLElement {
+    const avatar = h('div', { class: 'sp-avatar' }, h('img', { class: 'sp-face', src: `${i.face}@120w_120h_1c.webp`, alt: '', referrerpolicy: 'no-referrer' }));
+    void spaceLive(i.mid).then((room) => {
+      if (!room || !avatar.isConnected) return;
+      avatar.append(h('a', { class: 'sp-live', href: `https://live.bilibili.com/${room}`, target: '_blank', rel: 'noopener', 'aria-label': `进入 ${i.name} 的直播间` }, '直播中'));
+    }).catch(() => { /* 可选直播状态失败时保留资料与操作入口。 */ });
     const followBtn = h('button', { class: `sp-follow${i.isFollowing ? ' on' : ''}`, type: 'button' }, i.isFollowing ? '已关注' : '+ 关注');
     // v0.49：已关注时点按钮弹菜单（设置分组 / 取消关注），不再一点就取关；关注成功后直接弹出分组；「⋯」里可以拉黑
     const menu = h('div', { class: 'sp-menu', role: 'menu', hidden: '' });
@@ -259,7 +264,7 @@ export class SpaceApp {
       h('div', { class: 'sp-id' },
         h('div', { class: 'sp-who' },
           h('div', { class: 'sp-kicker' },
-            h('img', { class: 'sp-face', src: `${i.face}@120w_120h_1c.webp`, alt: '', referrerpolicy: 'no-referrer' }),
+            avatar,
             h('div', { class: 'eyebrow' }, h('span', { class: 'en' }, 'Space'), h('span', { class: 'caps' }, `UID ${i.mid}`), h('span', { class: 'no' }, `LV${i.level}`), i.vip ? h('span', { class: 'sp-vip' }, i.vip) : null)),
           h('h1', {}, i.name),
           i.official ? h('p', { class: 'sp-official' }, i.official) : null,
