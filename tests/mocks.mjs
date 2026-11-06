@@ -186,10 +186,30 @@ const popularHtml = () => `<!doctype html><html lang="zh-CN"><head><meta charset
   <div class="video-card" data-k="keyword"><div class="video-name">屏蔽词热门视频</div><div class="up-name">正常UP</div><div class="video-stat">12.3万播放</div><div class="duration">10:00</div></div>
 </div></div></body></html>`;
 
+/** 直播间骨架（GitHub #76）：没有 .bpx-player-container，网页全屏只加 body.fullscreen-fix，全屏是 #fullscreen-container 的原生全屏 */
+const liveHtml = () => `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>离线冒烟测试直播间 - 哔哩哔哩直播</title></head><body>
+<div class="link-navbar-ctnr"></div>
+<div class="live-room-app"><main class="app-content"><div class="app-body">
+  <div id="player-ctnr"><div id="live-player"><div id="fullscreen-container" style="position:fixed;inset:0">
+    <div class="web-player-inject-wrap"><video muted playsinline></video></div>
+  </div></div></div>
+  <div id="aside-area-vm">弹幕列表</div>
+</div></main></div>
+<script>
+  // 无头环境里 requestFullscreen 依赖用户手势，用可写的 fullscreenElement 复刻同样的状态迁移
+  window.__fsEl = null;
+  Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => window.__fsEl });
+  window.setNativeFullscreen = (on) => {
+    window.__fsEl = on ? document.getElementById('fullscreen-container') : null;
+    document.dispatchEvent(new Event('fullscreenchange'));
+  };
+</script></body></html>`;
+
 /** 原版页面的最小骨架：映间会把它藏起来或在上面换皮 */
 function stubHtml(u) {
   if (/\/opus\/\d/.test(u)) return opusHtml();
   if (/search\.bilibili\.com/.test(u)) return searchHtml();
+  if (/live\.bilibili\.com\/\d+/.test(u)) return liveHtml();
   if (/\/v\/popular/.test(u)) return popularHtml();
   if (/\/video\//.test(u)) return watchHtml();
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>哔哩哔哩 (゜-゜)つロ 干杯~-bilibili</title></head><body>

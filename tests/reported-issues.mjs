@@ -508,6 +508,28 @@ try {
     await input.fill('无结果'); await input.press('Enter');
     await page.locator('.sheet-layer .city-list').getByText('没有找到这个城市').waitFor({ timeout: 2500 });
   });
+  await check('76-live-fullscreen-topbar', async () => {
+    const live = await ctx.newPage();
+    try {
+      await live.setViewportSize({ width: 1440, height: 900 });
+      await live.goto('https://live.bilibili.com/12345');
+      const top = live.locator('#margin-watch-top');
+      await top.locator('.top').waitFor();
+      assert.equal(await live.locator('html.margin-live').count(), 1);
+      assert(await top.isVisible(), '普通浏览时顶栏应该在');
+      // ① 直播间的「网页模式」只是给 body 加 fullscreen-fix，没有 data-screen
+      await live.evaluate(() => document.body.classList.add('fullscreen-fix'));
+      await top.waitFor({ state: 'hidden', timeout: 2000 });
+      await live.evaluate(() => document.body.classList.remove('fullscreen-fix'));
+      await top.waitFor({ state: 'visible', timeout: 2000 });
+      // ② 进全屏 → 顶栏收起；退出全屏 → 顶栏必须自己回来，不刷新页面（旧代码这里永远回不来）
+      await live.evaluate(() => window.setNativeFullscreen(true));
+      await top.waitFor({ state: 'hidden', timeout: 2000 });
+      await live.evaluate(() => window.setNativeFullscreen(false));
+      await top.waitFor({ state: 'visible', timeout: 2000 });
+      await live.screenshot({ path: join(out, 'live-fullscreen-topbar.png') });
+    } finally { await live.close(); }
+  });
   assert.deepEqual(errors, []);
 } finally {
   writeFileSync(join(out, 'results.json'), JSON.stringify({ results, errors }, null, 2));

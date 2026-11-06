@@ -190,13 +190,19 @@ export class WatchSkin {
       }
       return 'normal';
     };
+    // 直播间的「网页全屏」是 B 站自己的窗口全屏：只给 body 加 fullscreen-fix，没有 data-screen，也不进原生全屏
+    const liveWindowFullscreen = () => this.kind === 'live' && document.body.classList.contains('fullscreen-fix');
     let lastScreen = '';
+    let lastHide = false;
     const sync = (force = false) => {
       const screen = playerScreen();
-      // 状态没变且不在全屏时不做重复重排；设置变化时 force 强制重算
-      if (!force && screen === lastScreen && !document.fullscreenElement) return;
+      const hide = screen === 'web' || screen === 'full' || !!document.fullscreenElement || liveWindowFullscreen();
+      // 状态没变时不做重复重排；设置变化时 force 强制重算。
+      // 直播间没有 data-screen，全屏进出时 screen 一直是 normal，所以 hide 也要算进「有没有变化」，
+      // 否则退出全屏后这里直接 return，顶栏要刷新页面才回来（GitHub #76）
+      if (!force && screen === lastScreen && hide === lastHide) return;
       lastScreen = screen;
-      const hide = screen === 'web' || screen === 'full' || !!document.fullscreenElement;
+      lastHide = hide;
       this.host.toggleAttribute('hidden', hide);
       webScroll(screen === 'web' && !document.fullscreenElement && this.settings.webScroll);
       this.bg.hold('screen', hide);
@@ -336,6 +342,10 @@ export class WatchSkin {
     this.screenSync = () => sync(true);
     addEventListener('resize', () => { if (de.classList.contains('margin-webscroll')) webScroll(true); });
     new MutationObserver(() => sync()).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-screen'] });
+    // 直播间「网页全屏」只改 body 的 class，不碰 data-screen；单独盯它，免得要等 every(1000) 兜底（GitHub #76）
+    const watchBodyClass = () => new MutationObserver(() => sync()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    if (document.body) watchBodyClass();
+    else addEventListener('DOMContentLoaded', watchBodyClass, { once: true });
     every(1000, sync); // 旧版播放器只改 class、不发 data-screen 变化，兜底轮询
     // v0.43 自动网页全屏；v0.47 宽屏模式：每个视频进来一次，用户自己退出后同一视频不再强开
     const keyOf = () => location.pathname.match(/BV\w+|ep\d+|ss\d+/)?.[0] ?? location.search;
