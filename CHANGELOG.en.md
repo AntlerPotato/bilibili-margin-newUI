@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Apply existing theme, accent, radius and control-motion preferences to the live homepage's search, navigation, rankings, areas and room cards. Use native color variables with the native layout and recommendation player, supporting system theme changes, immediate disable and `?margin=off` without loading the watch-page UI module (#88).
+
 - Fix native like and costume animations appearing at the page's top-left by preserving SVGA measurement before reparenting and costume icons. Cover normal and scaled layouts (#91). Add first-frame checks for reply expansion and pagination, verifying the existing `--bg1_rgb` dark-loading fix (#90).
 
 - Stop resize-triggered shader draws after disabling animated backgrounds or selecting an image. Verify control-effect preferences against hardware animation and the software-rendering static fallback, excluding settings thumbnails from draw counts.

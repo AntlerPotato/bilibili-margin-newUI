@@ -77,6 +77,7 @@ jobs:
         run: |
           SMOKE_OUT=smoke-artifacts/dynamic-replies node tests/dynamic-replies.mjs
           SMOKE_OUT=smoke-artifacts/live-rank-theme node tests/live-rank-theme.mjs
+          SMOKE_OUT=smoke-artifacts/live-home-theme node tests/live-home-theme.mjs
       - name: Native share button sizing
         run: npm run test:watch-share
         env:

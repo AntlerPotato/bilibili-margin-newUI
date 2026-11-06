@@ -109,6 +109,7 @@ const isWatch = () => location.hostname === 'www.bilibili.com' && /^\/(?:[a-z]{2
 const isSearch = () => location.hostname === 'search.bilibili.com';
 /** 直播间（v0.47.2）：live.bilibili.com/房间号，只在顶层页面；活动页里嵌的 blanc 房间不管 */
 const isLive = () => location.hostname === 'live.bilibili.com' && /^\/\d+\/?$/.test(location.pathname) && window.top === window;
+const isLiveHome = () => location.hostname === 'live.bilibili.com' && location.pathname === '/' && window.top === window;
 /** 其他接管的页面：除首页、播放页外的 B 站页面（空间、番剧、动态、历史、专栏、稍后再看…） */
 const SKIP = /^\/(?:[a-z]{2}(?:-[A-Za-z]{2,4})?\/)?(?:blackboard|correspond|v\/topic|festival|bnj|ssr)/;
 const isPage = () => /^(www|space|t)\.bilibili\.com$/.test(location.hostname) && !SKIP.test(location.pathname) && window.top === window;
@@ -135,7 +136,7 @@ const offByUrl = () => new URLSearchParams(location.search).get('margin') === 'o
 const SKIN_KEY = 'margin:skin';
 function skinMirror(): string | null { try { return localStorage.getItem(SKIN_KEY); } catch { return null; } }
 function setSkinMirror(v: string): void { try { if (skinMirror() !== v) localStorage.setItem(SKIN_KEY, v); } catch { /* 隐私模式 */ } }
-function skinStyle(kind: SkinKind, theme: string): HTMLStyleElement {
+function skinStyle(kind: SkinKind | 'live-home', theme: string): HTMLStyleElement {
   const de = document.documentElement;
   de.classList.add('margin-skin', `margin-${kind}`);
   const dk = kind === 'page' ? detailKind() : null;
@@ -150,12 +151,32 @@ function skinStyle(kind: SkinKind, theme: string): HTMLStyleElement {
   }
   return st;
 }
-function unskin(kind: SkinKind): void {
+function unskin(kind: SkinKind | 'live-home'): void {
   const de = document.documentElement;
   document.getElementById('margin-watch-css')?.remove();
   de.classList.remove('margin-skin', `margin-${kind}`, 'margin-has-bg', 'margin-detail', 'margin-detail-narrow');
   delete de.dataset.marginTheme;
   delete de.dataset.marginDetail;
+}
+
+/** 直播首页保留原生导航和布局，只同步主题样式，无需加载播放页界面模块。 */
+async function startLiveHome(): Promise<void> {
+  if (sessionStorage.getItem('margin:off') || offByUrl()) { backPill(); return; }
+  const mirror = skinMirror();
+  if (mirror !== '0') skinStyle('live-home', mirror || 'auto');
+  let settings = await startupSettings().catch(error => { unskin('live-home'); throw error; });
+  const apply = (next: Settings) => {
+    settings = next;
+    const on = settings.enabled && settings.watch;
+    setSkinMirror(on ? settings.theme : '0');
+    if (on) skinStyle('live-home', settings.theme);
+    else unskin('live-home');
+  };
+  apply(settings);
+  onSettingsChange(apply);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (settings.theme === 'auto') apply(settings);
+  });
 }
 
 async function startWatch(kind: SkinKind = 'watch'): Promise<void> {
@@ -262,6 +283,7 @@ async function start(): Promise<void> {
   if (isHistory()) return takeover(load('history'), (m, st) => new m.HistoryApp(st));
   if (isFeed()) return takeover(load('feed'), (m, st) => new m.FeedApp(st));
   if (isSearch()) return startWatch('search');
+  if (isLiveHome()) return startLiveHome();
   if (isLive()) return startWatch('live');
   if (!isHome() && isPage()) return startWatch('page');
   if (!isHome()) return;
