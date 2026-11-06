@@ -203,7 +203,7 @@ export class BackgroundLayer {
   private hadRect = false;
 
   private draw(now: number, moveOnly = false): void {
-    if (!this.gl || !this.prog) return;
+    if (!this.gl || !this.prog || this.cfg.mode === 'off' || this.cfg.mode === 'image') return;
     const gl = this.gl, w = this.canvas.width, hh = this.canvas.height;
     const still = reducedMotion();
     const t = still ? 12 : (now - this.start) / 1000;

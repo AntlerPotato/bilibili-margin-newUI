@@ -11,7 +11,7 @@ mkdirSync(out, { recursive: true });
 const results = [], errors = [];
 const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'margin-effects-')), {
   ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chromium' }),
-  headless: true, args: ['--headless=new', '--no-sandbox', '--enable-unsafe-swiftshader', `--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
+  headless: true, args: ['--headless=new', '--no-sandbox', '--enable-unsafe-swiftshader', ...(process.env.SMOKE_SOFTWARE_GL ? ['--use-angle=swiftshader'] : []), `--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
   viewport: { width: 1440, height: 1000 }, locale: 'zh-CN', reducedMotion: 'no-preference',
 });
 try {
@@ -52,8 +52,18 @@ try {
       };
       await evaluate(`window.effectDraws = 0; (() => {
         const draw = WebGLRenderingContext.prototype.drawArrays;
-        WebGLRenderingContext.prototype.drawArrays = function(...args) { effectDraws++; return draw.apply(this, args); };
+        WebGLRenderingContext.prototype.drawArrays = function(...args) {
+          if (this.canvas.parentElement?.classList.contains('bg')) effectDraws++;
+          return draw.apply(this, args);
+        };
       })()`);
+      const background = page.locator(name === 'home' ? '#margin-root .bg' : '#margin-bg .bg');
+      result.softwareRenderer = await background.evaluate(bg => bg.hasAttribute('data-soft'));
+      await page.waitForTimeout(500);
+      await evaluate('effectDraws = 0');
+      await page.waitForTimeout(400);
+      result.baselineDraws = await evaluate('effectDraws');
+      assert.equal(result.baselineDraws > 0, !result.softwareRenderer, 'unexpected initial background rendering policy');
       await effects.click();
       await page.locator(`${host} .app.margin-ui-still`).waitFor({ state: 'attached' });
       await page.locator(`${host} [role="radio"]`).filter({ hasText: '简洁平面' }).click();
@@ -74,13 +84,20 @@ try {
       }
       // Closing settings makes the background visible on every supported entry point.
       await page.locator(`${host} .sheet[aria-label="设置"] .sheet-x`).click();
+      await page.waitForTimeout(200);
       await evaluate('effectDraws = 0');
       await page.waitForTimeout(700);
       result.movingDraws = await evaluate('effectDraws');
-      assert(result.movingDraws > 0, 'turning off controls froze the dynamic background');
+      assert.equal(result.movingDraws > 0, !result.softwareRenderer, 'control preference changed the background rendering policy');
+      assert.equal(await page.evaluate(() => document.documentElement.classList.contains('margin-reduce')), false);
+      assert.equal(await background.getAttribute('data-mode'), 'fixed');
       await patch({ bg: { mode: 'off' } });
-      await page.waitForTimeout(200);
+      await page.waitForFunction(() => {
+        const host = document.getElementById('margin-bg') || document.getElementById('margin-root');
+        return host.shadowRoot.querySelector('.bg').dataset.mode === 'off';
+      });
       await evaluate('effectDraws = 0');
+      await page.setViewportSize({ width: 1440, height: 980 });
       await page.waitForTimeout(400);
       assert.equal(await evaluate('effectDraws'), 0, 'disabled background keeps rendering');
       await patch({ uiEffects: true, glass: 'soft' });

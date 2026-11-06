@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Stop resize-triggered shader draws after disabling animated backgrounds or selecting an image. Verify control-effect preferences against hardware animation and the software-rendering static fallback, excluding settings thumbnails from draw counts.
+
 - Fix a cold-start square-corner flash before the first theme mirror exists by applying default player styling synchronously and reconciling stored settings. Share the startup settings read and skip the watch UI module download when page redesign is disabled.
 - Add an independent control-animation switch for buttons, panels, cards and triple-action feedback while background and weather motion follow their own settings. Add a Flat surface option that removes backdrop blur, refraction and primary floating shadows. Persist and import both settings, with home, watch and search regressions. Release held input and clean up animations when effects are disabled during a triple-action hold (#85).
 - Add the approved compact squeeze carousel to channel pages, with a main image, two narrow previews and a translucent caption gradient. Reuse Bilibili covers, titles and links, support keyboard and rapid switching, resizing and reduced motion, and load the module only on channel pages.
