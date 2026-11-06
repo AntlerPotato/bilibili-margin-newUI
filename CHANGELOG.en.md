@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Merge #60 and prefetch enough cards for the intended scroll position before refreshing. Cover positions before, at and after the sticky boundary, top-of-page refresh, zoom, tab changes and failure recovery.
+- Merge the real Fullscreen API regression from #77, alongside late-body initialization and transitions between live web and native fullscreen modes.
+- Document direct temporary-extension installation from a built folder or ZIP in Safari versions that expose this developer option. Native Safari runtime validation still requires a Mac (#12).
+
 - Add a Subscriptions view to Favorites for subscribed collections and other users' saved folders, with list pagination and retry support. Separate cache keys by content type, fetch each complete collection once and render its videos in batches, and discard stale responses after switching views (#75).
 - Release size, visibility and pointer listeners and cancel pending animation frames when switching favorite categories or deleting cards, preventing removed folder components from accumulating.
 - Fix the header covering live web fullscreen and failing to return after native fullscreen exits. Track player mode, native fullscreen and live web fullscreen separately, including fullscreen transitions and initialization before the document body is available (#76, informed by #77).
