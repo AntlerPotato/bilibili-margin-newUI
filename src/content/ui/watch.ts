@@ -225,7 +225,7 @@ export class WatchSkin {
     };
     const place = () => {
       if (!de.classList.contains('margin-wide')) return;
-      const pl = player(), rc = document.querySelector<HTMLElement>('.right-container');
+      const pl = player(), rc = document.querySelector<HTMLElement>('.right-container, .playlist-container--right');
       if (!pl) return;
       ro?.observe(pl);
       const mini = playerScreen() === 'mini';
@@ -234,7 +234,7 @@ export class WatchSkin {
       ro?.observe(anchor);
       // 小窗尺寸与页面布局无关，读取原文档占位并沿用宽屏标题宽度。
       if (!mini) {
-        const width = `${pl.getBoundingClientRect().width}px`;
+        const width = `${pl.offsetWidth}px`;
         if (de.style.getPropertyValue('--m-wide-width') !== width) de.style.setProperty('--m-wide-width', width);
       }
       if (!rc) return;
@@ -243,7 +243,8 @@ export class WatchSkin {
       const first = [...inner.children].find((el) => el.getClientRects().length) ?? inner;
       if (!first.getClientRects().length) return;
       const current = parseFloat(getComputedStyle(rc).paddingTop) || 0;
-      const pad = `${Math.max(0, Math.round(current + anchor.getBoundingClientRect().bottom - first.getBoundingClientRect().top + 24))}px`;
+      const scale = rc.getBoundingClientRect().width / rc.offsetWidth || 1;
+      const pad = `${Math.max(0, Math.round(current + (anchor.getBoundingClientRect().bottom - first.getBoundingClientRect().top) / scale))}px`;
       if (de.style.getPropertyValue('--m-wide-pad') !== pad) de.style.setProperty('--m-wide-pad', pad);
     };
     const wide = (on: boolean) => {
@@ -255,8 +256,8 @@ export class WatchSkin {
         if (pl) ro.observe(pl);
         // 合集侧栏可晚于播放器挂载；只观察侧栏的内容变化，出现后立即重新定位。
         sideObserver ??= new MutationObserver((records) => {
-          if (records.some((r) => (r.target as Element).closest?.('.right-container') ||
-            [...r.addedNodes].some((n) => n instanceof Element && (n.matches('.right-container, .bpx-player-container') || n.querySelector('.right-container, .bpx-player-container'))))) schedulePlace();
+          if (records.some((r) => (r.target as Element).closest?.('.right-container, .playlist-container--right') ||
+            [...r.addedNodes].some((n) => n instanceof Element && (n.matches('.right-container, .playlist-container--right, .bpx-player-container') || n.querySelector('.right-container, .playlist-container--right, .bpx-player-container'))))) schedulePlace();
         });
         sideObserver.observe(document.body, { childList: true, subtree: true });
         addEventListener('resize', schedulePlace, { passive: true });
@@ -422,7 +423,7 @@ function alignAuthorCard(): void {
     if (scrollY > 1) return;
     // 浮动小窗会移动播放器本体；对齐它在文档中的占位，不能追随小窗的屏幕坐标。
     const player = document.querySelector('#playerWrap') ?? document.querySelector('.bpx-player-container');
-    const right = document.querySelector<HTMLElement>('.right-container');
+    const right = document.querySelector<HTMLElement>('.right-container, .playlist-container--right');
     const panel = right?.querySelector('.up-panel-container');
     if (!player || !right || !panel) return;
     if (getComputedStyle(player).position === 'fixed') return;
@@ -431,13 +432,14 @@ function alignAuthorCard(): void {
       if (el && !observed.has(el)) { ro.observe(el); observed.add(el); }
     }
     const current = parseFloat(getComputedStyle(right).paddingTop) || 0;
-    const pad = `${Math.max(0, Math.round(current + player.getBoundingClientRect().top - panel.getBoundingClientRect().top))}px`;
+    const scale = right.getBoundingClientRect().width / right.offsetWidth || 1;
+    const pad = `${Math.max(0, Math.round(current + (player.getBoundingClientRect().top - panel.getBoundingClientRect().top) / scale))}px`;
     if (de.style.getPropertyValue('--m-author-pad') !== pad) de.style.setProperty('--m-author-pad', pad);
   };
   new MutationObserver(schedule).observe(de, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver((records) => {
     if (records.some((r) => [...r.addedNodes].some((n) => n instanceof Element &&
-      (n.matches('.up-panel-container, .right-container, .video-info-container, .bpx-player-container') || n.querySelector('.up-panel-container, .right-container, .video-info-container, .bpx-player-container'))))) schedule();
+      (n.matches('.up-panel-container, .right-container, .playlist-container--right, .video-info-container, .bpx-player-container') || n.querySelector('.up-panel-container, .right-container, .playlist-container--right, .video-info-container, .bpx-player-container'))))) schedule();
   }).observe(de, { childList: true, subtree: true });
   addEventListener('resize', schedule, { passive: true });
   addEventListener('scroll', () => { if (scrollY <= 1) schedule(); }, { passive: true });
