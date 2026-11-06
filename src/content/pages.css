@@ -105,6 +105,28 @@ html.margin-search .vui_button--disabled { opacity: .45; }
 /* 广告：统一由 global.css 的 html.margin-ads-hide 控制（v0.47） */
 
 /* ── 其他页面：热门 / 排行 / 番剧等，统一卡片圆角与表面 ── */
+/* 新版 /c/ 分区使用另一套封面和标题组件，和首页共享字体、颜色及圆角。 */
+html.margin-page .feedchannel,
+html.margin-page .feedchannel-body,
+html.margin-page .feedchannel-main { background: transparent !important; }
+html.margin-page .channel-page .channel-name {
+  font-family: var(--m-serif) !important; font-size: 28px; font-weight: 400 !important; color: var(--m-ink) !important;
+}
+html.margin-page .channel-page :is(.bili-video-card__cover, .bili-cover-card, .bili-cover-card__thumbnail, .bili-cover-card__thumbnail img, .channel-carousel) {
+  border-radius: 12px !important;
+}
+html.margin-page .channel-page .bili-video-card__wrap { background: transparent !important; }
+html.margin-page .channel-page :is(.bili-video-card__title, .bili-video-card__title a) {
+  font-family: var(--m-sans) !important; color: var(--m-ink) !important; font-size: 14px !important; line-height: 22px !important; font-weight: 500;
+}
+html.margin-page .channel-page :is(.bili-video-card__subtitle, .bili-video-card__author) {
+  font-family: var(--m-sans) !important; font-size: 12px !important; color: var(--m-faint) !important;
+}
+html.margin-page .channel-page .bili-video-card__title a:hover,
+html.margin-page .channel-page .bili-video-card__author:hover { color: var(--m-accent) !important; }
+html.margin-page .channel-page .banner-carousel__footer { background: var(--m-surface) !important; color: var(--m-ink) !important; }
+html.margin-page .channel-page .banner-carousel__footer a { color: inherit !important; }
+
 html.margin-page .video-card__content img, html.margin-page .rank-item .img img,
 html.margin-page .video-card .cover, html.margin-page .bili-video-card__image { border-radius: 12px !important; }
 html.margin-page .popular-video-container .video-name, html.margin-page .rank-item .info .title { color: var(--m-ink) !important; }

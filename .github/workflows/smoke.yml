@@ -63,6 +63,10 @@ jobs:
         run: npm run test:reported-issues
         env:
           SMOKE_OUT: smoke-artifacts/reported-issues
+      - name: Native channel theme and video navigation
+        run: node tests/channel-theme.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/channel-theme
       - name: Native share button sizing
         run: npm run test:watch-share
         env:
