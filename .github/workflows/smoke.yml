@@ -28,12 +28,12 @@ jobs:
         run: npm run test:app-window
       - name: Watch Later creator filters and groups
         run: npm run test:watch-later
+        env:
+          SMOKE_OUT: smoke-artifacts/watch-later-groups
       - name: Manual danmaku jump suggestions
         run: npm run test:danmaku-jump
         env:
           SMOKE_OUT: smoke-artifacts/danmaku-jump
-        env:
-          SMOKE_OUT: smoke-artifacts/watch-later-groups
       - name: Community advertisement skipping
         run: npm run test:sponsor-skip
       - name: Background frame pacing
