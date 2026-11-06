@@ -96,7 +96,7 @@ export interface Settings {
   hideAds: boolean;
   /** 社区广告片段自动跳过，默认关闭；只读小电视空降助手数据 */
   sponsorSkip: boolean;
-  /** 弹幕空降（v0.53，默认关闭）：认得出时间点的弹幕加下划线，点一下跳到那个时间；只在本机解析，不联网 */
+  /** 弹幕空降（v0.53，默认开启，可在设置里关掉）：认得出时间点的弹幕加下划线，点一下跳到那个时间；只在本机解析，不联网 */
   danmakuAirborne: boolean;
   /** 顶栏消息未读轮询与消息角标（v0.47）；动态角标不受影响 */
   msgRemind: boolean;
@@ -162,7 +162,7 @@ export const DEFAULTS: Settings = {
   wide: false,
   hideAds: true,
   sponsorSkip: false,
-  danmakuAirborne: false,
+  danmakuAirborne: true,
   msgRemind: true,
   homeOrder: [...HOME_SECTIONS],
   appFeed: false,
@@ -218,7 +218,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     wide: r.wide === true,
     hideAds: r.hideAds !== false,
     sponsorSkip: r.sponsorSkip === true,
-    danmakuAirborne: r.danmakuAirborne === true,
+    danmakuAirborne: r.danmakuAirborne !== false,
     msgRemind: r.msgRemind !== false,
     homeOrder: normalizeHomeOrder(r.homeOrder),
     appFeed: r.appFeed === true,
