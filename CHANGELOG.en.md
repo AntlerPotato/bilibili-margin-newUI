@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Expand, collapse and paginate nested replies inside dynamic cards. Fetch on demand, preserve long reply IDs, support retries and discard stale responses after closing or reopening comments. Retain native emoji assets and author profile links.
+- Fix live leaderboard text blending into dark backgrounds and guard-skin text conflicting with the selected theme. Apply readable colors to ranking tabs, usernames and scores.
 - Style the new `/c/` channel components with shared typography, cover corners, text colors and carousel surfaces. Transparent channel containers allow the selected background to show through. Add light/dark theme and video-navigation regressions (#84).
 - Add opt-in danmaku jump suggestions for standard BV videos. A matching explicit timestamp from at least three different senders produces a prompt, with click-to-seek, undo and dismiss. Validate each part's CID and duration, bound response size and request time, cancel on disabling and load the module on demand (#64).
 - Support the native columns on Watch Later and favorite-list playback pages, restoring the description/tag card and preventing the author card from overlapping a wide player. Align normal-mode author cards with the player top and wide-mode cards with the toolbar, preserving document positions through mini-player scrolling, page zoom and expanded tags (#11, #86).

@@ -23,6 +23,13 @@ html.margin-live #chat-control-panel-vm .chat-input-ctnr, html.margin-live #chat
   background: var(--m-chip) !important; color: var(--m-ink) !important; border-color: var(--m-line) !important; border-radius: 12px !important;
 }
 html.margin-live .rank-list-section, html.margin-live .rank-list-ctnr { background: var(--m-surface) !important; border-bottom: 1px solid var(--m-line) !important; }
+/* 原生排行榜仍读取 Ga 系列色值和大航海皮肤，单独换底色会留下黑字或浅金文字。 */
+html.margin-live #rank-list-vm { --Ga9: var(--m-ink); --Ga5: var(--m-muted); --Ga2: var(--m-line); --Ga0: var(--m-canvas); color: var(--m-ink); }
+html.margin-live #rank-list-vm .rank-list-ctnr { background-image: none !important; }
+html.margin-live #rank-list-vm .tabs .item { color: var(--m-muted) !important; opacity: 1; }
+html.margin-live #rank-list-vm .tabs .item.active,
+html.margin-live #rank-list-vm :is(.uname a, .name, .rank, .score, .live-skin-main-text, .live-skin-main-a-text) { color: var(--m-ink) !important; }
+html.margin-live #rank-list-vm :is(.tip, .list-desc, .live-skin-normal-text) { color: var(--m-muted) !important; }
 html.margin-live .link-footer { background: var(--m-canvas) !important; border-top: 1px solid var(--m-line); }
 html.margin-live .link-footer, html.margin-live .link-footer a { color: var(--m-muted) !important; }
 html.margin-live #sections-vm, html.margin-live .room-info-ctnr { background: transparent !important; }

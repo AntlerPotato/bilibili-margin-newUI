@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/content/api/http', () => ({ getJSON: vi.fn(), postForm: vi.fn(), postJSON: vi.fn() }));
 import { getJSON } from '../../src/content/api/http';
-import { dynCommentTarget, dynReplies, toDyn } from '../../src/content/api/dyn';
+import { dynCommentTarget, dynReplies, dynSubReplies, toDyn } from '../../src/content/api/dyn';
 
 const get = vi.mocked(getJSON);
 const item = (dynamic: object = {}, basic?: object) => ({ id_str: '900001234567890123', type: 'DYNAMIC_TYPE_WORD', basic,
@@ -65,7 +65,17 @@ describe('评论标识与置顶评论', () => {
     const reply = (rpid: number) => ({ rpid, content: { message: '赞[开心]', emote: { '[开心]': { url: '//i0.hdslb.com/happy.png' } } } });
     get.mockResolvedValue({ top_replies: [reply(2)], upper: { top: reply(2) }, replies: [reply(1), reply(2)], page: { acount: 8 } });
     const r = await dynReplies(17, '1001');
-    expect(r.list.map((x) => x.rpid)).toEqual([2, 1]); expect(r.count).toBe(8);
+    expect(r.list.map((x) => x.rpid)).toEqual(['2', '1']); expect(r.count).toBe(8);
     expect(r.list[0].richText).toEqual([{ text: '赞' }, { text: '[开心]', emoji: 'https://i0.hdslb.com/happy.png' }]);
+  });
+  it('楼中楼保留长根评论 ID，按服务器总数分页', async () => {
+    const id = '900001234567890123';
+    get.mockResolvedValue({ replies: [{ rpid: Number(id), rpid_str: id, member: { mid: '42' }, content: { message: '回复' } }], page: { count: 12, size: 10 } });
+    const first = await dynSubReplies(17, '800001234567890123', id, 1);
+    expect(get).toHaveBeenCalledWith('/x/v2/reply/reply', { type: 17, oid: '800001234567890123', root: id, pn: 1, ps: 10 });
+    expect(first.list[0].rpid).toBe(id); expect(first.list[0].mid).toBe(42); expect(first.more).toBe(true);
+    expect((await dynSubReplies(17, '800001234567890123', id, 2)).more).toBe(false);
+    get.mockResolvedValue({ replies: [], page: { count: 12, size: 10 } });
+    expect((await dynSubReplies(17, '800001234567890123', id, 1)).more).toBe(false);
   });
 });

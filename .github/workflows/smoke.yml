@@ -67,6 +67,10 @@ jobs:
         run: node tests/channel-theme.mjs
         env:
           SMOKE_OUT: smoke-artifacts/channel-theme
+      - name: Dynamic nested replies and live leaderboard contrast
+        run: |
+          SMOKE_OUT=smoke-artifacts/dynamic-replies node tests/dynamic-replies.mjs
+          SMOKE_OUT=smoke-artifacts/live-rank-theme node tests/live-rank-theme.mjs
       - name: Native share button sizing
         run: npm run test:watch-share
         env:

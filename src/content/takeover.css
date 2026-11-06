@@ -532,6 +532,14 @@ a.wh-card:hover { box-shadow: var(--ring), var(--sh-sm); transform: translateY(-
 .dy-r-name, .dy-r b { font: 500 12px/1.4 var(--sans); color: var(--muted); text-decoration: none; }
 .dy-r p { margin: 4px 0 0; font: 400 14px/1.6 var(--sans); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 .dy-r-meta { display: block; margin-top: 4px; font: 400 11px/1.4 var(--mono); color: var(--faint); }
+.dy-replies-toggle, .dy-replies-more { padding: 6px 0; border: 0; background: transparent; color: var(--accent); font: 500 12px/1.5 var(--sans); cursor: pointer; text-align: left; }
+.dy-replies-toggle:hover, .dy-replies-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.dy-replies-toggle:focus-visible, .dy-replies-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.dy-replies-more:disabled { opacity: .5; cursor: wait; }
+.dy-sublist { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 0 2px; padding-left: 14px; border-left: 1px solid var(--line); }
+.dy-sublist[hidden], .dy-sublist > .dy-rempty:empty { display: none; }
+.dy-sublist .dy-r { gap: 8px; }
+.dy-sublist .dy-r-face img { width: 24px; height: 24px; }
 .dy-rempty { font: 400 13px/1.6 var(--sans); color: var(--muted); }
 .dy-rall { display: inline-block; margin-top: 12px; font: 500 12px/1 var(--sans); color: var(--accent); text-decoration: none; }
 .dy[data-href] .dy-acts { cursor: default; }

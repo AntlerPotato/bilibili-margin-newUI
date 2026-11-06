@@ -1,4 +1,4 @@
-import { dynCommentTarget, dynLike, dynReplies, dynReply, dynRepost, type Dyn, type DynText } from '../api/dyn';
+import { dynCommentTarget, dynLike, dynReplies, dynReply, dynRepost, dynSubReplies, type Dyn, type DynText, type Reply } from '../api/dyn';
 import { fmtAgo, fmtCount, h, icon, ICONS } from './dom';
 import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
@@ -121,6 +121,59 @@ function kindLabel(d: Dyn): string {
   return 'NOTE';
 }
 
+function replyRow(r: Reply): HTMLElement {
+  return h('div', { class: 'dy-r' },
+    h('a', { class: 'dy-r-face', href: `https://space.bilibili.com/${r.mid}`, ...ext }, h('img', { src: r.face ? `${r.face}@64w_64h_1c.webp` : '', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' })),
+    h('div', { class: 'dy-r-b' },
+      h('a', { class: 'dy-r-name', href: `https://space.bilibili.com/${r.mid}`, ...ext }, r.name),
+      h('p', {}, ...richText(r.text, r.richText)),
+      h('span', { class: 'dy-r-meta' }, [fmtAgo(r.ts), r.like ? `赞 ${fmtCount(r.like)}` : ''].filter(Boolean).join(' · '))));
+}
+
+/** 21st 嵌套回复的缩进与收起交互；B 站楼中楼按根评论分页，首次展开才请求。 */
+function replyThread(r: Reply, type: number, oid: string, active: () => boolean): HTMLElement {
+  const row = replyRow(r);
+  if (!r.rcount) return row;
+  const toggle = h('button', { type: 'button', class: 'dy-replies-toggle', 'aria-expanded': 'false' }, `展开 ${r.rcount} 条回复`);
+  const status = h('div', { class: 'dy-rempty', role: 'status' });
+  const more = h('button', { type: 'button', class: 'dy-replies-more' }, '加载更多回复') as HTMLButtonElement;
+  const list = h('div', { class: 'dy-sublist', hidden: '' }, status, more);
+  const seen = new Set<string>();
+  let page = 0, busy = false;
+  const load = async () => {
+    if (busy || !active()) return;
+    busy = true; more.disabled = true; status.textContent = '加载中…';
+    try {
+      const result = await dynSubReplies(type, oid, r.rpid, page + 1);
+      if (!active()) return;
+      page++;
+      for (const reply of result.list) {
+        if (seen.has(reply.rpid)) continue;
+        seen.add(reply.rpid); list.insertBefore(replyRow(reply), status);
+      }
+      status.textContent = seen.size ? '' : '暂无回复';
+      more.textContent = '加载更多回复';
+      if (!result.more) {
+        if (more.matches(':focus')) toggle.focus();
+        more.remove();
+      }
+    } catch (err) {
+      if (!active()) return;
+      status.textContent = `回复加载失败：${(err as Error).message}`;
+      more.textContent = '重试加载回复';
+    } finally { busy = false; more.disabled = false; }
+  };
+  more.addEventListener('click', () => void load());
+  toggle.addEventListener('click', () => {
+    const open = list.hidden;
+    list.hidden = !open; toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = open ? '收起回复' : `展开 ${r.rcount} 条回复`;
+    if (open && !page) void load();
+  });
+  row.querySelector('.dy-r-b')!.append(toggle, list);
+  return row;
+}
+
 /**
  * 动态卡底部互动条（v0.50，B 站评论建议：点赞、转发、评论不用跳详情页）。
  * 赞：直接切换；转发：卡片里展开一句话输入框，点「转发」才发出；评论：卡片里展开热门评论 + 输入框，
@@ -191,12 +244,7 @@ function actions(d: Dyn): HTMLElement {
     }).then((result) => {
       if (gen !== commentGen || !result) return;
       const rs = result.list;
-      list.replaceChildren(...(rs.length ? rs.map((r) => h('div', { class: 'dy-r' },
-        h('a', { class: 'dy-r-face', href: `https://space.bilibili.com/${r.mid}`, ...ext }, h('img', { src: r.face ? `${r.face}@64w_64h_1c.webp` : '', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' })),
-        h('div', { class: 'dy-r-b' },
-          h('a', { class: 'dy-r-name', href: `https://space.bilibili.com/${r.mid}`, ...ext }, r.name),
-          h('p', {}, ...richText(r.text, r.richText)),
-          h('span', { class: 'dy-r-meta' }, [fmtAgo(r.ts), r.like ? `赞 ${fmtCount(r.like)}` : '', r.rcount ? `${r.rcount} 条回复` : ''].filter(Boolean).join(' · '))))) : [h('div', { class: 'dy-rempty' }, '还没有评论')]));
+      list.replaceChildren(...(rs.length ? rs.map((r) => replyThread(r, d.cmtType!, d.cmtOid!, () => gen === commentGen && !!cmtBox?.isConnected)) : [h('div', { class: 'dy-rempty' }, '还没有评论')]));
     }).catch((err) => { if (gen === commentGen) list.replaceChildren(h('div', { class: 'dy-rempty' }, `评论加载失败：${(err as Error).message}`)); });
   });
   // 赞

@@ -138,21 +138,31 @@ export async function dynCommentTarget(d: Dyn): Promise<{ type: number; oid: str
   return { type: item.cmtType, oid: item.cmtOid };
 }
 
-export interface Reply { rpid: number; name: string; face: string; mid: number; text: string; richText?: DynText[]; like: number; ts: number; rcount: number }
-/** 热门评论第一页（旧版 /x/v2/reply 不要 wbi 签名） */
-export async function dynReplies(type: number, oid: string, ps = 8): Promise<{ list: Reply[]; count: number }> {
-  const d = await getJSON<any>('/x/v2/reply', { type, oid, sort: 1, ps, pn: 1 });
-  const seen = new Set<number>();
-  const list = [...(d.top_replies ?? []), ...(d.upper?.top ? [d.upper.top] : []), ...(d.replies ?? [])].filter((r: any) => !seen.has(r.rpid) && seen.add(r.rpid)).slice(0, ps).map((r: any) => ({
-    rpid: r.rpid, name: r.member?.uname ?? '', face: https(r.member?.avatar), mid: Number(r.mid) || 0,
+export interface Reply { rpid: string; name: string; face: string; mid: number; text: string; richText?: DynText[]; like: number; ts: number; rcount: number }
+function toReply(r: any): Reply {
+  return {
+    rpid: String(r.rpid_str ?? r.rpid), name: r.member?.uname ?? '', face: https(r.member?.avatar), mid: Number(r.mid ?? r.member?.mid) || 0,
     text: r.content?.message ?? '',
     richText: String(r.content?.message ?? '').split(/(\[[^\]\r\n]+\])/g).filter(Boolean).map((text) => {
       const emoji = https(r.content?.emote?.[text]?.url);
       return { text, ...(/^https:\/\//.test(emoji) ? { emoji } : {}) };
     }),
     like: r.like ?? 0, ts: r.ctime ?? 0, rcount: r.rcount ?? 0,
-  }));
+  };
+}
+/** 热门评论第一页（旧版 /x/v2/reply 不要 wbi 签名） */
+export async function dynReplies(type: number, oid: string, ps = 8): Promise<{ list: Reply[]; count: number }> {
+  const d = await getJSON<any>('/x/v2/reply', { type, oid, sort: 1, ps, pn: 1 });
+  const seen = new Set<string>();
+  const list = [...(d.top_replies ?? []), ...(d.upper?.top ? [d.upper.top] : []), ...(d.replies ?? [])]
+    .map(toReply).filter((r) => !seen.has(r.rpid) && seen.add(r.rpid)).slice(0, ps);
   return { list, count: d.page?.acount ?? d.page?.count ?? list.length };
+}
+export async function dynSubReplies(type: number, oid: string, root: string, pn: number): Promise<{ list: Reply[]; more: boolean }> {
+  const ps = 10;
+  const d = await getJSON<any>('/x/v2/reply/reply', { type, oid, root, pn, ps });
+  const list: Reply[] = (d.replies ?? []).map(toReply);
+  return { list, more: list.length > 0 && pn * (d.page?.size || ps) < (d.page?.count ?? 0) };
 }
 export async function dynReply(type: number, oid: string, message: string): Promise<void> {
   await postForm('/x/v2/reply/add', { type, oid, message, plat: 1 });
