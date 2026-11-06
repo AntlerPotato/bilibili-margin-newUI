@@ -4,7 +4,7 @@ import { appDislike, appRecommended } from '../api/appfeed';
 import { noteNegative, rerank, resetRank } from '../rank';
 import { followClassics, resetClassics } from '../api/space';
 import { account } from '../api/account';
-import { normalizeHomeOrder, saveSettings, type HomeSection, type Settings } from '../../shared/settings';
+import { loadSettings, normalizeHomeOrder, saveSettings, type HomeSection, type Settings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
 import { FilterRuntime } from '../filter-runtime';
 import { targetOfVideo } from '../filter-targets';
@@ -27,6 +27,7 @@ import { createContextMenu } from './context-menu';
 import { bindCardMenu } from './card-menu';
 import { createLaterDrawer } from './drawer';
 import { reducedMotion } from '../motion';
+import { ThemeWriter } from './theme-writer';
 import css from '../styles/index';
 
 type Tab = 'rcmd' | 'popular' | 'classic';
@@ -69,6 +70,7 @@ export class MarginApp {
   private gen = 0;
   private fillRetry = 0;
   private media = matchMedia('(prefers-color-scheme: dark)');
+  private themeWriter = new ThemeWriter();
 
   constructor(private settings: Settings) {
     this.filter = new FilterRuntime(settings);
@@ -82,6 +84,7 @@ export class MarginApp {
   }
 
   update(s: Settings): void {
+    s = this.themeWriter.sync(s);
     if (this.app) this.app.dataset.glass = s.glass;
     const prev = this.settings;
     this.settings = s;
@@ -328,7 +331,11 @@ export class MarginApp {
     }
     this.settings = { ...this.settings, theme: next };
     this.applyTheme();
-    await saveSettings({ theme: next });
+    try { await this.themeWriter.save(next); }
+    catch {
+      this.update(await loadSettings().catch(() => this.settings));
+      toast(this.app, '主题设置保存失败，请重试');
+    }
   }
 
   private switchTab(id: Tab, tabs: HTMLElement): void {

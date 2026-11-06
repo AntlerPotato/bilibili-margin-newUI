@@ -1,7 +1,7 @@
 import { getJSON, nav } from './http';
 import type { Video } from './feed';
 
-export interface Folder { id: number; title: string; count: number; cover: string; mid: number; /** 默认收藏夹不能删除 */ isDefault: boolean; isPrivate: boolean }
+export interface Folder { id: number; title: string; count: number; cover: string; mid: number; kind?: 'collected' | 'season'; /** 默认收藏夹不能删除 */ isDefault: boolean; isPrivate: boolean }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function folders(): Promise<Folder[] | null> {
@@ -11,16 +11,36 @@ export async function folders(): Promise<Folder[] | null> {
   return (data.list ?? []).map((f) => ({ id: f.id, title: f.title, count: f.media_count, cover: String(f.cover || '').replace(/^http:/, 'https:'), mid: n.mid!, isDefault: (f.attr & 2) === 0, isPrivate: (f.attr & 1) === 1 }));
 }
 
+export async function collectedFolders(page = 1): Promise<{ list: Folder[]; more: boolean } | null> {
+  const n = await nav();
+  if (!n?.isLogin || !n.mid) return null;
+  const data = await getJSON<{ list: any[] | null; has_more: boolean }>('/x/v3/fav/folder/collected/list', { up_mid: n.mid, pn: page, ps: 50, platform: 'web' });
+  return { list: (data.list ?? []).filter((f) => f.type === 11 || f.type === 21).map((f) => ({
+    id: f.id, title: f.title, count: f.media_count, cover: https(f.cover), mid: n.mid!,
+    kind: f.type === 21 ? 'season' : 'collected', isDefault: false, isPrivate: false,
+  })), more: !!data.has_more };
+}
+
+export const folderUrl = (f: Folder) => `https://space.bilibili.com/${f.mid}/favlist?fid=${f.id}${f.kind ? `&ftype=collect&ctype=${f.kind === 'season' ? 21 : 11}` : ''}`;
+const https = (url: unknown) => String(url || '').replace(/^http:/, 'https:').replace(/^\/\//, 'https://');
+const mediaVideo = (m: any, upper = m.upper): Video => ({
+  bvid: m.bvid, cid: m.ugc?.first_cid ?? 0, title: m.title,
+  cover: https(m.cover), duration: m.duration ?? 0,
+  author: upper?.name ?? '', mid: upper?.mid ?? 0, face: upper?.face ?? '',
+  views: m.cnt_info?.play ?? 0, danmaku: m.cnt_info?.danmaku ?? 0, pubdate: m.fav_time ?? m.pubtime ?? 0,
+});
+
+/** 原站的订阅合集接口一次返回完整 medias，由收藏抽屉缓存并分批展示。 */
+export async function seasonVideos(id: number): Promise<Video[]> {
+  const data = await getJSON<{ medias: any[] | null; info?: { upper?: any } }>('/x/space/fav/season/list', { season_id: id });
+  return (data.medias ?? []).filter((m) => m.bvid && (m.attr == null || m.attr === 0)).map((m) => mediaVideo(m, m.upper ?? data.info?.upper));
+}
+
 export async function folderVideos(id: number, page: number): Promise<{ list: Video[]; more: boolean }> {
   const data = await getJSON<{ medias: any[] | null; has_more: boolean }>('/x/v3/fav/resource/list', { media_id: id, pn: page, ps: 20, platform: 'web' });
   const list = (data.medias ?? [])
     .filter((m) => m.type === 2 && m.bvid && m.attr === 0)
-    .map((m): Video => ({
-      bvid: m.bvid, cid: m.ugc?.first_cid ?? 0, title: m.title,
-      cover: String(m.cover || '').replace(/^http:/, 'https:'), duration: m.duration ?? 0,
-      author: m.upper?.name ?? '', mid: m.upper?.mid ?? 0, face: m.upper?.face ?? '',
-      views: m.cnt_info?.play ?? 0, danmaku: m.cnt_info?.danmaku ?? 0, pubdate: m.fav_time ?? m.pubtime ?? 0,
-    }));
+    .map((m) => mediaVideo(m));
   return { list, more: !!data.has_more };
 }
 

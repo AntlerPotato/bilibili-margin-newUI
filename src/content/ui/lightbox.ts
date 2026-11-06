@@ -12,6 +12,8 @@ const imageSource = (p: string, width: number) => /^https:\/\/[^/]+\.(?:hdslb|bi
 export function openLightbox(pics: string[], start: number, root: Node): void {
   cur?.close();
   if (!pics.length) return;
+  const lastFocus = (root instanceof ShadowRoot ? root.activeElement : document.activeElement) as HTMLElement | null;
+  let closed = false;
   let i = Math.max(0, Math.min(pics.length - 1, start));
   const big = h('img', { class: 'lb-img', alt: '', referrerpolicy: 'no-referrer', decoding: 'async' }) as HTMLImageElement;
   const count = h('span', { class: 'lb-count' });
@@ -41,12 +43,22 @@ export function openLightbox(pics: string[], start: number, root: Node): void {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); go(i - 1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); go(i + 1); }
+    else if (e.key === 'Tab') {
+      const items = el.querySelectorAll<HTMLElement>('a[href],button:not([disabled])');
+      const active = (el.getRootNode() as ShadowRoot | Document).activeElement;
+      if (e.shiftKey && active === items[0]) { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (!e.shiftKey && active === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
+    }
   };
   function close(): void {
+    if (closed) return;
+    closed = true;
+    cancelAnimationFrame(frame);
     removeEventListener('keydown', key, true);
+    el.inert = true;
     el.removeAttribute('data-open');
     setTimeout(() => el.remove(), 200);
-    document.documentElement.style.removeProperty('overflow');
+    lastFocus?.focus({ preventScroll: true });
     cur = null;
   }
   el.addEventListener('click', (e) => { if (e.target === el || (e.target as HTMLElement).classList.contains('lb-stage')) close(); });
@@ -54,6 +66,6 @@ export function openLightbox(pics: string[], start: number, root: Node): void {
   const host = root instanceof ShadowRoot ? root : document.body;
   (host.querySelector('.app') ?? host).append(el);
   go(i);
-  requestAnimationFrame(() => el.setAttribute('data-open', ''));
+  const frame = requestAnimationFrame(() => { el.setAttribute('data-open', ''); shut.focus({ preventScroll: true }); });
   cur = { close };
 }

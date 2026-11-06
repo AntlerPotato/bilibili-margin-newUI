@@ -4,6 +4,19 @@
 
 ## Unreleased
 
+- Add a Subscriptions view to Favorites for subscribed collections and other users' saved folders, with list pagination and retry support. Separate cache keys by content type, fetch each complete collection once and render its videos in batches, and discard stale responses after switching views (#75).
+- Release size, visibility and pointer listeners and cancel pending animation frames when switching favorite categories or deleting cards, preventing removed folder components from accumulating.
+- Fix the header covering live web fullscreen and failing to return after native fullscreen exits. Track player mode, native fullscreen and live web fullscreen separately, including fullscreen transitions and initialization before the document body is available (#76, informed by #77).
+- Align the player after automatic wide-mode layout settles, leaving room for the header. Cancel alignment when the page has already scrolled, the user scrolls, the video changes or wide mode exits (#83).
+- Preserve coordinates and pointer identity when replaying a delayed release after a triple-action hold. This fixes release-position feedback being placed at the top-left corner. Add normal-click, hold-timeout and successful-hold regressions. The loading-time percentage reported in #85 still requires independent measurement.
+
+- Pause background thumbnail generation when the swatches leave the viewport or the settings panel closes, and resume when visible. Reduce offscreen shader compilation and interaction delays on first use.
+- Fix earlier settings notifications overriding the latest rapid theme toggle and interrupting the switch animation. Coalesce theme writes on home, watch and takeover pages, restoring settings and offering a retry after save failures.
+- Hide the watch-page scroll ruler while settings or favorites drawers are open so its ticks cannot cover the panel or intercept clicks.
+- Fix automatic web fullscreen being skipped when the native player starts in wide mode. Cover normal, wide, mini and fullscreen states, including manual exit behavior.
+- Focus the image viewer's close button on opening, cycle Tab within the viewer and restore focus to the originating image on closing. Cancel pending opening animation after closing and preserve existing page scroll styles.
+- Show server or network errors and stop polling when App QR authorization fails. Ignore earlier QR status responses after retrying, avoiding misleading expiry messages. Add regressions for theme writes, overlays, automatic player modes, the image viewer and authorization.
+
 - Fix square corners on the black video loading surface. Apply the existing clipping before the native player sets its screen mode, covering radius settings, wide mode, mini player and fullscreen.
 - Mount the watch-page card as soon as native hydration finishes, removing the previous polling delay of up to about 1.5 seconds. Coalesce startup observation by animation frame and bound its lifetime, with periodic checks covering late nodes.
 - Load native profile-page drawers through a separate on-demand module, reducing the entry script by about 64% and lowering startup script parsing. Add regressions for initial loading, late mounting, hydration and native media node continuity.

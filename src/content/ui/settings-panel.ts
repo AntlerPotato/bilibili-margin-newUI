@@ -247,6 +247,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     if (!thumbsVisible) return;
     clearTimeout(thumbJob); cancelAnimationFrame(thumbJob);
     const step = () => {
+      if (!thumbsVisible) return;
       const c = todo.shift();
       if (!c) { swatches.dataset.thumbs = t; return; }
       const url = shaderThumb(c.dataset.id as ShaderId, t);
@@ -340,9 +341,9 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const appQrNote = h('small', { class: 'af-note' });
   const appBtn = h('button', { type: 'button', class: 'ghost small' }, h('span', {}, '扫码授权')) as HTMLButtonElement;
   const appOff = h('button', { type: 'button', class: 'ghost small', hidden: true }, h('span', {}, '取消授权')) as HTMLButtonElement;
-  let pollT = 0;
+  let pollT = 0, pollRun = 0;
   let authed = false;
-  const stopPoll = () => { window.clearTimeout(pollT); pollT = 0; };
+  const stopPoll = () => { window.clearTimeout(pollT); pollT = 0; pollRun++; appBtn.disabled = false; };
   const paintApp = async () => {
     const st = await appState().catch(() => null);
     authed = !!st?.authed;
@@ -361,20 +362,28 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   });
   appBtn.onclick = async () => {
     stopPoll();
+    const run = pollRun;
+    appQrBox.hidden = true;
+    appQrNote.textContent = '';
     appBtn.disabled = true;
     const r = await appQr().catch((e) => ({ ok: false, error: String(e) } as { ok: boolean; url?: string; code?: string; error?: string }));
+    if (run !== pollRun) return;
     appBtn.disabled = false;
     if (!r.ok || !r.url || !r.code) { say(`拿不到二维码：${r.error || '网络错误'}`); return; }
     await drawQr(r.url);
+    if (run !== pollRun) return;
     appQrBox.hidden = false;
     appQrNote.textContent = '用手机 B 站 App 扫一扫，在手机上点「确认登录」';
     const code = r.code;
     const started = Date.now();
     const tick = async () => {
+      if (run !== pollRun) return;
       if (!sheet.el.isConnected || Date.now() - started > 180_000) { appQrBox.hidden = true; appQrNote.textContent = '二维码已过期，再点一次「扫码授权」'; return; }
-      const p = await appPoll(code).catch(() => null);
+      const p = await appPoll(code).catch((error) => ({ state: 'error' as const, error: String(error) }));
+      if (run !== pollRun) return;
       if (p?.state === 'done') { appQrBox.hidden = true; appQrNote.textContent = ''; say('授权好了，推荐换成你手机上的那套'); if (!get().appFeed) await save({ appFeed: true }); await paintApp(); return; }
       if (p?.state === 'expired') { appQrBox.hidden = true; appQrNote.textContent = '二维码已过期，再点一次「扫码授权」'; return; }
+      if (p?.state === 'error') { appQrBox.hidden = true; appQrNote.textContent = `授权失败：${p.error || '服务暂时不可用'}，可重新扫码`; return; }
       if (p?.state === 'scanned') appQrNote.textContent = '已扫码，请在手机上确认';
       pollT = window.setTimeout(tick, 2000);
     };

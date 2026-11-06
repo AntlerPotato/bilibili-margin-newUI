@@ -30,7 +30,7 @@ export interface GFOptions {
   onDirect?: () => void;
   onFileSelect?: (file: GFFile, index: number) => void;
 }
-export interface GlassFolderApi { el: HTMLElement; setFiles(files: GFFile[]): void; setOpen(open: boolean): void; isOpen(): boolean }
+export interface GlassFolderApi { el: HTMLElement; setFiles(files: GFFile[]): void; setOpen(open: boolean): void; isOpen(): boolean; dispose(): void }
 
 const NS = 'http://www.w3.org/2000/svg';
 const W = 340;
@@ -78,6 +78,7 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   const density = Math.min(1.5, Math.max(1, devicePixelRatio || 1)) * k;
   let open = false;
   let menuOpen = false;
+  let disposed = false;
   let files: GFFile[] = [];
 
   const root = h('div', { class: 'gf-root', 'data-place': 'bottom-left', style: `width:${width}px;height:${(H + HEADROOM) * k}px` });
@@ -129,7 +130,7 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   let arts = [...root.querySelectorAll<HTMLElement>('.gf-art')];
   let frostRaf = 0;
   function syncFrost() {
-    if (frostRaf) return;
+    if (disposed || frostRaf) return;
     frostRaf = requestAnimationFrame(() => {
       frostRaf = 0;
       const b = back.cloneNode(true) as HTMLElement;
@@ -190,6 +191,7 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   }
 
   function setFiles(next: GFFile[]) {
+    if (disposed) return;
     const first = !files.length;
     files = next;
     const start = Math.max(0, files.length - MAX_VISIBLE);
@@ -309,23 +311,34 @@ export function glassFolder(o: GFOptions): GlassFolderApi {
   }
 
   // 首次进入视口时组装
+  let enterTimer = 0;
   const io = new IntersectionObserver((es) => {
     if (!es.some((e) => e.isIntersecting)) return;
     io.disconnect();
-    setTimeout(() => root.toggleAttribute('data-entered', true), o.appearDelay ?? 0);
+    enterTimer = window.setTimeout(() => root.toggleAttribute('data-entered', true), o.appearDelay ?? 0);
   }, { threshold: 0.25 });
   io.observe(root);
   let measuredWidth = width;
-  new ResizeObserver(([entry]) => {
+  const ro = new ResizeObserver(([entry]) => {
     const w = entry.contentRect.width;
     if (!w || Math.abs(w - measuredWidth) < .5) return;
     measuredWidth = w;k = w / W;
     invalidatePointer();
     root.style.height = `${(H + HEADROOM) * k}px`;
     stage.style.transform = `translateY(${HEADROOM * k}px) scale(${k})`;
-  }).observe(root);
+  });
+  ro.observe(root);
 
-  const api = { el: root, setFiles, setOpen, isOpen: () => open };
+  const dispose = () => {
+    disposed = true; open = false; menuOpen = false; listen();
+    io.disconnect(); ro.disconnect(); clearTimeout(enterTimer);
+    cancelAnimationFrame(raf); cancelAnimationFrame(frostRaf);
+    pointerScope?.removeEventListener('scroll', invalidatePointer, true);
+    pointerScope = null;
+    removeEventListener('scroll', invalidatePointer, true);
+    removeEventListener('resize', invalidatePointer);
+  };
+  const api = { el: root, setFiles, setOpen, isOpen: () => open, dispose };
   if (o.meta) setMeta(o.meta);
   renderMenu();
   setFiles(o.files ?? []);

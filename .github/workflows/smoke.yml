@@ -63,6 +63,18 @@ jobs:
         run: |
           SMOKE_OUT=smoke-artifacts/watch-startup node tests/watch-startup.mjs
           SMOKE_OUT=smoke-artifacts/watch-card-startup node tests/watch-card-startup.mjs
+      - name: Reported theme, overlay, automatic mode and authorization regressions
+        run: |
+          SMOKE_OUT=smoke-artifacts/header-feedback node tests/header-feedback.mjs
+          SMOKE_OUT=smoke-artifacts/watch-auto-mode node tests/watch-auto-mode.mjs
+          SMOKE_OUT=smoke-artifacts/lightbox node tests/lightbox.mjs
+          SMOKE_OUT=smoke-artifacts/app-auth-feedback node tests/app-auth-feedback.mjs
+          SMOKE_OUT=smoke-artifacts/settings-thumbnails node tests/settings-thumbnails.mjs
+      - name: Live fullscreen, automatic wide alignment, subscriptions and pointer release
+        run: |
+          SMOKE_OUT=smoke-artifacts/watch-screen node tests/watch-screen.mjs
+          SMOKE_OUT=smoke-artifacts/favorites-subscriptions node tests/favorites-subscriptions.mjs
+          SMOKE_OUT=smoke-artifacts/triple-release node tests/triple-release.mjs
       - if: always()
         uses: actions/upload-artifact@v4
         with:

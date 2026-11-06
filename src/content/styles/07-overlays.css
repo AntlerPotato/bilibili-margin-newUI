@@ -181,6 +181,7 @@
 /* ── 刻度尺滚动进度（21st Scroll Bars 移植，播放页右缘） ── */
 .sr { position: fixed; right: 4px; top: 50%; z-index: 25; transform: translateY(-50%); padding: 16px 8px 16px 6px; opacity: 0; transition: opacity .3s var(--ease-out); }
 .sr[data-on="true"] { opacity: 1; }
+.app.sheeted .sr { visibility: hidden; pointer-events: none; }
 .sr-track { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; cursor: pointer; }
 .sr-track i { display: block; height: 1px; width: 0; background: color-mix(in srgb, var(--ink) 30%, transparent); transition: width .5s cubic-bezier(.34, 1.56, .64, 1), background .2s var(--ease-out); transition-delay: var(--d); }
 .sr[data-on="true"] .sr-track i { width: 9px; }

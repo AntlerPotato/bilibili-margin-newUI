@@ -1,6 +1,6 @@
 import { every } from '../sched';
 import type { Settings } from '../../shared/settings';
-import { saveSettings } from '../../shared/settings';
+import { loadSettings } from '../../shared/settings';
 import { h, ICONS, guardTyping } from './dom';
 import { toast } from './controls';
 import { addWatchLater } from '../api/search';
@@ -24,6 +24,7 @@ import { startWatchCard } from './watch-card';
 import { reducedMotion } from '../motion';
 import { FilterRuntime } from '../filter-runtime';
 import { openBili } from '../navigation';
+import { ThemeWriter } from './theme-writer';
 
 export type SkinKind = 'watch' | 'search' | 'page' | 'live';
 
@@ -45,6 +46,7 @@ export class WatchSkin {
   private autoDone = '';
   private wideDone = '';
   private media = matchMedia('(prefers-color-scheme: dark)');
+  private themeWriter = new ThemeWriter();
 
   constructor(private settings: Settings, private kind: SkinKind = 'watch') {
     const de = document.documentElement;
@@ -134,6 +136,7 @@ export class WatchSkin {
   }
 
   update(s: Settings): void {
+    s = this.themeWriter.sync(s);
     this.app.dataset.glass = s.glass;
     const prev = this.settings;
     this.settings = s;
@@ -173,7 +176,11 @@ export class WatchSkin {
     const next = this.resolved() === 'dark' ? 'light' : 'dark';
     this.settings = { ...this.settings, theme: next };
     this.applyTheme(true);
-    await saveSettings({ theme: next });
+    try { await this.themeWriter.save(next); }
+    catch {
+      this.update(await loadSettings().catch(() => this.settings));
+      toast(this.app, '主题设置保存失败，请重试');
+    }
   }
 
   /** 网页全屏 / 全屏时收起顶栏，不挡播放器 */
@@ -190,15 +197,18 @@ export class WatchSkin {
       }
       return 'normal';
     };
-    let lastScreen = '';
+    let lastState = '';
     const sync = (force = false) => {
       const screen = playerScreen();
-      // 状态没变且不在全屏时不做重复重排；设置变化时 force 强制重算
-      if (!force && screen === lastScreen && !document.fullscreenElement) return;
-      lastScreen = screen;
-      const hide = screen === 'web' || screen === 'full' || !!document.fullscreenElement;
+      const full = !!document.fullscreenElement;
+      const liveWeb = this.kind === 'live' && !!document.body?.classList.contains('fullscreen-fix');
+      const state = `${screen}:${full}:${liveWeb}`;
+      // 原生全屏可以独立于 data-screen 变化，退出时也需要恢复顶栏。
+      if (!force && state === lastState) return;
+      lastState = state;
+      const hide = screen === 'web' || screen === 'full' || full || liveWeb;
       this.host.toggleAttribute('hidden', hide);
-      webScroll(screen === 'web' && !document.fullscreenElement && this.settings.webScroll);
+      webScroll(screen === 'web' && !full && this.settings.webScroll);
       this.bg.hold('screen', hide);
       document.documentElement.classList.toggle('margin-webscreen', hide);
       // 小窗只移动播放器本体，文档仍沿用进入小窗前的宽屏布局。
@@ -268,6 +278,7 @@ export class WatchSkin {
       if (!wrap) return;
       const was = de.classList.contains('margin-webscroll');
       requestAnimationFrame(() => {
+        if (playerScreen() !== 'web' || document.fullscreenElement || !this.settings.webScroll) return;
         if (!was) de.classList.add('margin-webscroll');
         // 先按 0 偏移算 player-wrap 的文档坐标，再把播放器拉回文档左上角
         de.style.setProperty('--m-ws-h', 'auto');
@@ -336,12 +347,40 @@ export class WatchSkin {
     this.screenSync = () => sync(true);
     addEventListener('resize', () => { if (de.classList.contains('margin-webscroll')) webScroll(true); });
     new MutationObserver(() => sync()).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-screen'] });
+    if (this.kind === 'live') {
+      const observeLive = () => {
+        new MutationObserver(() => sync()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        sync();
+      };
+      if (document.body) observeLive();
+      else document.addEventListener('DOMContentLoaded', observeLive, { once: true });
+    }
     every(1000, sync); // 旧版播放器只改 class、不发 data-screen 变化，兜底轮询
     // v0.43 自动网页全屏；v0.47 宽屏模式：每个视频进来一次，用户自己退出后同一视频不再强开
     const keyOf = () => location.pathname.match(/BV\w+|ep\d+|ss\d+/)?.[0] ?? location.search;
     const webBtn = () => document.querySelector<HTMLElement>('.bpx-player-ctrl-web, .bilibili-player-video-btn-webscreen, [aria-label="网页全屏"]');
     const wideBtn = () => document.querySelector<HTMLElement>('.bpx-player-ctrl-wide, .bilibili-player-video-btn-widescreen, [aria-label="宽屏"]');
     const video = () => document.querySelector<HTMLVideoElement>('.bpx-player-video-wrap video, .bpx-player-video-wrap bwp-video, #bilibili-player video, .bilibili-player video');
+    const alignWide = (bv: string, startY: number) => {
+      if (startY > 4) return;
+      const started = performance.now();
+      let stableSince = started, lastTop = NaN, lastHeight = NaN, entered = playerScreen() === 'wide';
+      const align = () => {
+        if (!this.settings.wide || this.settings.autoWeb || keyOf() !== bv || document.fullscreenElement || Math.abs(scrollY - startY) > 2) return;
+        const p = player(), screen = playerScreen(), now = performance.now();
+        if (!p || screen !== 'wide') {
+          if (!entered && screen === 'normal' && now - started < 1000) requestAnimationFrame(align);
+          return;
+        }
+        entered = true;
+        const r = p.getBoundingClientRect();
+        if (r.top !== lastTop || r.height !== lastHeight) { stableSince = now; lastTop = r.top; lastHeight = r.height; }
+        if (now - stableSince < 120 && now - started < 1000) { requestAnimationFrame(align); return; }
+        const top = Math.max(this.host.getBoundingClientRect().bottom + 12, (innerHeight - r.height) / 2);
+        scrollTo({ top: Math.max(0, scrollY + r.top - top), behavior: 'instant' });
+      };
+      requestAnimationFrame(align);
+    };
     every(800, () => {
       const bv = keyOf();
       // 自动网页全屏优先；和宽屏同时开启时不再点宽屏
@@ -349,7 +388,8 @@ export class WatchSkin {
         const p = player(), btn = webBtn(), v = video();
         if (!p || !btn || !v || (v as HTMLVideoElement).readyState < 1) return;
         this.autoDone = bv;
-        if (playerScreen() === 'normal' && !document.fullscreenElement) btn.click();
+        const screen = playerScreen();
+        if ((screen === 'normal' || screen === 'wide') && !document.fullscreenElement) btn.click();
         return;
       }
       if (!this.settings.wide || this.settings.autoWeb) return;
@@ -357,7 +397,11 @@ export class WatchSkin {
       const btn = wideBtn();
       if (!btn || !player()) return;
       this.wideDone = bv;
-      if (playerScreen() === 'normal' && !document.fullscreenElement) btn.click();
+      const screen = playerScreen(), startY = scrollY;
+      if ((screen === 'normal' || screen === 'wide') && !document.fullscreenElement) {
+        if (screen === 'normal') btn.click();
+        alignWide(bv, startY);
+      }
     });
     document.addEventListener('fullscreenchange', () => sync());
     sync();

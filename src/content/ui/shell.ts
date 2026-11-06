@@ -1,5 +1,5 @@
 import type { Settings } from '../../shared/settings';
-import { saveSettings } from '../../shared/settings';
+import { loadSettings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
 import { h, ICONS, guardTyping } from './dom';
 import { createHeader, type Header, SITE_LINKS } from './header';
@@ -12,6 +12,8 @@ import { attachPreview } from './preview';
 import type { SunMoon } from './sun-moon';
 import { FilterRuntime } from '../filter-runtime';
 import { reducedMotion } from '../motion';
+import { toast } from './controls';
+import { ThemeWriter } from './theme-writer';
 import css from '../styles/index';
 import pagesCss from '../takeover.css?inline';
 
@@ -31,6 +33,7 @@ export class PageShell {
   private panel: SettingsPanel;
   private fadeTimer = 0;
   private media = matchMedia('(prefers-color-scheme: dark)');
+  private themeWriter = new ThemeWriter();
 
   constructor(public settings: Settings, kind: string) {
     this.host = h('div', { id: 'margin-root' });
@@ -79,6 +82,7 @@ export class PageShell {
   glass(el: HTMLElement): void { attachGlass(el, filtersIn(this.root)); }
 
   update(s: Settings): void {
+    s = this.themeWriter.sync(s);
     this.app.dataset.glass = s.glass;
     const prev = this.settings;
     this.settings = s;
@@ -114,7 +118,11 @@ export class PageShell {
     }
     this.settings = { ...this.settings, theme: next };
     this.applyTheme();
-    await saveSettings({ theme: next });
+    try { await this.themeWriter.save(next); }
+    catch {
+      this.update(await loadSettings().catch(() => this.settings));
+      toast(this.app, '主题设置保存失败，请重试');
+    }
   }
 }
 

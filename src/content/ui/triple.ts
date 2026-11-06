@@ -7,7 +7,7 @@ import { reducedMotion } from '../motion';/**
  * 点赞上方浮出一枚「三连 · TRIPLE」小签。
  * 动效参考 21st：「Hold to confirm」(motiondotdev 24668) 按住时按钮收缩、描边随进度变粗变色；
  * 「Like Burst」(ddoemonn 23534) 的确定性碎光分布（黄金比例散列角度/距离 + 弹簧回弹）。
- * 只操作 B 站工具栏上方的覆盖层，不拦截任何原生事件，点赞/投币/收藏仍由 B 站自己完成。
+ * 点赞/投币/收藏由 B 站完成；长按满环后的松手会延迟补发，保留原始指针信息。
  */
 const NS = 'http://www.w3.org/2000/svg';
 const HOLD = 1500;
@@ -119,18 +119,17 @@ export function startTriple(): void {
   // v0.48：映间的进度环 1.5 秒就画满，但 B 站自己的长按要更久才触发三连；
   // 用户看到环满就松手 → B 站收到松开、取消长按，只剩一圈转完（B 站评论反馈）。
   // 现在环满后先把松开扣住，等 B 站三连生效（投币、收藏变 .on）或最多 2.5 秒，再把松开补发给按钮。
-  let held: HTMLElement | null = null, heldT = 0, swallowClick = false;
+  let held: { el: HTMLElement; event: PointerEvent } | null = null, heldT = 0, swallowClick = false;
   const flush = () => {
     if (!held) return;
-    const el = held; held = null; clearTimeout(heldT);
-    const o = { bubbles: true, cancelable: true, composed: true, button: 0 };
-    el.dispatchEvent(new PointerEvent('pointerup', { ...o, pointerType: 'mouse', isPrimary: true }));
-    el.dispatchEvent(new MouseEvent('mouseup', o));
+    const { el, event } = held; held = null; clearTimeout(heldT);
+    el.dispatchEvent(new PointerEvent('pointerup', event));
+    el.dispatchEvent(new MouseEvent('mouseup', event));
     setTimeout(() => { swallowClick = false; }, 0);
     if (!raf) raf = requestAnimationFrame(tick);
   };
   const tripled = () => { const e = items(); return !!e && e[1].classList.contains('on') && e[2].classList.contains('on'); };
-  const release = (e: Event) => {
+  const release = (e: PointerEvent) => {
     if (held) { if (e.isTrusted) { e.stopImmediatePropagation(); } return; }
     if (!holding) return;
     holding = false;
@@ -139,7 +138,7 @@ export function startTriple(): void {
       const like = els?.[0];
       if (e.type !== 'pointercancel' && like && !tripled()) {
         e.stopImmediatePropagation();
-        held = like; swallowClick = true;
+        held = { el: like, event: e }; swallowClick = true;
         heldT = window.setTimeout(flush, 2500);
       }
     }
