@@ -195,14 +195,13 @@ const liveHtml = () => `<!doctype html><html lang="zh-CN"><head><meta charset="u
   </div></div></div>
   <div id="aside-area-vm">弹幕列表</div>
 </div></main></div>
+<button id="native-full" type="button" style="position:fixed;right:8px;bottom:8px;z-index:2147483647;padding:4px 10px">全屏</button>
 <script>
-  // 无头环境里 requestFullscreen 依赖用户手势，用可写的 fullscreenElement 复刻同样的状态迁移
-  window.__fsEl = null;
-  Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => window.__fsEl });
-  window.setNativeFullscreen = (on) => {
-    window.__fsEl = on ? document.getElementById('fullscreen-container') : null;
-    document.dispatchEvent(new Event('fullscreenchange'));
-  };
+  // 全屏必须是真的 Fullscreen API：映间的内容脚本在隔离世界，主世界伪造 document.fullscreenElement
+  // 对它不可见。这里挂一个按钮，测试用可信点击触发（requestFullscreen 需要用户手势）。
+  document.getElementById('native-full').addEventListener('click', () => {
+    document.getElementById('fullscreen-container').requestFullscreen().catch(() => {});
+  });
 </script></body></html>`;
 
 /** 原版页面的最小骨架：映间会把它藏起来或在上面换皮 */

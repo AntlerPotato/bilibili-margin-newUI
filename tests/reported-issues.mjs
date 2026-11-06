@@ -517,17 +517,24 @@ try {
       await top.locator('.top').waitFor();
       assert.equal(await live.locator('html.margin-live').count(), 1);
       assert(await top.isVisible(), '普通浏览时顶栏应该在');
-      // ① 直播间的「网页模式」只是给 body 加 fullscreen-fix，没有 data-screen
+      // ① 直播间的「网页模式」只给 body 加 fullscreen-fix（播放器没有 data-screen）：
+      //    收起，退出后恢复。进/退时 playerScreen() 一直是 normal，这一步同时覆盖「状态不变也要重算」。
       await live.evaluate(() => document.body.classList.add('fullscreen-fix'));
       await top.waitFor({ state: 'hidden', timeout: 2000 });
       await live.evaluate(() => document.body.classList.remove('fullscreen-fix'));
       await top.waitFor({ state: 'visible', timeout: 2000 });
-      // ② 进全屏 → 顶栏收起；退出全屏 → 顶栏必须自己回来，不刷新页面（旧代码这里永远回不来）
-      await live.evaluate(() => window.setNativeFullscreen(true));
-      await top.waitFor({ state: 'hidden', timeout: 2000 });
-      await live.evaluate(() => window.setNativeFullscreen(false));
-      await top.waitFor({ state: 'visible', timeout: 2000 });
+      // ② B 站的「全屏」走真的 Fullscreen API。内容脚本在隔离世界，主世界伪造 fullscreenElement
+      //    骗不到它，所以用可信点击请浏览器自己进全屏；无头环境不支持时只跳过这一段。
+      const evidence = { nativeFullscreen: 'unsupported' };
+      await live.click('#native-full');
+      if (await live.evaluate(() => !!document.fullscreenElement)) {
+        evidence.nativeFullscreen = 'checked';
+        await top.waitFor({ state: 'hidden', timeout: 2000 });
+        await live.evaluate(() => document.exitFullscreen());
+        await top.waitFor({ state: 'visible', timeout: 2000 });
+      }
       await live.screenshot({ path: join(out, 'live-fullscreen-topbar.png') });
+      return evidence;
     } finally { await live.close(); }
   });
   assert.deepEqual(errors, []);
