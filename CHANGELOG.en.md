@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add the approved compact squeeze carousel to channel pages, with a main image, two narrow previews and a translucent caption gradient. Reuse Bilibili covers, titles and links, support keyboard and rapid switching, resizing and reduced motion, and load the module only on channel pages.
 - Expand, collapse and paginate nested replies inside dynamic cards. Fetch on demand, preserve long reply IDs, support retries and discard stale responses after closing or reopening comments. Retain native emoji assets and author profile links.
 - Fix live leaderboard text blending into dark backgrounds and guard-skin text conflicting with the selected theme. Apply readable colors to ranking tabs, usernames and scores.
 - Style the new `/c/` channel components with shared typography, cover corners, text colors and carousel surfaces. Transparent channel containers allow the selected background to show through. Add light/dark theme and video-navigation regressions (#84).

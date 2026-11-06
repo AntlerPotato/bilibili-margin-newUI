@@ -129,6 +129,30 @@ html.margin-page .channel-page .banner-carousel__footer .mask { background: var(
 html.margin-page .channel-page .banner-carousel__footer a { color: inherit !important; }
 html.margin-page .channel-page .banner-carousel__footer .switcher-btns > div { color: var(--m-ink) !important; background: var(--m-chip) !important; }
 
+/* 小尺寸挤压轮播：固定图片尺寸，局部裁切和位移，底部半透明渐变。 */
+html.margin-page .channel-carousel[data-margin-carousel="on"] { display: none !important; }
+.m-channel-carousel { --mcc-duration: 350ms; --mcc-ease: cubic-bezier(.16,1,.3,1); --mcc-radius: calc(12px * var(--margin-rk,1)); grid-column: span 2; position: relative; min-height: 180px; height: 100%; isolation: isolate; contain: layout paint; overflow: hidden; border-radius: 12px; font-family: var(--m-sans); }
+.m-channel-carousel[hidden], .m-channel-carousel [hidden] { display: none !important; }
+.mcc-panel { position: absolute; inset: 0 auto 0 0; width: var(--mcc-main); overflow: hidden; border-radius: 12px; background: var(--m-surface); transition: transform var(--mcc-duration) var(--mcc-ease), clip-path var(--mcc-duration) var(--mcc-ease), opacity 180ms; }
+.mcc-panel[data-visible="false"] { opacity: 0; pointer-events: none; }
+.mcc-panel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; pointer-events: none; }
+.mcc-panel::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg,transparent 35%,rgb(0 0 0 / .04) 48%,rgb(0 0 0 / .58) 79%,rgb(0 0 0 / .74)); opacity: 0; transition: opacity var(--mcc-duration); }
+.mcc-panel[data-selected="true"]::after { opacity: 1; }
+.mcc-open, .mcc-select { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; border: 0; padding: 0; background: none; cursor: pointer; }
+.mcc-select { width: 18px; }
+.mcc-caption { position: absolute; left: 16px; bottom: 31px; width: max(0px,calc(var(--mcc-main) - 100px)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; color: #fff; text-shadow: 0 1px 5px rgb(0 0 0 / .5); font: 400 14px/1.5 var(--m-sans); }
+.mcc-dots { position: absolute; left: 14px; bottom: 10px; display: flex; gap: 2px; max-width: calc(var(--mcc-main) - 30px); overflow: hidden; }
+.mcc-dot { flex: none; border: 0; width: 12px; height: 12px; padding: 3px; background: none; cursor: pointer; }
+.mcc-dot::before { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; background: rgb(255 255 255 / .4); }
+.mcc-dot[aria-current="true"]::before { background: #fff; }
+.mcc-controls { position: absolute; left: calc(var(--mcc-main) - 74px); bottom: 26px; display: flex; gap: 6px; }
+.mcc-controls button { display: grid; place-items: center; width: 26px; height: 28px; padding: 0; border: 1px solid rgb(255 255 255 / .1); border-radius: 8px; background: rgb(255 255 255 / .11); color: #fff; cursor: pointer; transition: background-color 130ms; }
+.mcc-controls button:hover { background: rgb(255 255 255 / .22); }
+.mcc-controls svg { width: 14px; height: 14px; }
+.m-channel-carousel :is(a,button):focus-visible { outline: 2px solid #fff; outline-offset: -3px; }
+html.margin-reduce .mcc-panel, html.margin-reduce .mcc-panel::after, html.margin-reduce .mcc-controls button { transition: none; }
+@media (prefers-reduced-motion: reduce) { .mcc-panel, .mcc-panel::after, .mcc-controls button { transition: none; } }
+
 html.margin-page .video-card__content img, html.margin-page .rank-item .img img,
 html.margin-page .video-card .cover, html.margin-page .bili-video-card__image { border-radius: 12px !important; }
 html.margin-page .popular-video-container .video-name, html.margin-page .rank-item .info .title { color: var(--m-ink) !important; }

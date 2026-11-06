@@ -64,9 +64,9 @@ jobs:
         env:
           SMOKE_OUT: smoke-artifacts/reported-issues
       - name: Native channel theme and video navigation
-        run: node tests/channel-theme.mjs
-        env:
-          SMOKE_OUT: smoke-artifacts/channel-theme
+        run: |
+          SMOKE_OUT=smoke-artifacts/channel-theme node tests/channel-theme.mjs
+          SMOKE_OUT=smoke-artifacts/channel-carousel node tests/channel-carousel.mjs
       - name: Dynamic nested replies and live leaderboard contrast
         run: |
           SMOKE_OUT=smoke-artifacts/dynamic-replies node tests/dynamic-replies.mjs

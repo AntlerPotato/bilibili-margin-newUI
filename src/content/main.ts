@@ -41,6 +41,7 @@ type Pages = {
   detail: typeof import('./pages/detail');
   'space-hooks': typeof import('./pages/space-hooks');
   'danmaku-jump': typeof import('./pages/danmaku-jump');
+  'channel-carousel': typeof import('./pages/channel-carousel');
 };
 /** 按需加载页面模块；content script 不能是 ES module，但可以动态 import 扩展里的 ES 模块 */
 const load = <K extends keyof Pages>(name: K): Promise<Pages[K]> => import(/* @vite-ignore */ chrome.runtime.getURL(`pages/${name}.js`));
@@ -168,6 +169,9 @@ async function startWatch(kind: SkinKind = 'watch'): Promise<void> {
     });
   }
   if (kind === 'page' && location.hostname === 'space.bilibili.com') spaceNative();
+  if (kind === 'page' && /^\/c\//.test(location.pathname)) {
+    load('channel-carousel').then(m => m.mountChannelCarousel()).catch(e => console.error('[MARGIN] 分区轮播加载失败', e));
+  }
   onSettingsChange((next, prev) => {
     if (next.enabled !== prev.enabled || next.watch !== prev.watch) location.reload();
     else skin.update(next);
