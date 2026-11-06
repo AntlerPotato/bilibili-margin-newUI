@@ -10,7 +10,7 @@
  */
 import { fanSlot, hashString, paint, recipeOf, rng, type ArtPreset } from './folder-art';
 import { h, setMarkup, icon, ICONS } from './dom';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 
 export interface GFFile { name: string; meta?: string; image?: string; art?: ArtPreset; href?: string }
 export interface GFMenuItem { label: string; onSelect?: () => void; danger?: boolean }

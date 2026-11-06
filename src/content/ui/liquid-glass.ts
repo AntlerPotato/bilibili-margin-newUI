@@ -88,7 +88,7 @@ export function attachGlass(el: HTMLElement, filters: SVGSVGElement, o: GlassOpt
   const transparency = matchMedia('(prefers-reduced-transparency: reduce)');
   let liquid = de.dataset.marginGlass === 'liquid' && !transparency.matches;
   const paint = () => {
-    el.style.backdropFilter = transparency.matches ? 'none' : liquid && url
+    el.style.backdropFilter = transparency.matches || de.dataset.marginGlass === 'flat' ? 'none' : liquid && url
       ? `blur(${o.blur ?? 6}px) url(#${id}) saturate(${o.sat ?? '150%'})`
       : el.classList.contains('et-thumb') ? 'none' : 'blur(16px) saturate(110%)';
   };

@@ -11,7 +11,7 @@ import { cachedTags } from '../tags';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { PageShell } from './shell';
 import { targetOfDyn } from '../filter-targets';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 
 const TYPES: [FeedType, string][] = [['all', '全部'], ['video', '视频投稿'], ['pgc', '追番追剧'], ['article', '专栏']];
 const ext = { target: '_blank', rel: 'noopener' };

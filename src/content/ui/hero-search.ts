@@ -2,7 +2,7 @@ import { every } from '../sched';
 import { openBili } from '../navigation';
 import { forgetSearch, hotSearch, rememberSearch, searchHistory, searchUrl, suggest, type Hot } from '../api/search';
 import { h, highlight, icon, ICONS } from './dom';
-import { onMotionChange, reducedMotion } from '../motion';
+import { onUiMotionChange as onMotionChange, uiReducedMotion as reducedMotion } from '../motion';
 
 /**
  * 首页主搜索 v0.23.0

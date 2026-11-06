@@ -26,7 +26,7 @@ import { createCommandPalette } from './command-palette';
 import { createContextMenu } from './context-menu';
 import { bindCardMenu } from './card-menu';
 import { createLaterDrawer } from './drawer';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 import { ThemeWriter } from './theme-writer';
 import css from '../styles/index';
 
@@ -86,6 +86,7 @@ export class MarginApp {
   update(s: Settings): void {
     s = this.themeWriter.sync(s);
     if (this.app) this.app.dataset.glass = s.glass;
+    this.app.classList.toggle('margin-ui-still', !s.uiEffects);
     const prev = this.settings;
     this.settings = s;
     if (this.filter.update(s)) this.repaint();
@@ -112,6 +113,7 @@ export class MarginApp {
     this.app.dataset.bg = this.settings.bg.mode;
     this.app.dataset.cols = String(this.settings.cols || 'auto');
     this.app.classList.toggle('margin-reduce', this.settings.reduceMotion);
+    this.app.classList.toggle('margin-ui-still', !this.settings.uiEffects);
     this.sunMoon.set(t, !reducedMotion());
     this.bg.apply(this.settings.bg, t, this.settings.palette).then(() => this.panel?.sync(this.settings));
   }

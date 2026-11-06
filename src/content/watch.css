@@ -473,6 +473,14 @@ html.margin-watch .usercard-wrap .latest-archives__meta { color: var(--m-faint) 
 html.margin-watch .usercard-wrap .latest-archives__duration { border-radius: 6px !important; font-family: var(--m-mono) !important; }
 @media (prefers-reduced-motion: reduce) { html.margin-watch .usercard-wrap .user-card-m-exp { animation: none; } }
 
+html.margin-skin[data-margin-glass="flat"] {
+  --sh-xs:0 0 transparent;--sh-sm:0 0 transparent;--sh-md:0 0 transparent;--sh-lg:0 0 transparent;
+}
+html.margin-skin[data-margin-glass="flat"] :is(.search-input-wrap,.up-panel-container,.video-pod,.user-card-m-exp) {
+  backdrop-filter:none!important;box-shadow:var(--ring)!important;background:var(--m-surface)!important;
+}
+html.margin-ui-still :is(.mt-ring,.mt-spark,.mt-tag) { display:none!important; }
+
 /* 网页全屏 / 全屏：B 站把播放器 fixed 铺满，但 .left-container 的 isolation 会把它困在自己的层里，
    右栏（UP 卡、推荐）就盖到播放器上面。全屏时撤掉隔离和卡片底板，顶栏等浮层也让开 */
 html.margin-watch :is(.left-container, .playlist-container--left):has(.bpx-player-container:is([data-screen="web"], [data-screen="full"])) { isolation: auto; }

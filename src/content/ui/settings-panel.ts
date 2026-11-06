@@ -31,11 +31,12 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
 
   const theme = segmented<Theme>([['auto', '跟随系统'], ['light', '亮色'], ['dark', '暗色']], s0.theme, (v) => save({ theme: v }));
   const accent = segmented<Settings['accent']>([['classic','经典'],['blue','哔哩蓝'],['pink','哔哩粉']],s0.accent,(accent) => save({ accent }));
-  const glass = segmented<Settings['glass']>([['soft','柔和磨砂'],['liquid','液态折射']],s0.glass,(glass) => save({ glass }));
+  const glass = segmented<Settings['glass']>([['soft','柔和磨砂'],['liquid','液态折射'],['flat','简洁平面']],s0.glass,(glass) => save({ glass }));
   const watch = toggle(s0.watch, '其他页面重设计', (v) => save({ watch: v }));
   const preview = toggle(s0.hoverPreview, '悬停预览', (v) => save({ hoverPreview: v }));
   const intro = toggle(s0.intro, '开场动画', (v) => save({ intro: v }));
   const reduceM = toggle(s0.reduceMotion, '减少动画', (v) => save({ reduceMotion: v }));
+  const effects = toggle(s0.uiEffects, '控件动效', (v) => save({ uiEffects: v }));
   const foot = toggle(s0.footprint, '足迹热力图', (v) => save({ footprint: v }));
   const wxT = toggle(s0.weather, '天气', (v) => save({ weather: v }));
   // v0.43 首页组件开关：存的是「隐藏了哪些」，界面上是「显示哪些」
@@ -417,8 +418,9 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     h('section', { class: 'group' }, h('h3', {}, '外观'),
       block('明暗', null, theme),
       row('强调色', null, accent),
-      row('玻璃质感', null, glass),
+      row('界面质感', null, glass),
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
+      row('控件动效', '按钮、面板、三连和卡片过渡；背景与天气独立设置', effects),
       row('减少动画', '暂停背景、天气和悬停动画，并减少界面过渡；系统减少动态效果始终生效', reduceM),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
       drawer('字体与缩放', () => { const st = get(); return [st.titleFont === 'sans' ? '无衬线标题' : '衬线标题', st.bodyFont || '', st.zoom !== 100 ? `${st.zoom}%` : ''].filter(Boolean).join(' · '); },
@@ -498,6 +500,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       preview.setAttribute('aria-checked', String(s.hoverPreview));
       intro.setAttribute('aria-checked', String(s.intro));
       reduceM.setAttribute('aria-checked', String(s.reduceMotion));
+      effects.setAttribute('aria-checked', String(s.uiEffects));
       appT.setAttribute('aria-checked', String(s.appFeed));
       rankT.setAttribute('aria-checked', String(s.rerank));
       sponsorT.setAttribute('aria-checked', String(s.sponsorSkip));

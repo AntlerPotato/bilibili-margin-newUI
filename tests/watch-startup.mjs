@@ -45,8 +45,20 @@ try {
   } }));
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    const firstFrame = () => {
+      const area = document.querySelector('.bpx-player-video-area');
+      if (!area?.getBoundingClientRect().width) { requestAnimationFrame(firstFrame); return; }
+      const style = getComputedStyle(area);
+      window.firstPlayerFrame = { radius: parseFloat(style.borderTopLeftRadius), mask: style.maskImage };
+    };
+    requestAnimationFrame(firstFrame);
+  });
   await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/', { waitUntil: 'domcontentloaded' });
   await page.locator('#margin-watch-top .top').waitFor();
+  const first = await page.evaluate(() => window.firstPlayerFrame);
+  assert.equal(first.radius, 16, 'cold-start first paint has square corners');
+  assert.notEqual(first.mask, 'none', 'cold-start first paint lacks clipping');
   const sample = () => page.evaluate(() => {
     const player = document.querySelector('.bpx-player-container');
     const area = player.querySelector('.bpx-player-video-area');
@@ -92,6 +104,17 @@ try {
   await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/?margin=off');
   await page.waitForTimeout(300);
   await check('page-bypass', 0, false, 900);
+  await worker.evaluate(() => chrome.storage.local.set({ 'margin:settings': { enabled: true, watch: false } }));
+  const disabled = await context.newPage();
+  let modules = 0;
+  disabled.on('request', request => { if (request.url().endsWith('/pages/watch.js')) modules++; });
+  await disabled.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+  await disabled.waitForFunction(() => localStorage.getItem('margin:skin') === '0');
+  assert.equal(await disabled.locator('#margin-watch-css').count(), 0, 'disabled redesign keeps provisional styles');
+  assert.equal(modules, 0, 'disabled redesign downloads the watch UI module');
+  await disabled.reload();
+  assert.equal(await disabled.locator('#margin-watch-css').count(), 0, 'disabled mirror applies startup styling');
+  await disabled.close();
 } finally {
   writeFileSync(join(out, 'results.json'), JSON.stringify({ results, errors }, null, 2));
   await context.close();

@@ -43,7 +43,7 @@ export interface Settings {
   theme: Theme;
   palette: Palette;
   accent: 'classic' | 'blue' | 'pink';
-  glass: 'soft' | 'liquid';
+  glass: 'soft' | 'liquid' | 'flat';
   hoverPreview: boolean;
   /** 重新设计视频播放页（保留 B 站原生播放器与评论） */
   watch: boolean;
@@ -90,6 +90,8 @@ export interface Settings {
   idDrag: boolean;
   /** 低配设备减少动画（v0.47）：暂停背景/天气/悬停动画并压缩过渡 */
   reduceMotion: boolean;
+  /** 控件动画；独立于背景和天气的动态效果 */
+  uiEffects: boolean;
   /** 有 B 站播放器时自动进入宽屏（v0.47），番剧、列表等页面同样生效 */
   wide: boolean;
   /** 隐藏广告与推广（v0.47），默认开启；只做展示层过滤 */
@@ -159,6 +161,7 @@ export const DEFAULTS: Settings = {
   bodyFont: '',
   idDrag: false,
   reduceMotion: false,
+  uiEffects: true,
   wide: false,
   hideAds: true,
   sponsorSkip: false,
@@ -203,7 +206,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     titleFont: r.titleFont === 'sans' ? 'sans' : 'serif',
     theme: r.theme === 'light' || r.theme === 'dark' ? r.theme : 'auto',
     accent: r.accent === 'blue' || r.accent === 'pink' ? r.accent : 'classic',
-    glass: r.glass === 'liquid' ? 'liquid' : 'soft',
+    glass: r.glass === 'liquid' || r.glass === 'flat' ? r.glass : 'soft',
     favColumns: r.favColumns === 2 || r.favColumns === 4 ? r.favColumns : 3,
     monoNum: r.monoNum !== false,
     headHide: strList(r.headHide),
@@ -215,6 +218,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     bodyFont: cleanFont(r.bodyFont),
     idDrag: r.idDrag === true,
     reduceMotion: r.reduceMotion === true,
+    uiEffects: r.uiEffects !== false,
     wide: r.wide === true,
     hideAds: r.hideAds !== false,
     sponsorSkip: r.sponsorSkip === true,
@@ -256,7 +260,8 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
   if (r.accent === 'classic' || r.accent === 'blue' || r.accent === 'pink') out.accent = r.accent;
-  if (r.glass === 'soft' || r.glass === 'liquid') out.glass = r.glass;
+  if (r.glass === 'soft' || r.glass === 'liquid' || r.glass === 'flat') out.glass = r.glass;
+  if (typeof r.uiEffects === 'boolean') out.uiEffects = r.uiEffects;
   if (r.favColumns === 2 || r.favColumns === 3 || r.favColumns === 4) out.favColumns = r.favColumns;
   const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'sponsorSkip' | 'danmakuJump' | 'msgRemind' | 'appFeed' | 'rerank' | 'headHover' | 'tabRefresh') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('sponsorSkip'); bool('danmakuJump');

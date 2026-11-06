@@ -18,7 +18,11 @@ try {
   await installMocks(context);
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   await worker.evaluate(() => chrome.storage.local.set({ 'margin:settings': { intro: false, theme: 'dark', bg: { mode: 'off' }, wide: false, autoWeb: false } }));
-  for (const mode of ['click', 'hold-timeout', 'hold-success']) {
+  for (const mode of ['click', 'hold-timeout', 'hold-success', 'effects-off', 'disable-hold', 'disable-wait', 'disable-burst']) {
+    await worker.evaluate(async enabled => {
+      const key = 'margin:settings', stored = await chrome.storage.local.get(key);
+      await chrome.storage.local.set({ [key]: { ...stored[key], uiEffects: enabled } });
+    }, mode !== 'effects-off');
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
     const result = { mode, ok: false };
@@ -51,13 +55,27 @@ try {
       const point = { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
       await page.mouse.move(point.x, point.y);
       await page.mouse.down();
-      await page.waitForTimeout(mode === 'click' ? 40 : 1700);
+      await page.waitForTimeout(mode === 'click' ? 40 : mode === 'disable-hold' ? 250 : 1700);
+      const disable = async () => {
+        await worker.evaluate(async () => {
+          const key = 'margin:settings', stored = await chrome.storage.local.get(key);
+          await chrome.storage.local.set({ [key]: { ...stored[key], uiEffects: false } });
+        });
+        await page.locator('html.margin-ui-still').waitFor({ state: 'attached' });
+      };
+      if (mode === 'disable-hold') await disable();
       await page.mouse.up();
-      if (mode === 'hold-success') await page.evaluate(() => {
+      if (mode === 'disable-wait') await disable();
+      if (mode === 'hold-success' || mode === 'disable-burst') await page.evaluate(() => {
         document.querySelector('.video-coin').classList.add('on');
         document.querySelector('.video-fav').classList.add('on');
       });
       await page.locator('#release-feedback').waitFor({ timeout: 3500 });
+      if (mode === 'disable-burst') {
+        await page.locator('.mt-tag').waitFor();
+        await disable();
+        await page.locator('.mt-tag,.mt-spark').first().waitFor({ state: 'detached' });
+      }
       result.events = await page.evaluate(() => window.releaseProbe);
       result.point = point;
       const ups = result.events.filter(event => event.type !== 'click');
@@ -65,7 +83,9 @@ try {
       for (const event of ups) assert(Math.abs(event.x - point.x) <= 1 && Math.abs(event.y - point.y) <= 1, JSON.stringify({ event, point }));
       assert.equal(ups[0].pointerType, 'mouse');
       assert(ups[0].pointerId > 0, 'pointer identity was lost');
-      assert.equal(result.events.filter(event => event.type === 'click').length, mode === 'click' ? 1 : 0);
+      const plainClick = ['click', 'effects-off', 'disable-hold'].includes(mode);
+      assert.equal(result.events.filter(event => event.type === 'click').length, plainClick ? 1 : 0);
+      if (mode === 'effects-off') assert.equal(await page.locator('.mt-ring,.mt-spark,.mt-tag').count(), 0, 'disabled controls create animation elements');
       result.ok = true;
       console.log(`PASS triple ${mode}`);
     } catch (error) {

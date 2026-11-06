@@ -13,7 +13,7 @@ import pagesCss from './pages.css?inline';
 import detailCss from './detail.css?inline';
 import liveCss from './live.css?inline';
 import globalCss from './global.css?inline';
-import { setUserReducedMotion } from './motion';
+import { setUiEffects, setUserReducedMotion } from './motion';
 import { startNativeFilter } from './native-filter';
 import { installAppNavigation } from './navigation';
 import { setSponsorSkip } from './sponsor-skip';
@@ -45,6 +45,8 @@ type Pages = {
 };
 /** 按需加载页面模块；content script 不能是 ES module，但可以动态 import 扩展里的 ES 模块 */
 const load = <K extends keyof Pages>(name: K): Promise<Pages[K]> => import(/* @vite-ignore */ chrome.runtime.getURL(`pages/${name}.js`));
+let bootSettings: Promise<Settings> | null = null;
+const startupSettings = (): Promise<Settings> => bootSettings ??= loadSettings();
 
 const HIDE_CSS = 'html{background:#111!important;overflow:hidden!important}body{display:none!important}@media (prefers-color-scheme: light){html{background:#f5f4f1!important}}';
 
@@ -78,6 +80,7 @@ function applyGlobalUi(s: Settings): void {
   }
   document.documentElement.classList.toggle('margin-ads-hide', s.enabled && s.hideAds);
   setUserReducedMotion(s.enabled && s.reduceMotion);
+  setUiEffects(!active || s.uiEffects);
 }
 /** document_start 时先把原页面藏起来，避免闪一下原版 */
 function hideOriginal(): HTMLStyleElement {
@@ -145,19 +148,17 @@ function unskin(kind: SkinKind): void {
 
 async function startWatch(kind: SkinKind = 'watch'): Promise<void> {
   if (sessionStorage.getItem('margin:off') || offByUrl()) { backPill(); return; }
-  // 设置和页面模块并行读取
-  const mod = load('watch');
-  mod.catch(() => {});
   const mirror = skinMirror();
-  if (mirror && mirror !== '0') skinStyle(kind, mirror);
-  const settings = await loadSettings();
+  // 首次访问还没有镜像，先按默认主题挂上圆角；读到关闭设置后立即撤回。
+  if (mirror !== '0') skinStyle(kind, mirror || 'auto');
+  const settings = await startupSettings().catch(error => { unskin(kind); throw error; });
   // 屏蔽词在原生页面独立生效；即使关闭了「其他页面重设计」，只开过滤也能用
   if (settings.enabled && kind !== 'live') startNativeFilter(kind, settings);
   const on = settings.enabled && settings.watch;
   setSkinMirror(on ? settings.theme : '0');
   if (!on) { unskin(kind); return; }
   skinStyle(kind, settings.theme);
-  const skin = await guarded('watch', () => mod.then((m) => new m.WatchSkin(settings, kind)), () => unskin(kind));
+  const skin = await guarded('watch', () => load('watch').then((m) => new m.WatchSkin(settings, kind)), () => unskin(kind));
   if (!skin) return;
   // 详情页：右侧作者栏 / 目录 / 操作区按需加载；出错只影响侧栏，换皮照常
   const dk = kind === 'page' ? detailKind() : null;
@@ -259,7 +260,7 @@ async function start(): Promise<void> {
   const mod = load('home');
   mod.catch(() => {});
 
-  const settings = await loadSettings();
+  const settings = await startupSettings();
   if (!settings.enabled) { hide.remove(); unmute(); return disabledAfterMute(); }
   setGuard(true);
 
@@ -282,7 +283,7 @@ async function takeover<M>(mod: Promise<M>, make: (m: M, s: Settings) => { shell
   if (sessionStorage.getItem('margin:off') || offByUrl()) { backPill(); return; }
   const hide = hideOriginal();
   const unmute = mute ? muteNative() : () => {};
-  const settings = await loadSettings();
+  const settings = await startupSettings();
   if (!settings.enabled || !settings.watch) { hide.remove(); unmute(); return mute ? disabledAfterMute() : undefined; }
   if (mute) setGuard(true);
   const name = location.hostname.split('.')[0] + location.pathname;
@@ -321,7 +322,7 @@ function restoreNative(hide: HTMLStyleElement, muted: boolean): void {
   hide.remove();
   document.documentElement.style.removeProperty('background');
   // 挂载失败时连全局过滤/减少动画状态一起撤掉，真正回到原版
-  document.documentElement.classList.remove('margin-ads-hide', 'margin-reduce');
+  document.documentElement.classList.remove('margin-ads-hide', 'margin-reduce', 'margin-ui-still');
   document.getElementById('margin-global-css')?.remove();
   if (!muted) return;
   sessionStorage.setItem('margin:off', 'err');
@@ -356,7 +357,7 @@ function applyFont(s: Settings): void {
   set('--margin-cfs', on && s.commentSize !== 14 ? `${s.commentSize}px` : null);
 }
 if (!offByUrl() && !sessionStorage.getItem('margin:off')) {
-  loadSettings().then((s) => { applyFont(s); applyGlobalUi(s); }).catch(() => {});
+  startupSettings().then((s) => { applyFont(s); applyGlobalUi(s); }).catch(() => {});
   onSettingsChange((n) => { applyFont(n); applyGlobalUi(n); });
 }
 

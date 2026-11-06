@@ -1,7 +1,7 @@
 import { loadSettings, onSettingsChange } from '../../shared/settings';
 import { account, accountStat, dynamicUpdates, logout, resetDynamicBaseline, unreadTotal, type Account } from '../api/account';
 import { fmtCount, h, icon, ICONS, setMarkup } from './dom';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 
 /**
  * 头像卡片：移植用户贴来的 21st「ID Card Lanyard」——

@@ -26,6 +26,15 @@ describe('settings 迁移（merge / loadSettings）', () => {
     expect(s).toEqual(DEFAULTS);
   });
 
+  it('控件动效独立保存，旧设置默认开启，平面质感可导入', async () => {
+    expect((await loadSettings()).uiEffects).toBe(true);
+    expect(sanitizeSettings({ uiEffects: 'false' })?.uiEffects).toBe(true);
+    const imported = sanitizeSettings({ uiEffects: false, glass: 'flat' })!;
+    expect(imported).toMatchObject({ uiEffects: false, glass: 'flat', reduceMotion: false });
+    await saveSettings(imported);
+    expect(await loadSettings()).toMatchObject({ uiEffects: false, glass: 'flat', bg: DEFAULTS.bg });
+  });
+
   it('弹幕建议默认关闭，导入和本地保存严格接受布尔值', async () => {
     expect(DEFAULTS.danmakuJump).toBe(false);
     expect(sanitizeSettings({ danmakuJump: 'true' })?.danmakuJump).toBe(false);

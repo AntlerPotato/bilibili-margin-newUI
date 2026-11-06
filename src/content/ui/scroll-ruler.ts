@@ -1,5 +1,5 @@
 import { h } from './dom';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 
 /**
  * 刻度尺滚动进度：21st「Scroll Bars」（radiumcoders）竖向版的原生移植。

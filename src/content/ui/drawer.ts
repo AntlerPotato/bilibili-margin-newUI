@@ -1,7 +1,7 @@
 import { removeWatchLater, watchLater, type LaterItem } from '../api/search';
 import { toast } from './controls';
 import { fmtAgo, fmtDuration, h, icon, ICONS } from './dom';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 import type { FilterRuntime } from '../filter-runtime';
 import { targetOfLater } from '../filter-targets';
 

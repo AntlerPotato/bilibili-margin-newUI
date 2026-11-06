@@ -21,7 +21,7 @@ import css from '../styles/index';
 import { BackgroundLayer } from '../bg/background';
 import { startTriple } from './triple';
 import { startWatchCard } from './watch-card';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 import { FilterRuntime } from '../filter-runtime';
 import { openBili } from '../navigation';
 import { ThemeWriter } from './theme-writer';
@@ -138,6 +138,7 @@ export class WatchSkin {
   update(s: Settings): void {
     s = this.themeWriter.sync(s);
     this.app.dataset.glass = s.glass;
+    this.app.classList.toggle('margin-ui-still', !s.uiEffects);
     const prev = this.settings;
     this.settings = s;
     this.filter.update(s);
@@ -162,6 +163,7 @@ export class WatchSkin {
     this.app.dataset.theme = t;
     this.bgApp.dataset.theme = t;
     this.app.classList.toggle('margin-reduce', this.settings.reduceMotion);
+    this.app.classList.toggle('margin-ui-still', !this.settings.uiEffects);
     this.bgApp.classList.toggle('margin-reduce', this.settings.reduceMotion);
     this.head.sunMoon.set(t, animate && !reducedMotion());
     const mode = this.settings.bg.mode;

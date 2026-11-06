@@ -1,6 +1,6 @@
 import { messageEmotes, sendImage, sendText, uploadMessageImage, validateMessageImage, type EmotePack, type MessageImage } from '../api/msg';
 import { h, icon, ICONS } from './dom';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 
 /** 21st Emoji Picker / File Attachment 的轻量原生适配；数据与发送使用 B 站接口。 */
 export function createMessageComposer(o: { me: number; to: number; name: string; csrf: () => string; say: (s: string) => void; onSent: () => Promise<void> }) {

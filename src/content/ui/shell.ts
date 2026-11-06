@@ -11,7 +11,7 @@ import { createFavorites } from './favorites';
 import { attachPreview } from './preview';
 import type { SunMoon } from './sun-moon';
 import { FilterRuntime } from '../filter-runtime';
-import { reducedMotion } from '../motion';
+import { uiReducedMotion as reducedMotion } from '../motion';
 import { toast } from './controls';
 import { ThemeWriter } from './theme-writer';
 import css from '../styles/index';
@@ -84,6 +84,7 @@ export class PageShell {
   update(s: Settings): void {
     s = this.themeWriter.sync(s);
     this.app.dataset.glass = s.glass;
+    this.app.classList.toggle('margin-ui-still', !s.uiEffects);
     const prev = this.settings;
     this.settings = s;
     this.filter.update(s);
@@ -103,6 +104,7 @@ export class PageShell {
     this.app.dataset.palette = this.settings.palette;
     this.app.dataset.bg = this.settings.bg.mode;
     this.app.classList.toggle('margin-reduce', this.settings.reduceMotion);
+    this.app.classList.toggle('margin-ui-still', !this.settings.uiEffects);
     document.documentElement.style.background = t === 'dark' ? '#111' : '#f5f4f1';
     this.sunMoon.set(t, !reducedMotion());
     this.bg.apply(this.settings.bg, t, this.settings.palette).then(() => this.panel.sync(this.settings));

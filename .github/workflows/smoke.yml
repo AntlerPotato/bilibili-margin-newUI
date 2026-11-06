@@ -42,6 +42,10 @@ jobs:
         run: npm run test:performance-ui
         env:
           SMOKE_OUT: smoke-artifacts/performance-ui
+      - name: Independent control effects and flat surfaces
+        run: node tests/effect-controls.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/effect-controls
       - name: Private message images and emojis
         run: npm run test:message-media
         env:

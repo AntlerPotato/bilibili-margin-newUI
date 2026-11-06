@@ -25,9 +25,9 @@ html.margin-ads-hide .bangumi-list .ad-report { display: none !important; }
 
 /* 用户主动减少动画：只作用于映间换皮的页面，保留最终静态帧 */
 /* v0.50.1：播放器（含弹幕层）不受影响——滚动弹幕靠 CSS 动画/过渡移动，被压成 0.001ms 后一出现就到终点，只剩顶部/底部固定弹幕（GitHub #36） */
-html.margin-skin.margin-reduce *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *),
-html.margin-skin.margin-reduce *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::before,
-html.margin-skin.margin-reduce *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::after {
+html.margin-skin:is(.margin-reduce,.margin-ui-still) *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *),
+html.margin-skin:is(.margin-reduce,.margin-ui-still) *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::before,
+html.margin-skin:is(.margin-reduce,.margin-ui-still) *:not(:is(.bpx-player-container, #bilibili-player, #live-player, .live-player-mounter, .web-player-danmaku) *)::after {
   animation-duration: .001ms !important;
   animation-delay: 0s !important;
   animation-iteration-count: 1 !important;

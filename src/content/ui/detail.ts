@@ -14,6 +14,7 @@ import { getJSON } from '../api/http';
 import { spaceVideos, follow } from '../api/space';
 import { csrf, https } from './shell';
 import { skinComments } from './comment-skin';
+import { onUiMotionChange, uiReducedMotion } from '../motion';
 import type { Video } from '../api/feed';
 import type { FilterRuntime } from '../filter-runtime';
 import { targetOfVideo } from '../filter-targets';
@@ -175,10 +176,10 @@ export class DetailAside {
     this.root.append(h('style', {}, CSS), this.aside);
     this.host.hidden = true;
     const syncMotion = () => {
-      this.host.dataset.motion = document.documentElement.classList.contains('margin-reduce') ? 'reduced' : '';
+      this.host.dataset.motion = uiReducedMotion() ? 'reduced' : '';
     };
     syncMotion();
-    document.addEventListener('margin:motion', syncMotion);
+    onUiMotionChange(syncMotion);
     document.documentElement.append(this.host);
     this.waitMain();
   }

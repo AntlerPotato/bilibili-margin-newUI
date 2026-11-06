@@ -1,6 +1,6 @@
 
 import { setMarkup } from './dom';
-import { reducedMotion } from '../motion';/**
+import { onUiMotionChange, uiReducedMotion as reducedMotion } from '../motion';/**
  * 映间自己的「三连」动画，盖掉 B 站原版的长按动效。
  * 长按点赞：点赞 → 投币 → 收藏三个胶囊的描边依次被强调色填满（松手就倒退回去）；
  * B 站确认三连后（投币、收藏变成 .on），三个胶囊依次弹起，向外散出一圈碎光，
@@ -39,12 +39,11 @@ function ring(el: HTMLElement): SVGRectElement {
 }
 
 function burst(els: HTMLElement[]): void {
-  const reduce = reducedMotion();
+  if (reducedMotion()) return;
   els.forEach((el, i) => {
     el.classList.add('mt-done');
-    if (reduce) return;
     el.animate([{ scale: '1' }, { scale: '1.14', offset: 0.35 }, { scale: '.97', offset: 0.7 }, { scale: '1' }],
-      { duration: 560, delay: i * 90, easing: 'cubic-bezier(.3,0,.2,1)' });
+      { duration: 560, delay: i * 90, easing: 'cubic-bezier(.3,0,.2,1)' }).id = 'margin-triple';
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     for (let k = 0; k < 12; k++) {
@@ -60,7 +59,7 @@ function burst(els: HTMLElement[]): void {
         { translate: '0 0', opacity: 0, scale: '.4' },
         { opacity: 1, offset: 0.2 },
         { translate: `${Math.cos(a) * d}px ${Math.sin(a) * d}px`, opacity: 0, scale: '1' },
-      ], { duration: 700 + hh * 250, delay: i * 90 + Math.round(hh * 50), easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' }).finished.finally(() => p.remove());
+      ], { duration: 700 + hh * 250, delay: i * 90 + Math.round(hh * 50), easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' }).finished.then(() => p.remove(), () => p.remove());
     }
   });
   const r = els[0].getBoundingClientRect();
@@ -74,7 +73,7 @@ function burst(els: HTMLElement[]): void {
     { translate: '-50% -42px', opacity: 1, scale: '1', offset: 0.25 },
     { translate: '-50% -46px', opacity: 1, offset: 0.8 },
     { translate: '-50% -54px', opacity: 0 },
-  ], { duration: reduce ? 1200 : 1700, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).finished.finally(() => tag.remove());
+  ], { duration: 1700, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).finished.then(() => tag.remove(), () => tag.remove());
   setTimeout(() => els.forEach((el) => el.classList.remove('mt-done')), 1400);
 }
 
@@ -107,7 +106,7 @@ export function startTriple(): void {
   };
 
   document.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || reducedMotion()) return;
     const like = (e.target as Element).closest?.('.video-toolbar-left-main .video-like');
     if (!like) return;
     els = items();
@@ -163,6 +162,17 @@ export function startTriple(): void {
     setTimeout(() => { mo?.disconnect(); mo = null; }, 5200);
   };
 
+  onUiMotionChange(() => {
+    if (!reducedMotion()) return;
+    holding = false; armedUntil = 0; p = 0;
+    mo?.disconnect(); mo = null;
+    flush();
+    cancelAnimationFrame(raf); raf = 0;
+    paint();
+    els?.forEach(el => { el.getAnimations().filter(animation => animation.id === 'margin-triple').forEach(animation => animation.cancel()); el.classList.remove('mt-done'); });
+    document.querySelectorAll('.mt-spark,.mt-tag').forEach(el => el.getAnimations().forEach(animation => animation.cancel()));
+  });
+
   // 测试/演示钩子
-  document.addEventListener('margin-triple-demo', () => { const e = items(); if (e) { e.forEach(ring); burst(e); } });
+  document.addEventListener('margin-triple-demo', () => { const e = items(); if (e && !reducedMotion()) { e.forEach(ring); burst(e); } });
 }
