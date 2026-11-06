@@ -25,7 +25,7 @@ try {
     <div class="channel-page__head"><div class="channel-name">鬼畜</div></div><div class="channel-page__body">${Array.from({ length: 8 }, (_, i) => `<div class="feed-card"><div class="bili-video-card video-card"><div class="bili-video-card__wrap">
       <div class="bili-video-card__cover"><a class="bili-cover-card" href="https://www.bilibili.com/video/BV14W4B6sET9/"><div class="bili-cover-card__thumbnail"><img src="https://i0.hdslb.com/bfs/test${i}.jpg"></div><div class="bili-cover-card__stats">01:30</div></a></div>
       <div class="bili-video-card__details"><div class="bili-video-card__title"><a href="https://www.bilibili.com/video/BV14W4B6sET9/">分区视频 ${i + 1}</a></div><div class="bili-video-card__subtitle"><a class="bili-video-card__author" href="https://space.bilibili.com/1">UP 主</a></div></div>
-    </div></div></div>`).join('')}</div><div class="banner-carousel__footer">原生轮播标题</div></div></main></div></div></body></html>` }));
+    </div></div></div>`).join('')}</div><div class="banner-carousel__footer"><div class="mask" style="background-color:rgb(154,140,137)"></div><a href="#carousel">原生轮播标题</a></div></div></main></div></div></body></html>` }));
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
   for (const theme of ['light', 'dark']) {
@@ -36,7 +36,7 @@ try {
       const css = selector => getComputedStyle(document.querySelector(selector));
       return { radius: css('.bili-cover-card__thumbnail').borderRadius, title: css('.bili-video-card__title a').color,
         font: css('.channel-name').fontFamily, background: css('.feedchannel').backgroundColor,
-        footer: css('.banner-carousel__footer').backgroundColor, coverStats: css('.bili-cover-card__stats').color,
+        footer: css('.banner-carousel__footer').backgroundColor, mask: css('.banner-carousel__footer .mask').backgroundColor, coverStats: css('.bili-cover-card__stats').color,
         href: document.querySelector('.bili-video-card__title a').href };
     });
     results.push({ theme, style });
@@ -44,6 +44,7 @@ try {
     assert.equal(style.title, theme === 'dark' ? 'rgb(237, 237, 238)' : 'rgb(23, 24, 26)');
     assert.equal(style.background, 'rgba(0, 0, 0, 0)');
     assert.equal(style.footer, theme === 'dark' ? 'rgb(26, 26, 28)' : 'rgb(255, 255, 255)');
+    assert.equal(style.mask, style.footer);
     assert.equal(style.coverStats, 'rgb(255, 255, 255)'); assert(style.href.endsWith('/BV14W4B6sET9/'));
     for (const width of [1920, 1100]) {
       await page.setViewportSize({ width, height: 900 });
