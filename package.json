@@ -22,6 +22,7 @@
     "test:watch-startup": "node tests/watch-startup.mjs && node tests/watch-card-startup.mjs",
     "test:feedback": "node tests/header-feedback.mjs && node tests/watch-auto-mode.mjs && node tests/lightbox.mjs && node tests/app-auth-feedback.mjs && node tests/settings-thumbnails.mjs",
     "test:new-issues": "node tests/watch-screen.mjs && node tests/favorites-subscriptions.mjs && node tests/triple-release.mjs",
+    "test:watch-later": "node tests/watch-later-groups.mjs",
     "test:unit": "vitest run",
     "fonts": "python3 scripts/slice-fonts.py"
   },

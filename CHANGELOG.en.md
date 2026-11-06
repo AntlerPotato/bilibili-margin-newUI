@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add creator filtering and grouping to Watch Later across shared drawer entry points. Distinguish identical names by UID, update groups and counts after deletion, and ignore stale list responses after reopening (#82).
 - Merge #60 and prefetch enough cards for the intended scroll position before refreshing. Cover positions before, at and after the sticky boundary, top-of-page refresh, zoom, tab changes and failure recovery.
 - Merge the real Fullscreen API regression from #77, alongside late-body initialization and transitions between live web and native fullscreen modes.
 - Document direct temporary-extension installation from a built folder or ZIP in Safari versions that expose this developer option. Native Safari runtime validation still requires a Mac (#12).
