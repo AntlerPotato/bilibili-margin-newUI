@@ -221,6 +221,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const dur = segmented<string>([['0', '不限'], ['60', '1 分钟'], ['180', '3 分钟'], ['600', '10 分钟']], String(s0.filters.minDuration), (v) => save({ filters: { ...get().filters, minDuration: Number(v) } }));
   const adsT = toggle(s0.hideAds, '隐藏广告', (v) => save({ hideAds: v }));
   const sponsorT = toggle(s0.sponsorSkip, '跳过视频内广告', (v) => save({ sponsorSkip: v }));
+  const jumpT = toggle(s0.danmakuJump, '弹幕跳转建议', (v) => save({ danmakuJump: v }));
 
   const mode = segmented<BgMode>([['random', '随机'], ['fixed', '固定'], ['image', '图片'], ['off', '关闭']], s0.bg.mode, (v) => {
     if (v === 'image') { file.click(); return; }
@@ -474,7 +475,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
         block('最低播放量', null, views),
         block('最短时长', null, dur)),
       row('隐藏广告', '隐藏播放页、搜索页、热门排行和番剧页的推广内容', adsT),
-      row('跳过视频内广告', h('span', {}, '默认关闭；普通 BV 视频按社区标记跳过，可撤销。开启后向 ', h('a', { href: 'https://bsbsb.top/', target: '_blank', rel: 'noopener noreferrer' }, '小电视空降助手'), ' 查询哈希前缀；不保证完播率。'), sponsorT)),
+      row('跳过视频内广告', h('span', {}, '默认关闭；普通 BV 视频按社区标记跳过，可撤销。开启后向 ', h('a', { href: 'https://bsbsb.top/', target: '_blank', rel: 'noopener noreferrer' }, '小电视空降助手'), ' 查询哈希前缀；不保证完播率。'), sponsorT),
+      row('弹幕跳转建议', '默认关闭；普通 BV 视频中至少 3 个不同发送者给出相同空降时间时提示，点击跳转，可撤销。仅从 B 站读取当前分 P 的弹幕。', jumpT)),
     h('section', { class: 'group' }, h('h3', {}, '实验功能'),
       row('App 推荐流', '首页「推荐」改用手机 App 的推荐；关掉就是网页版原来的推荐', appT),
       drawer('App 授权', () => (authed ? '已授权' : '未授权'),
@@ -499,6 +501,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       appT.setAttribute('aria-checked', String(s.appFeed));
       rankT.setAttribute('aria-checked', String(s.rerank));
       sponsorT.setAttribute('aria-checked', String(s.sponsorSkip));
+      jumpT.setAttribute('aria-checked', String(s.danmakuJump));
       watch.setAttribute('aria-checked', String(s.watch));
       foot.setAttribute('aria-checked', String(s.footprint));
       wxT.setAttribute('aria-checked', String(s.weather));

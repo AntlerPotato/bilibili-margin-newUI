@@ -26,6 +26,14 @@ describe('settings 迁移（merge / loadSettings）', () => {
     expect(s).toEqual(DEFAULTS);
   });
 
+  it('弹幕建议默认关闭，导入和本地保存严格接受布尔值', async () => {
+    expect(DEFAULTS.danmakuJump).toBe(false);
+    expect(sanitizeSettings({ danmakuJump: 'true' })?.danmakuJump).toBe(false);
+    expect(sanitizeSettings({ danmakuJump: true })?.danmakuJump).toBe(true);
+    await saveSettings({ danmakuJump: true });
+    expect((await loadSettings()).danmakuJump).toBe(true);
+  });
+
   it('撤回的播放页评论布局选项不再导入或作为默认设置', () => {
     expect(DEFAULTS).not.toHaveProperty('watchComments');
     expect(DEFAULTS).not.toHaveProperty('commentInput');

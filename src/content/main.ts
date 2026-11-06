@@ -40,6 +40,7 @@ type Pages = {
   feed: typeof import('./pages/feed');
   detail: typeof import('./pages/detail');
   'space-hooks': typeof import('./pages/space-hooks');
+  'danmaku-jump': typeof import('./pages/danmaku-jump');
 };
 /** 按需加载页面模块；content script 不能是 ES module，但可以动态 import 扩展里的 ES 模块 */
 const load = <K extends keyof Pages>(name: K): Promise<Pages[K]> => import(/* @vite-ignore */ chrome.runtime.getURL(`pages/${name}.js`));
@@ -56,12 +57,24 @@ function mountGlobalCss(): void {
   document.documentElement.append(st);
 }
 
+let jumps: Pages['danmaku-jump'] | null = null;
+let jumpsGeneration = 0;
+
 /** 设置开关映射到文档级 class；HTML 只负责命中 CSS，具体逻辑在各自组件里 */
 function applyGlobalUi(s: Settings): void {
   const active = s.enabled && !sessionStorage.getItem('margin:off') && !offByUrl();
   applyAppearance(s,active);
   installAppNavigation(active);
   setSponsorSkip(active && s.sponsorSkip);
+  const jumpEnabled = active && s.danmakuJump;
+  const generation = ++jumpsGeneration;
+  if (jumps) jumps.setDanmakuJump(jumpEnabled);
+  else if (jumpEnabled && isWatch()) {
+    load('danmaku-jump').then(module => {
+      jumps = module;
+      if (generation === jumpsGeneration) module.setDanmakuJump(true);
+    }).catch(error => console.error('[MARGIN] 弹幕建议加载失败', error));
+  }
   document.documentElement.classList.toggle('margin-ads-hide', s.enabled && s.hideAds);
   setUserReducedMotion(s.enabled && s.reduceMotion);
 }
