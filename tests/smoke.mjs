@@ -1392,11 +1392,11 @@ for (const theme of THEMES) {
       const gap = () => page.evaluate(() => document.querySelector('.right-container .video-pod').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom);
       await page.waitForFunction(() => {
         const gap = document.querySelector('.right-container .video-pod').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom;
-        return gap >= 20 && gap <= 28;
+        return Math.abs(gap) < 2;
       }, null, { timeout: 3000 }).catch(() => {});
       const miss = [];
       const before = await gap();
-      if (Math.abs(before - 24) > 4) miss.push(`late sidebar was not positioned: gap=${before}`);
+      if (Math.abs(before) >= 2) miss.push(`late sidebar was not positioned: gap=${before}`);
       // 用户滚动不应成为定位生效的触发条件，也不能改变播放器和侧栏之间的距离。
       await page.evaluate(() => scrollTo(0, 200)); await sleep(200);
       if (Math.abs((await gap()) - before) > 4) miss.push('sidebar jumped after scrolling');
