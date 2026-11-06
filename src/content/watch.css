@@ -244,9 +244,10 @@ html.margin-watch.margin-wide :is(.right-container, .playlist-container--right) 
 
 /* 映间三连：藏掉原版长按动效（工具栏项里的附加层），用描边进度 + 弹起碎光代替 */
 html.margin-triple .toolbar-left-item-wrap > :not(.video-toolbar-left-item):not(.van-popover):not(.van-popper) { display: none !important; }
-html.margin-triple .video-like > :not(svg):not(.video-toolbar-item-text),
-html.margin-triple .video-coin > :not(svg):not(.video-toolbar-item-text),
-html.margin-triple .video-fav > :not(svg):not(.video-toolbar-item-text) { display: none !important; }
+/* 普通点赞 SVGA 挂载时先测量位置再移到 body，必须保留其测量盒子和装扮图标。 */
+html.margin-triple .video-like > :not(svg):not(.video-toolbar-item-icon):not(.video-toolbar-item-text):not(.svga-container),
+html.margin-triple .video-coin > :not(svg):not(.video-toolbar-item-icon):not(.video-toolbar-item-text),
+html.margin-triple .video-fav > :not(svg):not(.video-toolbar-item-icon):not(.video-toolbar-item-text) { display: none !important; }
 html.margin-triple .video-toolbar-left-item { position: relative; overflow: visible !important; }
 html.margin-triple .video-toolbar-left-item .video-toolbar-item-icon { transition: color .25s, transform .25s; }
 html.margin-triple .mt-ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); pointer-events: none; overflow: visible; display: block !important; }

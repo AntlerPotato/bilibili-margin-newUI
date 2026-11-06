@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix native like and costume animations appearing at the page's top-left by preserving SVGA measurement before reparenting and costume icons. Cover normal and scaled layouts (#91). Add first-frame checks for reply expansion and pagination, verifying the existing `--bg1_rgb` dark-loading fix (#90).
+
 - Stop resize-triggered shader draws after disabling animated backgrounds or selecting an image. Verify control-effect preferences against hardware animation and the software-rendering static fallback, excluding settings thumbnails from draw counts.
 
 - Fix a cold-start square-corner flash before the first theme mirror exists by applying default player styling synchronously and reconciling stored settings. Share the startup settings read and skip the watch UI module download when page redesign is disabled.
