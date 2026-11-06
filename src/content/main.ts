@@ -41,6 +41,7 @@ type Pages = {
   detail: typeof import('./pages/detail');
   'space-hooks': typeof import('./pages/space-hooks');
   'danmaku-jump': typeof import('./pages/danmaku-jump');
+  'danmaku-airborne': typeof import('./pages/danmaku-airborne');
   'channel-carousel': typeof import('./pages/channel-carousel');
 };
 /** 按需加载页面模块；content script 不能是 ES module，但可以动态 import 扩展里的 ES 模块 */
@@ -62,6 +63,8 @@ function mountGlobalCss(): void {
 
 let jumps: Pages['danmaku-jump'] | null = null;
 let jumpsGeneration = 0;
+let airborne: Pages['danmaku-airborne'] | null = null;
+let airborneGeneration = 0;
 
 /** 设置开关映射到文档级 class；HTML 只负责命中 CSS，具体逻辑在各自组件里 */
 function applyGlobalUi(s: Settings): void {
@@ -77,6 +80,15 @@ function applyGlobalUi(s: Settings): void {
       jumps = module;
       if (generation === jumpsGeneration) module.setDanmakuJump(true);
     }).catch(error => console.error('[MARGIN] 弹幕建议加载失败', error));
+  }
+  const airborneEnabled = active && s.danmakuAirborne;
+  const airGeneration = ++airborneGeneration;
+  if (airborne) airborne.setDanmakuAirborne(airborneEnabled);
+  else if (airborneEnabled && location.hostname === 'www.bilibili.com') {
+    load('danmaku-airborne').then(module => {
+      airborne = module;
+      if (airGeneration === airborneGeneration) module.setDanmakuAirborne(true);
+    }).catch(error => console.error('[MARGIN] 弹幕空降加载失败', error));
   }
   document.documentElement.classList.toggle('margin-ads-hide', s.enabled && s.hideAds);
   setUserReducedMotion(s.enabled && s.reduceMotion);

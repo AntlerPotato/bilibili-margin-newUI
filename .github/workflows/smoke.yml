@@ -36,6 +36,8 @@ jobs:
           SMOKE_OUT: smoke-artifacts/danmaku-jump
       - name: Community advertisement skipping
         run: npm run test:sponsor-skip
+      - name: Opt-in danmaku clicks and undo
+        run: npm run test:danmaku-airborne
       - name: Background frame pacing
         run: npm run test:frame-budget
       - name: UI interaction performance

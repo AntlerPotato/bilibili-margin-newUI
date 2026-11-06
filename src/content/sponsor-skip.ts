@@ -28,6 +28,7 @@ export function setSponsorSkip(enabled: boolean): void {
     const resume = v.currentTime, source = v, generation = gen;
     v.currentTime = range.end;
     document.getElementById('margin-danmaku-jump')?.remove();
+    document.getElementById('margin-danmaku-airborne')?.remove();
     clearNotice();
     const host = document.createElement('div'); host.id = 'margin-sponsor-notice';
     host.style.cssText = 'position:absolute;left:20px;bottom:64px;z-index:100;pointer-events:auto';

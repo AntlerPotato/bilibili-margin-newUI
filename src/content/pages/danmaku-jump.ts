@@ -48,7 +48,7 @@ export function setDanmakuJump(enabled: boolean): void {
     const source = video, currentGeneration = generation;
     if (!source || source.paused || source.seeking || source.ended || document.hidden || notice || currentVideo()?.key !== key || !Number.isFinite(source.duration) || Math.abs(source.duration - duration) > 2) return;
     const candidate = candidates.find(item => source.currentTime >= Math.max(0, item.from - 2) && source.currentTime <= item.until && !shown.has(item.time));
-    if (!candidate || document.getElementById('margin-sponsor-notice')) return;
+    if (!candidate || document.querySelector('#margin-sponsor-notice, #margin-danmaku-airborne')) return;
     const player = source.closest<HTMLElement>('.bpx-player-video-area, .bpx-player-container');
     if (!player) return;
     shown.add(candidate.time);

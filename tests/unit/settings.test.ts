@@ -43,6 +43,17 @@ describe('settings 迁移（merge / loadSettings）', () => {
     expect((await loadSettings()).danmakuJump).toBe(true);
   });
 
+  it('弹幕空降默认关闭，旧设置及导入严格接受布尔值', async () => {
+    expect(DEFAULTS.danmakuAirborne).toBe(false);
+    expect((await loadSettings()).danmakuAirborne).toBe(false);
+    store.set('margin:settings', { danmakuAirborne: 'true' });
+    expect((await loadSettings()).danmakuAirborne).toBe(false);
+    expect(sanitizeSettings({ danmakuAirborne: 'true' })?.danmakuAirborne).toBe(false);
+    expect(sanitizeSettings({ danmakuAirborne: true })?.danmakuAirborne).toBe(true);
+    await saveSettings({ danmakuAirborne: true });
+    expect((await loadSettings()).danmakuAirborne).toBe(true);
+  });
+
   it('撤回的播放页评论布局选项不再导入或作为默认设置', () => {
     expect(DEFAULTS).not.toHaveProperty('watchComments');
     expect(DEFAULTS).not.toHaveProperty('commentInput');
