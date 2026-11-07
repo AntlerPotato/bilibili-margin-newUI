@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/content/api/http', () => ({ getJSON: vi.fn(), postForm: vi.fn(), postJSON: vi.fn() }));
-import { getJSON } from '../../src/content/api/http';
-import { dynCommentTarget, dynReplies, dynSubReplies, toDyn } from '../../src/content/api/dyn';
+import { getJSON, postJSON } from '../../src/content/api/http';
+import { dynCommentTarget, dynReplies, dynReserve, dynSubReplies, toDyn, type DynReserve } from '../../src/content/api/dyn';
 
 const get = vi.mocked(getJSON);
 const item = (dynamic: object = {}, basic?: object) => ({ id_str: '900001234567890123', type: 'DYNAMIC_TYPE_WORD', basic,
@@ -9,7 +9,49 @@ const item = (dynamic: object = {}, basic?: object) => ({ id_str: '9000012345678
 const emoji = { type: 'RICH_TEXT_NODE_TYPE_EMOJI', text: '[开心]', emoji: { icon_url: '//i0.hdslb.com/happy.gif' } };
 beforeEach(() => vi.resetAllMocks());
 
+describe('直播预约操作', () => {
+  it('按服务器状态更新预约按钮、说明和人数，保留字符串 ID', async () => {
+    const reserve: DynReserve = { rid: '900001234567890123', title: '直播', state: 0, jump_url: '', reserve_total: 10,
+      desc2: { text: '10人预约', visible: true }, button: { type: 2, status: 1 } };
+    vi.mocked(postJSON).mockResolvedValue({ final_btn_status: 2, desc_update: '11人预约', reserve_update: 11, toast: '预约成功' });
+    expect(await dynReserve('800001234567890123', reserve)).toBe('预约成功');
+    expect(postJSON).toHaveBeenCalledWith('/x/dynamic/feed/reserve/click', {
+      reserve_id: reserve.rid, dynamic_id_str: '800001234567890123', cur_btn_status: 1, reserve_total: 10, spmid: '',
+    });
+    expect(reserve.button?.status).toBe(2); expect(reserve.reserve_total).toBe(11);
+    expect(reserve.desc2?.text).toBe('11人预约');
+    vi.mocked(postJSON).mockResolvedValue({ final_btn_status: 1, desc_update: '0人预约', reserve_update: 0 });
+    await dynReserve('800001234567890123', reserve);
+    expect(reserve.button?.status).toBe(1); expect(reserve.reserve_total).toBe(0);
+  });
+  it('接口失败或返回未知状态时保留原状态供重试', async () => {
+    const reserve: DynReserve = { rid: '1', title: '直播', state: 0, jump_url: '', reserve_total: 10,
+      button: { type: 2, status: 1 } };
+    vi.mocked(postJSON).mockRejectedValue(new Error('请先登录'));
+    await expect(dynReserve('2', reserve)).rejects.toThrow('请先登录');
+    vi.mocked(postJSON).mockResolvedValue({ final_btn_status: 9, reserve_update: 99 });
+    await expect(dynReserve('2', reserve)).rejects.toThrow('预约状态未确认');
+    expect(reserve.button?.status).toBe(1); expect(reserve.reserve_total).toBe(10);
+  });
+});
+
 describe('动态正文与表情', () => {
+  it('直播预约保留长 ID、说明和服务器按钮状态', () => {
+    const reserve = { rid: '900001234567890123', title: '周末直播', state: 0, reserve_total: 42,
+      desc1: { text: '明晚 20:00' }, desc2: { text: '42人预约', visible: true }, jump_url: '//live.bilibili.com/123',
+      button: { type: 2, status: 1, uncheck: { text: '预约', disable: 0 }, check: { text: '已预约', disable: 0 } } };
+    const d = toDyn(item({ additional: { type: 'ADDITIONAL_TYPE_RESERVE', reserve } }))!;
+    expect(d.reserve).toMatchObject({ ...reserve, jump_url: 'https://live.bilibili.com/123' });
+    expect(d.url).toBe('https://www.bilibili.com/opus/900001234567890123');
+    expect(toDyn({ ...item(), orig: item({ additional: { reserve } }) })?.orig?.reserve?.rid).toBe(reserve.rid);
+  });
+  it('预约删除状态和不可操作状态继续保留，危险链接被移除', () => {
+    const d = toDyn(item({ additional: { reserve: { rid: '1', title: '已删除', state: 1,
+      jump_url: 'javascript:alert(1)', desc3: { text: '详情', jump_url: 'javascript:alert(1)' } } } }))!;
+    expect(d.reserve?.state).toBe(1);
+    expect(d.reserve?.jump_url).toBe('');
+    expect(d.reserve?.desc3?.jump_url).toBe('');
+  });
   it('文字动态保留附加视频卡片和原动态评论目标', () => {
     const d = toDyn(item({ desc: { text: '律师也要黑屏处理啦' }, additional: { type: 'ADDITIONAL_TYPE_UGC',
       ugc: { title: '视频标题', cover: '//i0.hdslb.com/cover.jpg', jump_url: '//www.bilibili.com/video/BV1mdxN68E7F/', stat: { play: '2193.6万', danmaku: '39.6万' } },

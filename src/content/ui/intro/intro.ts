@@ -51,10 +51,16 @@ export function playIntro(parent: HTMLElement, theme: 'light' | 'dark'): Promise
   return new Promise<void>((resolve) => {
     let raf = 0, done = false;
     let tilePx = 0;
+    let renderer: ReturnType<typeof createRenderer> = null;
+    let fallback: HTMLElement | null = null;
+    let fallbackAnimation: Animation | null = null;
+    let timeout = 0;
     const finish = (fast = false) => {
       if (done) return;
       done = true;
       cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+      fallbackAnimation?.cancel();
       setIntroActive(false);
       removeEventListener('keydown', skip, true);
       if (!fast && tilePx && flyToBrand()) return;
@@ -79,6 +85,7 @@ export function playIntro(parent: HTMLElement, theme: 'light' | 'dark'): Promise
       Object.assign(fly.style, { left: `${cr.left + cr.width / 2 - w / 2}px`, top: `${cr.top + cr.height / 2 - hgt / 2}px`, width: `${w}px`, height: `${hgt}px`, color: P.logoColor });
       parent.append(fly);
       canvas.style.visibility = 'hidden';
+      if (fallback) fallback.style.visibility = 'hidden';
       target.style.visibility = 'hidden';
       const from = fly.getBoundingClientRect();
       const dx = to.left - from.left, dy = to.top - from.top, k = to.width / from.width;
@@ -103,12 +110,29 @@ export function playIntro(parent: HTMLElement, theme: 'light' | 'dark'): Promise
     el.addEventListener('wheel', skip, { passive: true });
     addEventListener('keydown', skip, true);
 
-    if (softwareGl(canvas)) { finish(true); return; }
-    let renderer: ReturnType<typeof createRenderer> = null;
+    const software = softwareGl(canvas);
     try { renderer = createRenderer(canvas); } catch (e) { console.info('[MARGIN] 开场动画不可用', e); }
-    if (!renderer) { finish(true); return; }
     // 保险：任何意外都不让开场挡住首页超过 6 秒
-    setTimeout(() => { try { if (localStorage.getItem('margin:intro-freeze')) return; } catch { /* ignore */ } finish(); }, 6000);
+    timeout = window.setTimeout(() => { try { if (localStorage.getItem('margin:intro-freeze')) return; } catch { /* ignore */ } finish(); }, 6000);
+    if (!renderer) {
+      // WebGL 不可用时仍播放轻量的小电视入场与落位。
+      tilePx = Math.min(P.tileSize, Math.min(innerWidth, innerHeight) / 1.75);
+      fallback = document.createElement('div');
+      fallback.className = 'intro-fallback';
+      Object.assign(fallback.style, { width: `${tilePx}px`, height: `${tilePx}px`, color: P.logoColor, background: P.plateColor });
+      setMarkup(fallback, BILI_TIGHT);
+      const logo = fallback.querySelector('svg')!;
+      logo.style.width = `${P.logoScale * P.finalScale * LOGO_FIT * 100}%`;
+      el.append(fallback);
+      fallbackAnimation = fallback.animate([
+        { opacity: 0, transform: 'scale(.25)', offset: 0 },
+        { opacity: 1, transform: 'scale(1.04)', offset: .3 },
+        { opacity: 1, transform: 'scale(1)', offset: .5 },
+        { opacity: 1, transform: 'scale(1)', offset: 1 },
+      ], { duration: 2400, easing: 'cubic-bezier(.23, 1, .32, 1)', fill: 'both' });
+      fallbackAnimation.finished.then(() => finish(), () => {});
+      return;
+    }
 
     loadLogo(BILI).then((logo) => {
       if (done) return;
@@ -119,7 +143,7 @@ export function playIntro(parent: HTMLElement, theme: 'light' | 'dark'): Promise
       let freeze = NaN;
       try { freeze = parseFloat(localStorage.getItem('margin:intro-freeze') ?? ''); } catch { /* ignore */ }
       // 自适应分辨率：连续几帧超过 ~45fps 的预算就降一档像素密度（CSS 拉伸，玻璃边缘仍够清晰）
-      let dprCap = Math.min(devicePixelRatio || 1, 1.5);
+      let dprCap = Math.min(devicePixelRatio || 1, software ? 0.75 : 1.5);
       let last = 0, slow = 0;
       const tick = (now: number) => {
         const t = Number.isFinite(freeze) ? freeze : (now - t0) / 1000;

@@ -94,6 +94,18 @@ jobs:
         run: node tests/latest-feedback.mjs
         env:
           SMOKE_OUT: smoke-artifacts/latest-feedback
+      - name: Comment feedback, search drops and filter scanning
+        run: node tests/comment-feedback.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/comment-feedback
+      - name: Opening animation and graphics fallback
+        run: node tests/intro.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/intro
+      - name: Dynamic livestream reservations
+        run: node tests/dynamic-reserve.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/dynamic-reserve
       - name: Player loading corners and hydration-safe card startup
         run: |
           SMOKE_OUT=smoke-artifacts/watch-startup node tests/watch-startup.mjs

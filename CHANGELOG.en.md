@@ -4,6 +4,26 @@
 
 ## Unreleased
 
+## [v0.6.3](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.3) · Pending release
+
+- Restore livestream reservation cards in followed feeds, creator spaces, and reposts, including titles, schedules, reservation counts, and server-provided button states (#98).
+- Support reserving, cancellation, server confirmation prompts, and retries with duplicate-click protection. Respect ended, deleted, and app-only states, and provide the live-room link when available.
+
+## [v0.6.2](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.2) · Pending release
+
+- Restore the glass intro with software rendering at a lower initial resolution. Use a lightweight TV-logo entrance and header landing when WebGL is unavailable.
+- Fix initialization order during early intro exits and clean up animation and timeout resources. Add browser coverage for initial playback, same-tab reloads, skipping, and reduced-motion settings.
+
+## [v0.6.1](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.1) · Pending release
+
+The display version is 0.6.1 and the internal update version is 0.60.1. Increment the patch number for every delivered update and synchronize the manifest, package versions, and both changelogs.
+
+- Add Watch Later actions to videos and reposted videos in the header's dynamic feed, with retries and duplicate-click protection.
+- Accept selected text dropped onto the homepage search, header search entry, and search panel. Press Enter or the search button to confirm.
+- Collapse search-result grid columns when their video is filtered, and restore them when the filter is cleared.
+- Rescan native video filters when result lists change, reducing work from unrelated comment and danmaku updates while supporting delayed lists and full replacements.
+- Keep the homepage's return-to-original button at the bottom left so scrolling and appended recommendations remain usable.
+
 ## [v0.6](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.0) · 2026-11-07
 
 The displayed release version is 0.6. The internal update version is 0.60.0 so browsers and update checks recognize it as a newer release.

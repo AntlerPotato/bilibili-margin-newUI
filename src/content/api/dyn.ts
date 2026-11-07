@@ -3,6 +3,17 @@ import { getJSON, postForm, postJSON } from './http';
 
 /** 一条动态，抽成渲染需要的最小结构 */
 export interface DynText { text: string; emoji?: string }
+interface ReserveStyle {
+  text?: string; disable?: number; toast?: string;
+  interactive?: { popups?: string; desc?: string; confirm?: string; cancel?: string };
+}
+export interface DynReserve {
+  rid: string; title: string; state: number; reserve_total: number; jump_url: string;
+  desc1?: { text: string }; desc2?: { text: string; visible: boolean };
+  desc3?: { text: string; jump_url: string };
+  premiere?: { cover: string; online?: string }; badge_text?: string;
+  button?: { type: number; status: number; check?: ReserveStyle; uncheck?: ReserveStyle; jump_style?: ReserveStyle };
+}
 export interface Dyn {
   id: string; type: string; author: string; face: string; mid: number; ts: number; time: string;
   text: string; richText?: DynText[]; title?: string;
@@ -14,6 +25,7 @@ export interface Dyn {
   /** 其它带卡片的类型（合集、番剧、课程、音乐、通用卡片），统一成链接卡 */
   link?: { title: string; cover: string; desc: string; url: string; kind: string };
   attachment?: Dyn['link'];
+  reserve?: DynReserve;
   orig?: Dyn | null;
   stat: { comment: number; forward: number; like: number };
   url: string;
@@ -22,6 +34,7 @@ export interface Dyn {
 }
 
 const https = (u: unknown) => String(u ?? '').replace(/^\/\//, 'https://').replace(/^http:/, 'https:');
+const reserveUrl = (u: unknown) => /^https:\/\//.test(https(u)) ? https(u) : '';
 
 export function toDyn(it: any): Dyn | null {
   if (!it?.modules) return null;
@@ -80,8 +93,27 @@ export function toDyn(it: any): Dyn | null {
     out.attachment = { title: ugc.title ?? '', cover: https(ugc.cover), url: ugcUrl, kind: '视频',
       desc: ugc.stat ? [ugc.stat.play ? `${ugc.stat.play}播放` : '', ugc.stat.danmaku ? `${ugc.stat.danmaku}弹幕` : ''].filter(Boolean).join(' · ') : ugc.desc_second ?? '' };
   }
+  const reserve = d.additional?.reserve;
+  if (reserve) {
+    out.reserve = { ...reserve, rid: String(reserve.rid ?? ''), title: String(reserve.title ?? ''),
+      jump_url: reserveUrl(reserve.jump_url),
+      desc3: reserve.desc3 ? { text: String(reserve.desc3.text ?? ''), jump_url: reserveUrl(reserve.desc3.jump_url) } : undefined,
+      premiere: reserve.premiere ? { ...reserve.premiere, cover: reserveUrl(reserve.premiere.cover) } : undefined };
+  }
   if (it.orig) out.orig = toDyn(it.orig);
   return out;
+}
+
+/** 与原生预约卡使用同一接口，状态和人数以服务器返回值为准。 */
+export async function dynReserve(id: string, reserve: DynReserve): Promise<string> {
+  const result = await postJSON<{ final_btn_status: number; desc_update?: string; reserve_update?: number; toast?: string }>(
+    '/x/dynamic/feed/reserve/click', { reserve_id: reserve.rid, cur_btn_status: reserve.button!.status,
+      dynamic_id_str: id, reserve_total: reserve.reserve_total, spmid: '' });
+  if (result.final_btn_status !== 1 && result.final_btn_status !== 2) throw new Error('预约状态未确认，请刷新后重试');
+  reserve.button!.status = result.final_btn_status;
+  if (result.desc_update !== undefined && reserve.desc2) reserve.desc2.text = result.desc_update;
+  if (result.reserve_update !== undefined) reserve.reserve_total = result.reserve_update;
+  return result.toast || (result.final_btn_status === 2 ? '预约成功' : '已取消预约');
 }
 
 export async function spaceDynamics(mid: number, offset: string): Promise<{ list: Dyn[]; offset: string; more: boolean }> {

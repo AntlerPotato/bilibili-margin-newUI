@@ -1,4 +1,4 @@
-import { dynCommentTarget, dynLike, dynReplies, dynReply, dynRepost, dynSubReplies, type Dyn, type DynText, type Reply } from '../api/dyn';
+import { dynCommentTarget, dynLike, dynReplies, dynReply, dynRepost, dynReserve, dynSubReplies, type Dyn, type DynText, type Reply } from '../api/dyn';
 import { fmtAgo, fmtCount, h, icon, ICONS } from './dom';
 import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
@@ -60,6 +60,7 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
       link.cover ? img(link.cover, 320, 200) : null,
       h('span', {}, h('b', {}, link.title), h('span', {}, [link.kind, link.desc].filter(Boolean).join(' · ')))));
   }
+  if (d.reserve) media.push(reserveCard(d));
   if (d.orig) media.push(h('div', { class: 'dy-orig' }, h('div', { class: 'dy-orig-by' }, `@${d.orig.author}`), dynCard(d.orig, true)));
 
   // 长文折叠（GitHub #8）：按字数 / 行数判断，不读布局
@@ -93,6 +94,55 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
     actions(d)), d.url);
   dynData.set(el, d);
   return el;
+}
+
+function reserveCard(d: Dyn): HTMLElement {
+  const reserve = d.reserve!;
+  const card = h('section', { class: 'dy-reserve', 'aria-label': '预约信息' });
+  if (reserve.state === 1 || reserve.state === -1) {
+    card.append(h('span', {}, reserve.state === 1 ? '原预约信息已删除' : '请在最新版哔哩哔哩客户端查看预约'));
+    return card;
+  }
+  const description = h('span', { class: 'dy-reserve-desc' });
+  const detail = h('a', { class: 'dy-reserve-detail', href: reserve.jump_url || d.url, ...ext },
+    h('b', {}, reserve.title || '直播预约'), description);
+  if (reserve.premiere?.cover) card.append(h('a', { class: 'dy-reserve-cover', href: reserve.jump_url || d.url, ...ext }, img(reserve.premiere.cover, 240, 150)));
+  card.append(detail);
+  const state = reserve.button;
+  const status = h('span', { class: 'dy-reserve-status', role: 'status' });
+  const updateDescription = () => { description.textContent = [reserve.badge_text, reserve.desc1?.text,
+    reserve.desc2?.visible ? reserve.desc2.text : '', reserve.premiere?.online].filter(Boolean).join(' · '); };
+  updateDescription();
+  if (state?.type === 1) {
+    card.append(h('a', { class: 'dy-reserve-action', href: reserve.jump_url || d.url, ...ext }, state.jump_style?.text || '查看详情'));
+  } else if (state?.type === 2 && reserve.rid && (state.status === 1 || state.status === 2)) {
+    const button = h('button', { class: 'dy-reserve-action', type: 'button' }) as HTMLButtonElement;
+    const style = () => state.status === 2 ? state.check : state.uncheck;
+    const render = () => {
+      button.textContent = style()?.text || (state.status === 2 ? '已预约' : '预约');
+      button.disabled = style()?.disable === 1;
+      button.title = style()?.toast || '';
+      button.setAttribute('aria-pressed', String(state.status === 2));
+      updateDescription();
+    };
+    let busy = false;
+    button.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (busy || button.disabled) return;
+      const interactive = style()?.interactive;
+      if (interactive && !confirm([interactive.popups, interactive.desc].filter(Boolean).join('\n') || '确认更改预约？')) return;
+      busy = true; button.disabled = true; button.setAttribute('aria-busy', 'true'); status.textContent = '';
+      try { status.textContent = await dynReserve(d.id, reserve); }
+      catch (error) { status.textContent = (error as Error).message || '预约失败，请重试'; }
+      finally { busy = false; button.removeAttribute('aria-busy'); render(); }
+    });
+    render(); card.append(button);
+  }
+  if (reserve.desc3?.text) {
+    card.append(h('a', { class: 'dy-reserve-extra', href: reserve.desc3.jump_url || d.url, ...ext }, reserve.desc3.text));
+  }
+  card.append(status);
+  return card;
 }
 
 /**

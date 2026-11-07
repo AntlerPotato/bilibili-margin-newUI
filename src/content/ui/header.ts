@@ -12,6 +12,7 @@ import { attachHoverList, POPS, type PopHandle } from './dyn-pop';
 import { createSettingsButton } from './settings-btn';
 import type { FilterRuntime } from '../filter-runtime';
 import { openBili } from '../navigation';
+import { acceptTextDrop } from './text-drop';
 
 /** 顶栏左上角的小电视：开场动画结束时图标就飞落到这里 */
 function tv(): HTMLElement { const s = h('span', { class: 'tv', 'aria-hidden': 'true' }); setMarkup(s, BILI_TIGHT); liveTv(s); return s; }
@@ -61,6 +62,13 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     search.addEventListener('pointerdown', (e) => { e.preventDefault(); openP(); });
     input.addEventListener('focus', openP);
   }
+
+  acceptTextDrop(search, (text) => {
+    if (o.onSearch) { o.onSearch(text); return; }
+    input.value = text;
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
 
   const tabsNav = createExpandableTabs(o.tabs);
   // 直播 / 消息 / 动态 / 历史 / 收藏 / 稍后：停留 1.5 秒弹出悬停列表

@@ -8,6 +8,7 @@ import { h } from './dom';
 import type { FilterRuntime } from '../filter-runtime';
 import type { FilterTarget } from '../filter';
 import { targetOfPopRow } from '../filter-targets';
+import { laterButton } from './later-btn';
 
 /** 悬停多久才弹出：只是路过顶栏时不打扰 */
 // 用户 2026-11-01：悬停立即展开，不要等
@@ -15,7 +16,7 @@ const OPEN_DELAY = 0;
 const CLOSE_DELAY = 220;
 
 /** 列表里的一行：头像或封面 + 两行文字，或一个计数 */
-export interface PopRow { href: string; face?: string; title: string; who?: string; sub?: string; cover?: string; progress?: number; count?: number; live?: boolean }
+export interface PopRow { href: string; face?: string; title: string; who?: string; sub?: string; cover?: string; progress?: number; count?: number; live?: boolean; laterBvid?: string }
 export interface PopSpec {
   title: string;
   all: { href: string; label: string };
@@ -60,13 +61,14 @@ function row(r: PopRow): HTMLElement {
   const cover = r.cover !== undefined
     ? h('span', { class: 'dp-cover' }, r.cover ? img(r.cover, '', 128, 72) : '', r.progress !== undefined ? h('i', { class: 'dp-prog', style: `--p:${Math.max(0, Math.min(1, r.progress))}` }) : '')
     : null;
-  return h('a', { class: 'dp-row', href: r.href, target: '_blank', rel: 'noopener' },
+  const link = h('a', { class: 'dp-row', href: r.href, target: '_blank', rel: 'noopener' },
     r.face !== undefined ? h('span', { class: 'dp-face' + (r.live ? ' live' : '') }, r.face ? img(r.face, '', 64) : '') : '',
     h('div', { class: 'dp-body' },
       r.who || r.sub ? h('div', { class: 'dp-meta' }, r.who ? h('b', {}, r.who) : '', r.sub ? h('span', {}, r.sub) : '') : '',
       h('p', { class: 'dp-line' }, r.title)),
     r.count !== undefined ? h('em', { class: r.count ? 'dp-count' : 'dp-count zero' }, r.count > 99 ? '99+' : String(r.count)) : '',
     cover);
+  return r.laterBvid ? h('div', { class: 'dp-entry' }, link, laterButton(r.laterBvid)) : link;
 }
 
 /**
@@ -270,7 +272,8 @@ export const POPS: Record<string, (o: { onDyn?: () => void; msgRemind?: () => bo
     let offset = '', more = true;
     const toRow = (d: Dyn): PopRow => {
       const s = dynSummary(d);
-      return { href: d.url, face: d.face, who: d.author, sub: `${ago(d.ts, d.time)} · ${s.kind}`, title: s.line, cover: s.cover || undefined };
+      const laterBvid = d.video?.bvid || d.orig?.video?.bvid || bvidFromHref(d.attachment?.url || d.orig?.attachment?.url);
+      return { href: d.url, face: d.face, who: d.author, sub: `${ago(d.ts, d.time)} · ${s.kind}`, title: s.line, cover: s.cover || undefined, laterBvid };
     };
     const page = async (first: boolean) => {
       if (first) { offset = ''; more = true; }

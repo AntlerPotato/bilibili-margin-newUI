@@ -132,6 +132,19 @@ html.margin-reduce .sp-menu { animation: none; }
 .dy-article img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 6px; }
 .dy-article b { display: block; font: 600 16px/1.45 var(--serif); margin-bottom: 6px; }
 .dy-article span span { font-size: 13px; color: var(--muted); }
+.dy-reserve { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--chip); }
+.dy-reserve-detail { flex: 1; min-width: 140px; color: var(--ink); overflow-wrap: anywhere; }
+.dy-reserve-detail b { display: block; font: 600 15px/1.5 var(--sans); }
+.dy-reserve-desc { display: block; margin-top: 4px; font: 12px/1.6 var(--sans); color: var(--muted); }
+.dy-reserve-cover { flex: none; width: 100px; }
+.dy-reserve-cover img { display: block; width: 100%; border-radius: 8px; }
+.dy-reserve-action { flex: none; min-height: 34px; padding: 6px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--ink); color: var(--canvas); font: 500 13px/1.4 var(--sans); cursor: pointer; }
+.dy-reserve-action[aria-pressed="true"] { color: var(--ink); background: var(--chip); }
+.dy-reserve-action:disabled { opacity: .6; cursor: default; }
+.dy-reserve-action:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.dy-reserve-extra, .dy-reserve-status { flex-basis: 100%; font: 12px/1.6 var(--sans); color: var(--muted); }
+.dy-reserve-extra { color: var(--accent-text); }
+.dy-reserve-status:empty { display: none; }
 .dy-orig { padding: 16px 20px; border-radius: 16px; background: var(--chip); }
 .dy-orig-by { font-size: 13px; color: var(--accent-text); margin-bottom: 8px; }
 .dy.nested { padding: 0; border: 0; }

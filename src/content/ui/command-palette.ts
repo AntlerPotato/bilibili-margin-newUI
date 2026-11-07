@@ -2,6 +2,7 @@ import { loadSettings, onSettingsChange } from '../../shared/settings';
 import { openBili } from '../navigation';
 import { forgetSearch, hotSearch, rememberSearch, searchHistory, searchUrl, suggest } from '../api/search';
 import { h, highlight, icon, ICONS } from './dom';
+import { acceptTextDrop } from './text-drop';
 
 /**
  * 命令面板：21st「Command Palette」（rafa-porto，Raycast 风格）的原生移植。
@@ -34,6 +35,11 @@ export function createCommandPalette(commands: Command[]): Palette {
     ),
   );
   const el = h('div', { class: 'cp', 'data-open': 'false', hidden: '' }, h('div', { class: 'cp-scrim' }), panel);
+  acceptTextDrop(panel.querySelector<HTMLElement>('.cp-input')!, (text) => {
+    input.value = text;
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
 
   // 左栏 = 搜索（联想 / 最近 / 热搜），右栏 = 命令；两栏各自一套选中，Tab 切换当前栏
   let pane: 'l' | 'r' = 'l';

@@ -3,6 +3,7 @@ import { openBili } from '../navigation';
 import { forgetSearch, hotSearch, rememberSearch, searchHistory, searchUrl, suggest, type Hot } from '../api/search';
 import { h, highlight, icon, ICONS } from './dom';
 import { onUiMotionChange as onMotionChange, uiReducedMotion as reducedMotion } from '../motion';
+import { acceptTextDrop } from './text-drop';
 
 /**
  * 首页主搜索 v0.23.0
@@ -32,6 +33,11 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
     h('div', { class: 'hs-drop' }, h('div', { class: 'hs-drop-in' }, list)),
   );
   const el = h('div', { class: 'hs-slot' }, box);
+  acceptTextDrop(box, (text) => {
+    input.value = text;
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   const scrim = h('div', { class: 'hs-scrim', 'aria-hidden': 'true' });
 
   // ── 热搜词轮播占位 ──
