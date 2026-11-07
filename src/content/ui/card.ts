@@ -15,7 +15,7 @@ export interface CardOpts {
 
 export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLElement {
   const href = `https://www.bilibili.com/video/${v.bvid}`;
-  const cover = h('a', { class: 'cover', href, target: '_blank', rel: 'noopener', title: v.title },
+  const cover = h('a', { class: 'cover', href, target: '_blank', rel: 'noopener', 'aria-label': v.title },
     h('img', { src: thumb(v.cover), alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }),
     v.duration && !opts.hide?.has('dur') ? h('span', { class: 'dur' }, fmtDuration(v.duration)) : null,
     v.coop ? h('span', { class: 'coop', title: '多位 UP 主联合投稿' }, '合作') : null,

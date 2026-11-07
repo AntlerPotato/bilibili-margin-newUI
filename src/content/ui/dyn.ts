@@ -54,10 +54,11 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
         h('span', { class: 'dy-vtitle' }, d.live.title || '开播了'),
         h('span', { class: 'dy-vmeta' }, d.live.meta || 'LIVE'))));
   }
-  if (d.link) {
-    media.push(h('a', { class: 'dy-article', href: d.link.url, ...ext },
-      d.link.cover ? img(d.link.cover, 320, 200) : null,
-      h('span', {}, h('b', {}, d.link.title), h('span', {}, [d.link.kind, d.link.desc].filter(Boolean).join(' · ')))));
+  for (const link of [d.link, d.attachment]) {
+    if (!link) continue;
+    media.push(h('a', { class: 'dy-article', href: link.url, ...ext },
+      link.cover ? img(link.cover, 320, 200) : null,
+      h('span', {}, h('b', {}, link.title), h('span', {}, [link.kind, link.desc].filter(Boolean).join(' · ')))));
   }
   if (d.orig) media.push(h('div', { class: 'dy-orig' }, h('div', { class: 'dy-orig-by' }, `@${d.orig.author}`), dynCard(d.orig, true)));
 

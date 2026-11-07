@@ -34,10 +34,13 @@ try {
   const page = await context.newPage(); page.setDefaultTimeout(6000);
   page.on('pageerror', error => errors.push(error.message));
   const passed = name => { results.push(name); console.log(`PASS ${name}`); };
-  for (const theme of ['light', 'dark']) {
+  for (const [entry, url, selector] of [
+    ['feed', 'https://t.bilibili.com/', '.fd-list > .dy'],
+    ['space', 'https://space.bilibili.com/2/dynamic', '.dy-list > .dy'],
+  ]) for (const theme of ['light', 'dark']) {
     await worker.evaluate(theme => chrome.storage.local.set({ 'margin:settings': { intro: false, theme, bg: { mode: 'off' } } }), theme);
-    await page.goto('https://t.bilibili.com/');
-    const card = page.locator('.fd-list > .dy').first();
+    await page.goto(url);
+    const card = page.locator(selector).first();
     const comments = card.getByRole('button', { name: /^评论/ });
     await comments.click();
     const toggle = card.getByRole('button', { name: '展开 12 条回复', exact: true });
@@ -57,8 +60,8 @@ try {
     await toggle.click(); assert.equal(await card.locator('.dy-sublist').isVisible(), true);
     assert.equal(calls.length, before + 1);
     await page.evaluate(() => scrollTo(0, 0));
-    await page.screenshot({ path: join(out, `${theme}-expanded.png`) });
-    passed(`${theme} keyboard expand, exact IDs, emoji and cached collapse`);
+    await page.screenshot({ path: join(out, `${entry}-${theme}-expanded.png`) });
+    passed(`${entry} ${theme} keyboard expand, exact IDs, emoji and cached collapse`);
 
     fail = true;
     await card.getByRole('button', { name: '加载更多回复', exact: true }).click();
@@ -70,8 +73,8 @@ try {
     assert.equal(await card.locator('.dy-sublist > .dy-r').count(), 12);
     assert.equal(await card.getByRole('button', { name: '加载更多回复', exact: true }).count(), 0);
     assert.equal(calls.at(-1).pn, '2'); assert.equal(calls.at(-2).pn, '2');
-    await page.screenshot({ path: join(out, `${theme}.png`) });
-    passed(`${theme} failed page retries without losing or duplicating replies`);
+    await page.screenshot({ path: join(out, `${entry}-${theme}.png`) });
+    passed(`${entry} ${theme} failed page retries without losing or duplicating replies`);
 
     await comments.click(); await comments.click(); await toggle.waitFor();
     delay = 500;
@@ -86,7 +89,7 @@ try {
     assert.equal(await card.locator('.dy-sublist > .dy-r').count(), 0);
     assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
     delay = 0;
-    passed(`${theme} collapsed and replaced panels ignore late responses`);
+    passed(`${entry} ${theme} collapsed and replaced panels ignore late responses`);
   }
   assert.deepEqual(errors, []);
 } finally { writeFileSync(join(out, 'results.json'), JSON.stringify({ results, errors, calls }, null, 2)); await context.close(); }

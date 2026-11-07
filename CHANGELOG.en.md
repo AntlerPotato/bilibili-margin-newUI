@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- Remove cover tooltips that obscure hover previews on home and profile pages. Collapse the block action to an accessible icon during playback. Render attached video cards in dynamics while retaining the original post and comment targets, and prevent video statistics from wrapping or squeezing icons in article details (#93).
+- Keep native comment picture-detail popups above the extension header so their close buttons remain clickable in both themes (#96). Extend nested-reply regressions to following and profile feeds, including pagination and retries, and check sun/moon alignment across three pages (#95).
+
 - Fix the header covering live web fullscreen by recognizing the native `player-full-win` state. Cover repeated transitions, native fullscreen round trips, delayed body initialization and header restoration when only scroll locking remains (follow-up on closed issue #76).
 
 - Add a 16px gap between the wide player and the action card, aligning the creator card with the action card's top edge. Cover ordinary videos, Watch Later, favorite playlists, zoom, mini-player scrolling and repeated mode changes so rounded borders have space below the player (#92).

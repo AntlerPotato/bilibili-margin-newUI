@@ -60,6 +60,8 @@ html.margin-skin body { background: var(--m-canvas) !important; color: var(--m-i
 html.margin-skin #biliMainHeader,
 html.margin-skin .bili-header.fixed-header { display: none !important; }
 #margin-watch-top { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; height: 72px; }
+/* 原生评论图片详情的 bili-popup 默认层级低于顶栏。 */
+html.margin-skin bili-popup { z-index: 10001 !important; }
 #margin-watch-top[hidden] { display: none !important; }
 html.margin-watch .video-container-v1, html.margin-watch .playlist-container { padding-top: 96px !important; }
 html.margin-watch .follow-btn-inner { background:var(--margin-primary,var(--m-ink))!important;color:var(--margin-primary-fg,var(--m-canvas))!important; }

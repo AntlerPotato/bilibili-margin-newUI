@@ -10,6 +10,30 @@ const emoji = { type: 'RICH_TEXT_NODE_TYPE_EMOJI', text: '[开心]', emoji: { ic
 beforeEach(() => vi.resetAllMocks());
 
 describe('动态正文与表情', () => {
+  it('文字动态保留附加视频卡片和原动态评论目标', () => {
+    const d = toDyn(item({ desc: { text: '律师也要黑屏处理啦' }, additional: { type: 'ADDITIONAL_TYPE_UGC',
+      ugc: { title: '视频标题', cover: '//i0.hdslb.com/cover.jpg', jump_url: '//www.bilibili.com/video/BV1mdxN68E7F/', stat: { play: '2193.6万', danmaku: '39.6万' } },
+    } }, { comment_type: 17, comment_id_str: '900001234567890123' }))!;
+    expect(d.attachment).toEqual({ title: '视频标题', cover: 'https://i0.hdslb.com/cover.jpg', url: 'https://www.bilibili.com/video/BV1mdxN68E7F/', kind: '视频', desc: '2193.6万播放 · 39.6万弹幕' });
+    expect(d.url).toBe('https://www.bilibili.com/opus/900001234567890123');
+    expect(d.cmtType).toBe(17);
+    expect(d.cmtOid).toBe('900001234567890123');
+  });
+  it('转发动态中的附加视频保留描述，缺少统计也能渲染', () => {
+    const d = toDyn({ ...item(), orig: item({ additional: { ugc: { title: '原视频', cover: '//i0.hdslb.com/cover.jpg',
+      jump_url: '//www.bilibili.com/video/BV1mdxN68E7F/', desc_second: '原视频简介' } } }) })!;
+    expect(d.orig?.attachment?.desc).toBe('原视频简介');
+    expect(d.orig?.attachment?.kind).toBe('视频');
+  });
+  it('附加视频与主卡片共存，并拒绝可执行协议', () => {
+    const dynamic = { major: { pgc: { title: '番剧', jump_url: '//www.bilibili.com/bangumi/play/ep1' } },
+      additional: { ugc: { title: '视频', jump_url: '//www.bilibili.com/video/BV1mdxN68E7F/' } } };
+    const d = toDyn(item(dynamic))!;
+    expect(d.link?.title).toBe('番剧');
+    expect(d.attachment?.title).toBe('视频');
+    dynamic.additional.ugc.jump_url = 'javascript:alert(1)';
+    expect(toDyn(item(dynamic))?.attachment).toBeUndefined();
+  });
   it('保留正文、换行和原始 GIF 表情地址', () => {
     const d = toDyn(item({ desc: { text: '你好[开心]\n世界', rich_text_nodes: [{ text: '你好' }, emoji, { text: '\n世界' }] } }))!;
     expect(d.text).toBe('你好[开心]\n世界');

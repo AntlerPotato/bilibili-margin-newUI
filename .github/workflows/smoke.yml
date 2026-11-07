@@ -86,6 +86,10 @@ jobs:
         run: node tests/native-watch-feedback.mjs
         env:
           SMOKE_OUT: smoke-artifacts/native-watch-feedback
+      - name: Cover previews, dynamic attachments and native picture popups
+        run: node tests/latest-feedback.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/latest-feedback
       - name: Player loading corners and hydration-safe card startup
         run: |
           SMOKE_OUT=smoke-artifacts/watch-startup node tests/watch-startup.mjs

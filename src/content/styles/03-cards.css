@@ -8,6 +8,8 @@
 .cover.playing .pv, .dy-vcover.playing .pv { opacity: 1; }
 .pv-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent); transform-origin: left; transform: scaleX(0); z-index: 2; }
 .cover.playing .dur { opacity: 0; }
+.cover.playing .card-block { width: 28px; padding: 0; justify-content: center; }
+.cover.playing .card-block span { display: none; }
 .coop { position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 6px; font: 500 11px/1.5 var(--sans); color: #fff; background: rgb(0 0 0 / .62); pointer-events: none; }
 .cover.playing .coop { opacity: 0; }
 /* v0.51：充电专属等封面角标（空间接口的 elec_arc_badge）；右上角与「稍后再看」同位置，悬停时淡出让位 */

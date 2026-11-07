@@ -13,6 +13,7 @@ export interface Dyn {
   live?: { title: string; cover: string; url: string; on: boolean; meta: string };
   /** 其它带卡片的类型（合集、番剧、课程、音乐、通用卡片），统一成链接卡 */
   link?: { title: string; cover: string; desc: string; url: string; kind: string };
+  attachment?: Dyn['link'];
   orig?: Dyn | null;
   stat: { comment: number; forward: number; like: number };
   url: string;
@@ -72,6 +73,12 @@ export function toDyn(it: any): Dyn | null {
     const kind = major.ugc_season ? '合集' : major.pgc ? '番剧' : major.courses ? '课程' : major.music ? '音乐' : (lk.badge?.text || '');
     out.link = { title: lk.title ?? '', cover: https(lk.cover), desc: lk.desc ?? lk.sub_title ?? lk.label ?? '', url: https(lk.jump_url), kind };
     if (out.link.url) out.url = out.link.url;
+  }
+  const ugc = d.additional?.ugc;
+  const ugcUrl = https(ugc?.jump_url);
+  if (/^https:\/\//.test(ugcUrl)) {
+    out.attachment = { title: ugc.title ?? '', cover: https(ugc.cover), url: ugcUrl, kind: '视频',
+      desc: ugc.stat ? [ugc.stat.play ? `${ugc.stat.play}播放` : '', ugc.stat.danmaku ? `${ugc.stat.danmaku}弹幕` : ''].filter(Boolean).join(' · ') : ugc.desc_second ?? '' };
   }
   if (it.orig) out.orig = toDyn(it.orig);
   return out;
