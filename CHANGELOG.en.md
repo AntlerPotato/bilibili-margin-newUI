@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Add a 16px gap between the wide player and the action card, aligning the creator card with the action card's top edge. Cover ordinary videos, Watch Later, favorite playlists, zoom, mini-player scrolling and repeated mode changes so rounded borders have space below the player (#92).
+
 - Apply existing theme, accent, radius and control-motion preferences to the live homepage's search, navigation, rankings, areas and room cards. Use native color variables with the native layout and recommendation player, supporting system theme changes, immediate disable and `?margin=off` without loading the watch-page UI module (#88).
 
 - Fix native like and costume animations appearing at the page's top-left by preserving SVGA measurement before reparenting and costume icons. Cover normal and scaled layouts (#91). Add first-frame checks for reply expansion and pagination, verifying the existing `--bg1_rgb` dark-loading fix (#90).

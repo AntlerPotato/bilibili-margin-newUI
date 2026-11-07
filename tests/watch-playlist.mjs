@@ -76,9 +76,11 @@ try {
       const normal = await geometry(); result.geometry.push({ mode: 'normal', ...normal });
       assert(Math.abs(normal.author.top - normal.player.top) < 2, `normal author alignment ${JSON.stringify(normal)}`);
       assert(normal.card && Math.abs(normal.card.top - normal.player.top) < 2, 'normal card missing');
+      assert(Math.abs(normal.toolbar.top - normal.player.bottom) < 2, 'normal surface separated');
       await page.locator('.bpx-player-ctrl-wide').click();
       await page.locator('html.margin-wide').waitFor(); await page.waitForTimeout(250);
       const wide = await geometry(); result.geometry.push({ mode: 'wide', ...wide });
+      assert(Math.abs(wide.toolbar.top - wide.player.bottom - 16) < 2, `wide player/card gap ${JSON.stringify(wide)}`);
       assert(Math.abs(wide.author.top - wide.toolbar.top) < 2, `wide card tops ${JSON.stringify(wide)}`);
       assert(Math.abs(wide.card.top - wide.toolbar.top) < 2);
       assert(Math.abs(wide.card.bottom - wide.tags.bottom) < 2);
@@ -97,11 +99,18 @@ try {
       await page.waitForTimeout(200);
       const zoomed = await geometry(); result.geometry.push({ mode: 'zoomed', ...zoomed });
       assert(Math.abs(zoomed.author.top - zoomed.toolbar.top) < 2, 'zoomed alignment');
+      assert(Math.abs(zoomed.toolbar.top - zoomed.player.bottom - 12.8) < 2, 'zoomed wide gap');
       await page.evaluate(() => { document.body.style.zoom = ''; document.querySelector('.bpx-player-container').dataset.screen = 'normal'; });
       await page.waitForTimeout(200);
       const restored = await geometry();
       assert(restored.identities && !restored.wide);
       assert(Math.abs(restored.author.top - restored.player.top) < 2);
+      assert(Math.abs(restored.toolbar.top - restored.player.bottom) < 2, 'wide gap leaked into normal mode');
+      await page.locator('.bpx-player-ctrl-wide').click();
+      await page.waitForTimeout(200);
+      const repeated = await geometry();
+      assert(Math.abs(repeated.toolbar.top - repeated.player.bottom - 16) < 2, 'wide gap accumulated');
+      assert(Math.abs(repeated.author.top - repeated.toolbar.top) < 2, 'repeated wide alignment');
       result.ok = true; console.log(`PASS ${name}`);
     } catch (error) { result.error = error.message; console.log(`FAIL ${name}: ${error.message}`); }
     finally { await page.screenshot({ path: join(out, `${name}-final.png`) }); await page.close(); }

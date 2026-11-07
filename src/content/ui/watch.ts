@@ -246,7 +246,9 @@ export class WatchSkin {
       if (!first.getClientRects().length) return;
       const current = parseFloat(getComputedStyle(rc).paddingTop) || 0;
       const scale = rc.getBoundingClientRect().width / rc.offsetWidth || 1;
-      const pad = `${Math.max(0, Math.round(current + (anchor.getBoundingClientRect().bottom - first.getBoundingClientRect().top) / scale))}px`;
+      const toolbar = document.querySelector('.video-toolbar-container');
+      const top = toolbar?.getClientRects().length ? toolbar.getBoundingClientRect().top : anchor.getBoundingClientRect().bottom + 16 * scale;
+      const pad = `${Math.max(0, Math.round(current + (top - first.getBoundingClientRect().top) / scale))}px`;
       if (de.style.getPropertyValue('--m-wide-pad') !== pad) de.style.setProperty('--m-wide-pad', pad);
     };
     const wide = (on: boolean) => {
