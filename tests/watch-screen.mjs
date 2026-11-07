@@ -48,23 +48,42 @@ try {
       await page.close();
     }
   };
-  for (const mode of ['web', 'native']) await check(`76-live-${mode}`, async page => {
+  for (const mode of ['web', 'legacy', 'native']) await check(`76-live-${mode}`, async page => {
     await page.goto('https://live.bilibili.com/12345');
     const top = page.locator('#margin-watch-top');
     await top.locator('.top').waitFor();
     assert(await top.isVisible());
     for (let i = 0; i < 2; i++) {
-      if (mode === 'web') await page.evaluate(() => document.body.classList.add('fullscreen-fix'));
+      if (mode !== 'native') await page.evaluate(mode => {
+        document.body.classList.add(mode === 'web' ? 'player-full-win' : 'fullscreen-fix', 'over-hidden');
+      }, mode);
       else {
         await page.locator('#native-full').click();
         await page.waitForFunction(() => !!document.fullscreenElement);
       }
       await top.waitFor({ state: 'hidden', timeout: 2000 });
-      if (mode === 'web') await page.evaluate(() => document.body.classList.remove('fullscreen-fix'));
+      if (mode !== 'native') await page.evaluate(() => document.body.classList.remove('player-full-win', 'fullscreen-fix', 'over-hidden'));
       else await page.evaluate(() => document.exitFullscreen());
       await top.waitFor({ state: 'visible', timeout: 2000 });
     }
     return { cycles: 2, restored: await top.isVisible() };
+  });
+  await check('76-live-web-native-roundtrip', async page => {
+    await page.goto('https://live.bilibili.com/12345');
+    const top = page.locator('#margin-watch-top');
+    await top.locator('.top').waitFor();
+    await page.evaluate(() => document.body.classList.add('player-full-win', 'over-hidden'));
+    await top.waitFor({ state: 'hidden', timeout: 2000 });
+    assert.equal(await page.evaluate(() => document.fullscreenElement), null);
+    await page.locator('#native-full').click();
+    await page.waitForFunction(() => !!document.fullscreenElement);
+    await page.evaluate(() => document.exitFullscreen());
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.waitForTimeout(150);
+    assert(await top.isHidden(), 'returning to web fullscreen must keep the header hidden');
+    await page.evaluate(() => document.body.classList.remove('player-full-win'));
+    await top.waitFor({ state: 'visible', timeout: 2000 });
+    assert(await page.evaluate(() => document.body.classList.contains('over-hidden')));
   });
   await check('76-live-delayed-body', async page => {
     await page.route('https://live.bilibili.com/slow-live.js', async route => {
@@ -73,13 +92,13 @@ try {
     });
     await page.route('https://live.bilibili.com/12346', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<!doctype html>
       <html><head><meta charset="utf-8"><script src="/slow-live.js"></script></head>
-      <body class="fullscreen-fix"><div id="player-ctnr"><video muted></video></div></body></html>` }));
+      <body class="player-full-win over-hidden"><div id="player-ctnr"><video muted></video></div></body></html>` }));
     await page.goto('https://live.bilibili.com/12346');
     const top = page.locator('#margin-watch-top');
     await top.locator('.top').waitFor({ state: 'attached', timeout: 2000 });
     await page.waitForFunction(() => document.querySelector('#margin-watch-top')?.hasAttribute('hidden'), undefined, { timeout: 2000 });
     assert(await page.locator('html.margin-live').count(), 'live initialization fell back after a startup error');
-    await page.evaluate(() => document.body.classList.remove('fullscreen-fix'));
+    await page.evaluate(() => document.body.classList.remove('player-full-win', 'over-hidden'));
     await top.waitFor({ state: 'visible' });
   });
   await check('76-web-scroll-native-fullscreen', async page => {

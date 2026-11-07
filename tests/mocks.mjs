@@ -186,7 +186,7 @@ const popularHtml = () => `<!doctype html><html lang="zh-CN"><head><meta charset
   <div class="video-card" data-k="keyword"><div class="video-name">屏蔽词热门视频</div><div class="up-name">正常UP</div><div class="video-stat">12.3万播放</div><div class="duration">10:00</div></div>
 </div></div></body></html>`;
 
-/** 直播间骨架（GitHub #76）：没有 .bpx-player-container，网页全屏只加 body.fullscreen-fix，全屏是 #fullscreen-container 的原生全屏 */
+/** 直播间骨架（GitHub #76）：没有 .bpx-player-container，网页全屏加 body.player-full-win，全屏是 #fullscreen-container 的原生全屏 */
 const liveHtml = () => `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>离线冒烟测试直播间 - 哔哩哔哩直播</title></head><body>
 <div class="link-navbar-ctnr"></div>
 <div class="live-room-app"><main class="app-content"><div class="app-body">

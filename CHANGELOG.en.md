@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix the header covering live web fullscreen by recognizing the native `player-full-win` state. Cover repeated transitions, native fullscreen round trips, delayed body initialization and header restoration when only scroll locking remains (follow-up on closed issue #76).
+
 - Add a 16px gap between the wide player and the action card, aligning the creator card with the action card's top edge. Cover ordinary videos, Watch Later, favorite playlists, zoom, mini-player scrolling and repeated mode changes so rounded borders have space below the player (#92).
 
 - Apply existing theme, accent, radius and control-motion preferences to the live homepage's search, navigation, rankings, areas and room cards. Use native color variables with the native layout and recommendation player, supporting system theme changes, immediate disable and `?margin=off` without loading the watch-page UI module (#88).

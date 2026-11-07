@@ -203,7 +203,7 @@ export class WatchSkin {
     const sync = (force = false) => {
       const screen = playerScreen();
       const full = !!document.fullscreenElement;
-      const liveWeb = this.kind === 'live' && !!document.body?.classList.contains('fullscreen-fix');
+      const liveWeb = this.kind === 'live' && !!document.body?.matches('.player-full-win, .fullscreen-fix');
       const state = `${screen}:${full}:${liveWeb}`;
       // 原生全屏可以独立于 data-screen 变化，退出时也需要恢复顶栏。
       if (!force && state === lastState) return;
