@@ -28,16 +28,19 @@ jobs:
           name: margin
           path: dist/
       - name: Release notes from CHANGELOG
+        id: notes
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           tag="${GITHUB_REF_NAME}"
+          node -e 'const fs = require("node:fs"); const m = require("./dist/manifest.json"); fs.appendFileSync(process.env.GITHUB_OUTPUT, "name=v" + (m.version_name || m.version) + "\n");'
           for f in CHANGELOG.md CHANGELOG.en.md; do
-            awk -v t="[$tag](" '/^##/&&index($0,t){on=1;next} on&&(/^###? \[?v[0-9]/||/^## [^[v]/){exit} on' "$f"
+            awk -v t="/releases/tag/${tag})" '/^##/&&index($0,t){on=1;next} on&&(/^###? \[?v[0-9]/||/^## [^[v]/){exit} on' "$f"
             echo; echo '---'; echo
           done > release-notes.md
       - if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ steps.notes.outputs.name }}
           files: |
             margin.zip
             margin-firefox.zip

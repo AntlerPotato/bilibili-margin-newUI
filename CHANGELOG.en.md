@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+## [v0.6](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.0) · 2026-11-07
+
+The displayed release version is 0.6. The internal update version is 0.60.0 so browsers and update checks recognize it as a newer release.
+
 - Wrap watch-page toolbar actions when space is limited so menus and location controls stay inside the card. Keep the wide-mode sidebar in document flow to prevent native sticky positioning from abruptly moving recommendations into view. Check automatic wide mode immediately while waiting for native SSR hydration before interacting, reducing the fixed delay when controls are ready (#97).
 
 - Remove cover tooltips that obscure hover previews on home and profile pages. Collapse the block action to an accessible icon during playback. Render attached video cards in dynamics while retaining the original post and comment targets, and prevent video statistics from wrapping or squeezing icons in article details (#93).
@@ -30,7 +34,7 @@
 - Add creator filtering and grouping to Watch Later across shared drawer entry points. Distinguish identical names by UID, update groups and counts after deletion, and ignore stale list responses after reopening (#82).
 - Merge #60 and prefetch enough cards for the intended scroll position before refreshing. Cover positions before, at and after the sticky boundary, top-of-page refresh, zoom, tab changes and failure recovery.
 - Merge the real Fullscreen API regression from #77, alongside late-body initialization and transitions between live web and native fullscreen modes.
-- Document direct temporary-extension installation from a built folder or ZIP in Safari versions that expose this developer option. Native Safari runtime validation still requires a Mac (#12).
+- Document direct temporary-extension installation from a built folder or ZIP in Safari versions that expose this developer option. The reporter in #12 confirmed successful installation and no obvious issues so far. Broader platform compatibility still requires ongoing validation.
 
 - Add a Subscriptions view to Favorites for subscribed collections and other users' saved folders, with list pagination and retry support. Separate cache keys by content type, fetch each complete collection once and render its videos in batches, and discard stale responses after switching views (#75).
 - Release size, visibility and pointer listeners and cancel pending animation frames when switching favorite categories or deleting cards, preventing removed folder components from accumulating.

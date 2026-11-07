@@ -22,6 +22,10 @@ jobs:
         run: npm run test:unit
       - run: npx playwright install --with-deps chromium
       - run: npm run build
+      - name: Display version and update comparison
+        run: node tests/popup-version.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/popup-version
       - name: Space drawer regressions
         run: npm run test:drawers
       - name: Application window navigation

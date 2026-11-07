@@ -9,7 +9,7 @@
 <p>A quieter interface for Bilibili, with clean layouts, liquid glass controls and animated backgrounds.</p>
 
 <p>
-  <a href="https://github.com/jiuyang5354/bilibili-margin/releases/latest"><img src="https://img.shields.io/github/v/release/jiuyang5354/bilibili-margin?label=version&amp;color=00aeec" alt="最新版本" /></a>
+  <a href="https://github.com/jiuyang5354/bilibili-margin/releases/latest"><img src="https://img.shields.io/github/v/release/jiuyang5354/bilibili-margin?display_name=release&amp;label=version&amp;color=00aeec" alt="最新版本" /></a>
   <a href="https://addons.mozilla.org/en-US/firefox/addon/%E6%98%A0%E9%97%B4-margin/"><img src="https://img.shields.io/amo/v/margin@jiuyang5354.github.io?label=Firefox%20Add-ons&amp;color=ff7139" alt="Firefox 附加组件商店" /></a>
   <img src="https://img.shields.io/badge/browser-Edge%20%2F%20Chrome%20%2F%20Firefox-535b66" alt="支持 Edge、Chrome 和 Firefox" />
   <img src="https://img.shields.io/badge/extension-Manifest%20V3-535b66" alt="Manifest V3" />
