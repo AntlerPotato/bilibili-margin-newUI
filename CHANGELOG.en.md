@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- When the Home search box is turned off, the compact toolbar search cycles through Bilibili trending searches with the same transition as the main search; the same applies when it appears while scrolling.
+
 ## [v0.6.3](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.3) · Pending release
 
 - Restore livestream reservation cards in followed feeds, creator spaces, and reposts, including titles, schedules, reservation counts, and server-provided button states (#98).
