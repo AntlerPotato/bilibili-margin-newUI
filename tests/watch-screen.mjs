@@ -122,6 +122,30 @@ try {
     await page.locator('#margin-watch-top').waitFor({ state: 'visible' });
     assert.equal(await page.locator('html.margin-webscroll').count(), 0);
   });
+  await check('97-auto-wide-initial-check', async page => {
+    await seed({ wide: true });
+    await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+      const started = performance.now();
+      document.querySelector('.bpx-player-ctrl-wide').addEventListener('click', () => { window.firstWideDelay = performance.now() - started; });
+    }));
+    await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+    await page.waitForFunction(() => window.firstWideDelay !== undefined);
+    const delay = await page.evaluate(() => window.firstWideDelay);
+    assert(delay < 700, `initial wide check waited ${Math.round(delay)}ms`);
+    return { delay };
+  });
+  await check('97-auto-wide-hydration', async page => {
+    await seed({ wide: true });
+    await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+      const app = document.querySelector('#app'); app.setAttribute('data-server-rendered', 'true');
+      window.hydrationClicks = [];
+      document.querySelector('.bpx-player-ctrl-wide').addEventListener('click', () => window.hydrationClicks.push(app.hasAttribute('data-server-rendered')));
+      setTimeout(() => app.removeAttribute('data-server-rendered'), 400);
+    }));
+    await page.goto('https://www.bilibili.com/video/BV1mdxN68E7F/');
+    await page.waitForFunction(() => window.hydrationClicks.length > 0);
+    assert.deepEqual(await page.evaluate(() => window.hydrationClicks), [false]);
+  });
   for (const scenario of ['normal', 'delayed-layout', 'already-wide', 'user-scrolled', 'user-during', 'manual-exit', 'disabled']) await check(`83-auto-wide-${scenario}`, async page => {
     await seed({ wide: scenario !== 'disabled' });
     await page.addInitScript(scenario => document.addEventListener('DOMContentLoaded', () => {

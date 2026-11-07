@@ -105,6 +105,7 @@ jobs:
       - name: Live fullscreen, automatic wide alignment, subscriptions and pointer release
         run: |
           SMOKE_OUT=smoke-artifacts/watch-screen node tests/watch-screen.mjs
+          SMOKE_OUT=smoke-artifacts/watch-toolbar node tests/watch-toolbar.mjs
           SMOKE_OUT=smoke-artifacts/favorites-subscriptions node tests/favorites-subscriptions.mjs
           SMOKE_OUT=smoke-artifacts/triple-release node tests/triple-release.mjs
       - if: always()

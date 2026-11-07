@@ -388,6 +388,7 @@ export class WatchSkin {
     };
     every(800, () => {
       const bv = keyOf();
+      if (document.querySelector('[data-server-rendered]')) return;
       // 自动网页全屏优先；和宽屏同时开启时不再点宽屏
       if (this.settings.autoWeb && bv !== this.autoDone) {
         const p = player(), btn = webBtn(), v = video();
@@ -407,7 +408,7 @@ export class WatchSkin {
         if (screen === 'normal') btn.click();
         alignWide(bv, startY);
       }
-    });
+    }, { immediate: true });
     document.addEventListener('fullscreenchange', () => sync());
     sync();
   }
