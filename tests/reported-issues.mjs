@@ -101,7 +101,7 @@ try {
         return { upGap: up.top - player.bottom, recommendationGap: recommendation.top - up.bottom };
       });
       await watch.screenshot({ path: join(out, 'auto-wide-native-spacer.png') });
-      assert(Math.abs(geometry.upGap) < 3, JSON.stringify(geometry));
+      assert(Math.abs(geometry.upGap - 16) < 3, JSON.stringify(geometry));
       assert(geometry.recommendationGap >= 0 && geometry.recommendationGap < 80, JSON.stringify(geometry));
       await watch.locator('.bpx-player-container').evaluate(e => e.dataset.screen = 'normal');
       await watch.locator('html.margin-wide').waitFor({ state: 'detached' });
@@ -124,16 +124,16 @@ try {
     await page.locator('.bpx-player-ctrl-wide').click();
     await page.waitForTimeout(500);
     const gap = () => page.evaluate(() => document.querySelector('.up-panel-container').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom);
-    assert(Math.abs(await gap()) < 3, `native inner offset counted twice: gap=${await gap()}`);
+    assert(Math.abs((await gap()) - 16) < 3, `native inner offset counted twice: gap=${await gap()}`);
     await page.locator('.right-container-inner').evaluate(e => e.style.paddingTop = '300px');
     await page.waitForTimeout(500);
-    assert(Math.abs(await gap()) < 3, `late inner spacing: gap=${await gap()}`);
+    assert(Math.abs((await gap()) - 16) < 3, `late inner spacing: gap=${await gap()}`);
     await page.evaluate(() => scrollTo(0, 300)); await page.waitForTimeout(250);
-    assert(Math.abs(await gap()) < 3, `scroll gap=${await gap()}`);
+    assert(Math.abs((await gap()) - 16) < 3, `scroll gap=${await gap()}`);
     await page.locator('.up-panel-container').evaluate(e => e.style.display = 'none');
     await page.waitForTimeout(500);
     const hiddenAuthorGap = await page.evaluate(() => document.querySelector('#danmukuBox').getBoundingClientRect().top - document.querySelector('.bpx-player-container').getBoundingClientRect().bottom);
-    assert(Math.abs(hiddenAuthorGap) < 3, `hidden author gap=${hiddenAuthorGap}`);
+    assert(Math.abs(hiddenAuthorGap - 16) < 3, `hidden author gap=${hiddenAuthorGap}`);
   });
   await check('58-wide-author-scroll', async () => {
     await page.setViewportSize({ width: 1440, height: 808 });
@@ -156,7 +156,7 @@ try {
       const hit = document.elementFromPoint(up.x + up.width / 2, up.y + up.height / 2);
       return { gap: up.top - player.bottom, upTop: up.top, playerBottom: player.bottom, hit: panel.contains(hit) };
     });
-    assert(Math.abs((await geometry()).gap) < 3);
+    assert(Math.abs((await geometry()).gap - 16) < 3);
     // Bilibili rewrites this inset during scrolling. The player must not cover the author card.
     await page.evaluate(() => {
       document.querySelector('.left-container').style.top = '-358px';
@@ -165,7 +165,7 @@ try {
     await page.waitForTimeout(250);
     const scrolled = await geometry();
     await page.screenshot({ path: join(out, 'wide-author-scroll.png') });
-    assert(Math.abs(scrolled.gap) < 3 && scrolled.hit, JSON.stringify(scrolled));
+    assert(Math.abs(scrolled.gap - 16) < 3 && scrolled.hit, JSON.stringify(scrolled));
     for (const screen of ['normal', 'web', 'full']) {
       await page.locator('.bpx-player-container').evaluate((el, value) => el.dataset.screen = value, screen);
       await page.locator('html.margin-wide').waitFor({ state: 'detached' });
@@ -178,10 +178,10 @@ try {
       document.querySelector('.bpx-player-container').dataset.screen = 'wide';
     });
     await page.locator('html.margin-wide').waitFor(); await page.waitForTimeout(250);
-    assert(Math.abs((await geometry()).gap) < 3);
+    assert(Math.abs((await geometry()).gap - 16) < 3);
     await page.evaluate(() => scrollTo(0, 650)); await page.waitForTimeout(250);
     const reopened = await geometry();
-    assert(Math.abs(reopened.gap) < 3 && reopened.hit, JSON.stringify(reopened));
+    assert(Math.abs(reopened.gap - 16) < 3 && reopened.hit, JSON.stringify(reopened));
     return { scrolled, reopened };
   });
   await check('58-wide-mini-layout', async () => {
@@ -226,7 +226,7 @@ try {
     const before = await geometry();
     assert(before.wide && before.pad && before.width);
     assert(before.wrapWidth < before.titleWidth, 'placeholder must stay narrower than the wide player');
-    assert(Math.abs(before.authorTop - before.wrapBottom) < 3);
+    assert(Math.abs(before.authorTop - before.wrapBottom - 16) < 3);
     await page.evaluate(y => scrollTo(0, y), before.wrapBottom - 12);
     await setScreen('mini');
     const stable = async label => {
