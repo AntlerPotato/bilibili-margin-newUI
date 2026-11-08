@@ -435,13 +435,15 @@ for (const theme of THEMES) {
       const rect = await link.boundingBox();
       if (!rect) return ['account link has no bounds'];
       await link.evaluate((el) => {
-        const start = el.getBoundingClientRect().x;
+        let start = null;
         window.marginLinkProbe = { grabbing: 0, frames: 0, shift: 0, movementAfterEntry: 0, cardTransform: null, flipperTransform: null };
         el.addEventListener('pointermove', () => {
+          start = el.getBoundingClientRect().x;
           window.marginLinkProbe.cardTransform = el.closest('.idcl-card').style.transform;
           window.marginLinkProbe.flipperTransform = el.closest('.idcl-flipper').style.transform;
         }, { once: true });
         window.marginLinkTimer = setInterval(() => {
+          if (start === null) return;
           const r = el.getBoundingClientRect(), p = window.marginLinkProbe;
           p.shift = Math.max(p.shift, Math.abs(r.x - start));
           if (/^grabb?/.test(getComputedStyle(el).cursor)) p.grabbing++;
@@ -453,6 +455,7 @@ for (const theme of THEMES) {
       await sleep(500);
       const state = await page.evaluate(() => { clearInterval(window.marginLinkTimer); return window.marginLinkProbe; });
       const miss = [];
+      if (!state.frames) miss.push('pointer did not enter the interactive link');
       if (state.grabbing) miss.push(`interactive link inherited drag cursor in ${state.grabbing}/${state.frames} samples`);
       if (state.shift > 1) miss.push(`interactive link moves under pointer by ${state.shift.toFixed(2)}px`);
       if (state.movementAfterEntry) miss.push(`card position changed after entering its link in ${state.movementAfterEntry} samples`);
