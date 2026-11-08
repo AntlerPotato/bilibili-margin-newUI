@@ -35,7 +35,7 @@ for (const app of [false, true]) {
       assert.equal(page.url(), 'https://www.bilibili.com/');
       console.log('PASS normal browser middle-click is handed to the browser');
     } else {
-      const input = page.locator('#margin-root .hero-search input');
+      const input = page.locator('#margin-root .main .hero-search input');
       await input.fill('映间');
       await Promise.all([page.waitForURL('https://search.bilibili.com/**'), input.press('Enter')]);
       assert.equal(ctx.pages().length, 1);

@@ -43,7 +43,7 @@ export function videoCard(v: Video, index: number, opts: CardOpts = {}): HTMLEle
       h('a', { class: 'title', href, target: '_blank', rel: 'noopener', title: v.title }, v.title),
       metaRow(v, opts),
       pubTime(v, opts),
-      v.reason && !opts.hide?.has('reason') ? h('span', { class: 'reason' }, v.reason) : null,
+      v.reason && v.reason !== '已关注' && !opts.hide?.has('reason') ? h('span', { class: 'reason' }, v.reason) : null,
     ),
   );
   cardData.set(el, v);
@@ -61,7 +61,9 @@ function pubTime(v: Video, opts: CardOpts): HTMLElement | null {
 function metaRow(v: Video, opts: CardOpts): HTMLElement {
   const off = (k: string) => !!opts.hide?.has(k);
   const parts: HTMLElement[] = [];
-  if (!off('author')) parts.push(h('a', { class: 'author', href: `https://space.bilibili.com/${v.mid}`, target: '_blank', rel: 'noopener' }, v.author));
+  if (!off('author')) parts.push(h('a', { class: 'author', title: v.author, href: `https://space.bilibili.com/${v.mid}`, target: '_blank', rel: 'noopener' },
+    h('span', { class: 'author-name' }, v.author),
+    v.reason === '已关注' ? h('span', { class: 'card-followed' }, icon(ICONS.check), '已关注') : null));
   if (!off('views')) parts.push(h('span', {}, `${fmtCount(v.views)} 播放`));
   if (v.danmaku && !off('danmaku')) parts.push(h('span', {}, `${fmtCount(v.danmaku)} 弹幕`));
   const meta = h('div', { class: 'meta' });

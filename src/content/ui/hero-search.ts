@@ -11,19 +11,19 @@ import { acceptTextDrop } from './text-drop';
  * 21st「Morphing Search」（输入框本身向下长成联想面板，不另弹浮层）、
  * @vponamariov「聚焦压暗」（输入时整页暗下去，只留搜索）。
  */
-export interface HeroSearch { el: HTMLElement; scrim: HTMLElement; focus: () => void }
+export interface HeroSearch { el: HTMLElement; scrim: HTMLElement; focus: () => void; close: () => void }
 
 const strip = (s: string) => s.replace(/<[^>]+>/g, '');
 
-export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void): HeroSearch {
+export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void, listId = 'hs-list'): HeroSearch {
   const input = h('input', {
     class: 'hs-input', type: 'search', autocomplete: 'off', spellcheck: 'false', 'aria-label': '搜索视频、UP 主',
-    role: 'combobox', 'aria-expanded': 'false', 'aria-controls': 'hs-list', 'aria-autocomplete': 'list',
+    role: 'combobox', 'aria-expanded': 'false', 'aria-controls': listId, 'aria-autocomplete': 'list',
   }) as HTMLInputElement;
   const ph = h('div', { class: 'hs-ph', 'aria-hidden': 'true' });
   const canvas = h('canvas', { class: 'hs-vanish', 'aria-hidden': 'true' }) as HTMLCanvasElement;
   const clear = h('button', { class: 'hs-clear', type: 'button', title: '清空', 'aria-label': '清空' }, icon(ICONS.close));
-  const list = h('div', { class: 'hs-list', id: 'hs-list', role: 'listbox', 'aria-label': '搜索建议' });
+  const list = h('div', { class: 'hs-list', id: listId, role: 'listbox', 'aria-label': '搜索建议' });
   const box = h('form', { class: 'hero-search', role: 'search', 'data-open': 'false' },
     h('div', { class: 'hs-row' },
       icon(ICONS.search),
@@ -61,7 +61,7 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
     stopRot();
     if (reducedMotion() || !hot.length) return;
     rot = every(3200, () => {
-      if (input.value) return;
+      if (input.value || !el.isConnected || !el.getClientRects().length) return;
       hi = (hi + 1) % hot.length;
       showHot();
     });
@@ -105,7 +105,7 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
   function setSel(i: number) {
     sel = i;
     opts.forEach((o, j) => o.setAttribute('aria-selected', String(j === i)));
-    if (i >= 0) { opts[i].scrollIntoView({ block: 'nearest' }); input.setAttribute('aria-activedescendant', `hs-o${i}`); }
+    if (i >= 0) { opts[i].scrollIntoView({ block: 'nearest' }); input.setAttribute('aria-activedescendant', `${listId}-o${i}`); }
     else input.removeAttribute('aria-activedescendant');
   }
 
@@ -113,7 +113,7 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
     const q = input.value.trim();
     list.replaceChildren();
     let n = 0;
-    const stag = (o: HTMLElement) => { o.style.setProperty('--i', String(n)); o.id = `hs-o${n}`; n++; return o; };
+    const stag = (o: HTMLElement) => { o.style.setProperty('--i', String(n)); o.id = `${listId}-o${n}`; n++; return o; };
     if (!q) {
       const hist = searchHistory().slice(0, 8);
       if (hist.length) {
@@ -161,13 +161,15 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
     render();
     box.dataset.open = 'true';
     input.setAttribute('aria-expanded', 'true');
+    scrim.dataset.active = '';
     app().classList.add('hs-open');
   }
   function close() {
     if (!isOpen()) return;
     box.dataset.open = 'false';
     input.setAttribute('aria-expanded', 'false');
-    app().classList.remove('hs-open');
+    delete scrim.dataset.active;
+    app().classList.toggle('hs-open', !!app().querySelector('.hero-search[data-open="true"]'));
     ctrl?.abort();
   }
 
@@ -270,5 +272,5 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
     close();
   }
 
-  return { el, scrim, focus: () => input.focus() };
+  return { el, scrim, focus: () => input.focus(), close };
 }

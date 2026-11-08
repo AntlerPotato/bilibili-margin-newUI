@@ -14,6 +14,11 @@ const TAG_SKIN = `
 `;
 
 const SKINS: Record<string, string> = {
+  'bili-comment-action-buttons-renderer': `
+    #pubdate { width: auto !important; display: inline-flex; flex-wrap: wrap; gap: 8px; }
+    [data-margin-location-label] { color: var(--m-faint, #888); white-space: nowrap; font-size: 12px; }
+    :host-context(html:not(.margin-skin)) [data-margin-location-label] { display: none !important; }
+  `,
   'bili-comments-header-renderer': `
     #navbar { align-items: center !important; margin: 0 0 20px !important; padding-top: 0 !important; }
     #title { display: flex !important; align-items: baseline !important; gap: 8px !important; }
@@ -49,6 +54,17 @@ function skinElement(el: Element, depth: number): void {
   const sr = el.shadowRoot;
   if (!sr) return;
   const tag = el.tagName.toLowerCase();
+  if (tag === 'bili-comment-action-buttons-renderer') {
+    el.dispatchEvent(new Event('margin:read-comment-location', { bubbles: true, composed: true }));
+    const text = el.getAttribute('data-margin-location') || '';
+    const date = sr.querySelector('#pubdate');
+    let label = sr.querySelector<HTMLElement>('[data-margin-location-label]');
+    if (!text || !date) label?.remove();
+    else {
+      if (!label) { label = document.createElement('span'); label.setAttribute('data-margin-location-label', ''); date.append(label); }
+      if (label.textContent !== text) label.textContent = text;
+    }
+  }
   if (tag === 'bili-comment-replies-renderer') watchReplies(sr);
   if (!done.has(sr)) {
     let s = sheets.get(tag);

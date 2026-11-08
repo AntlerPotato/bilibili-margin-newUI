@@ -183,7 +183,7 @@ function replyRow(r: Reply): HTMLElement {
     h('div', { class: 'dy-r-b' },
       h('a', { class: 'dy-r-name', href: `https://space.bilibili.com/${r.mid}`, ...ext }, r.name),
       h('p', {}, ...richText(r.text, r.richText)),
-      h('span', { class: 'dy-r-meta' }, [fmtAgo(r.ts), r.like ? `赞 ${fmtCount(r.like)}` : ''].filter(Boolean).join(' · '))));
+      h('span', { class: 'dy-r-meta' }, [fmtAgo(r.ts), r.location, r.like ? `赞 ${fmtCount(r.like)}` : ''].filter(Boolean).join(' · '))));
 }
 
 /** 21st 嵌套回复的缩进与收起交互；B 站楼中楼按根评论分页，首次展开才请求。 */

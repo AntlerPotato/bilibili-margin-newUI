@@ -42,7 +42,7 @@ for (const [name, flags, force, theme] of [
     assert(await page.locator('#margin-root .top .brand .tv').isVisible());
     assert.deepEqual(errors, []);
     await page.reload();
-    await page.locator('#margin-root .hero-search').waitFor();
+    await page.locator('#margin-root .main .hero-search').waitFor();
     await page.waitForTimeout(500);
     assert.equal(await page.locator('#margin-root .intro').count(), 0, 'same-session reload replayed intro');
     await page.evaluate(() => sessionStorage.removeItem('margin:intro-played'));
@@ -55,16 +55,16 @@ for (const [name, flags, force, theme] of [
     await page.evaluate(() => sessionStorage.removeItem('margin:intro-played'));
     await seed({ intro: false });
     await page.reload();
-    await page.locator('#margin-root .hero-search').waitFor();
+    await page.locator('#margin-root .main .hero-search').waitFor();
     assert.equal(await page.locator('#margin-root .intro').count(), 0);
     await seed({ reduceMotion: true });
     await page.reload();
-    await page.locator('#margin-root .hero-search').waitFor();
+    await page.locator('#margin-root .main .hero-search').waitFor();
     assert.equal(await page.locator('#margin-root .intro').count(), 0);
     await seed({});
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.reload();
-    await page.locator('#margin-root .hero-search').waitFor();
+    await page.locator('#margin-root .main .hero-search').waitFor();
     assert.equal(await page.locator('#margin-root .intro').count(), 0);
     assert.deepEqual(errors, []);
     results.push({ name, ok: true, skipMs }); console.log(`PASS ${name}: animation, cleanup, reload, skip (${skipMs}ms) and settings`);

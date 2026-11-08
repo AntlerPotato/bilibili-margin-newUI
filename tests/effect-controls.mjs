@@ -28,7 +28,7 @@ try {
   ]) {
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
-    await patch({ theme: 'dark', intro: false, uiEffects: true, glass: 'soft', reduceMotion: false, bg: { mode: 'fixed', shader: 'silk', intensity: .6 } });
+    await patch({ searchStyle: 'new', theme: 'dark', intro: false, uiEffects: true, glass: 'soft', reduceMotion: false, bg: { mode: 'fixed', shader: 'silk', intensity: .6 } });
     const result = { name, ok: false };
     results.push(result);
     try {

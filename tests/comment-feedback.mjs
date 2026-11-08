@@ -28,7 +28,7 @@ try {
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const page = await context.newPage(); page.setDefaultTimeout(5000);
-  const seed = patch => worker.evaluate(patch => chrome.storage.local.set({ 'margin:settings': { intro: false, theme: 'dark', bg: { mode: 'off' }, ...patch } }), patch);
+  const seed = patch => worker.evaluate(patch => chrome.storage.local.set({ 'margin:settings': { searchStyle: 'new', intro: false, theme: 'dark', bg: { mode: 'off' }, ...patch } }), patch);
   const check = async (name, run) => {
     if (process.env.FEEDBACK_ONLY && !name.startsWith(process.env.FEEDBACK_ONLY)) return;
     try { const evidence = await run(); results.push({ name, ok: true, evidence }); console.log(`PASS ${name}`); }

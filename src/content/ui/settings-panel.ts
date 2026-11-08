@@ -1,10 +1,11 @@
 import type { BgMode, HomeBit, HomeSection, Settings, ShaderId, Theme } from '../../shared/settings';
-import { BG_IMAGE_KEY, cleanFont, HOME_BITS, HOME_SECTION_NAMES, normalizeHomeOrder, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
+import { BG_IMAGE_KEY, clampPaletteSpeed, cleanFont, HOME_BITS, HOME_SECTION_NAMES, normalizeHomeOrder, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
 import { ACTIVITY_KEY, sanitizeActivity, type FpMessage } from '../../shared/activity';
 import { compressImage } from '../bg/background';
 import { SHADER_IDS, SHADER_NAMES } from '../bg/shaders';
 import { cachedThumb, shaderThumb } from '../bg/program';
 import { block, chipInput, pillToggles, rangeSlider, row, segmented, stepSlider, toast, toggle } from './controls';
+import { clampBatchSize } from '../../shared/batch';
 import { fmtCount, h, icon, ICONS } from './dom';
 import { createSheet, type Sheet } from './sheet';
 import { SITE_LINKS } from './header';
@@ -43,6 +44,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   } }, '清除搜索记录');
 
   const theme = segmented<Theme>([['auto', '跟随系统'], ['light', '亮色'], ['dark', '暗色']], s0.theme, (v) => save({ theme: v }));
+  const searchStyle = segmented<Settings['searchStyle']>([['classic', '旧版'], ['new', '新版']], s0.searchStyle, (searchStyle) => save({ searchStyle }));
   const accent = segmented<Settings['accent']>([['classic','经典'],['blue','哔哩蓝'],['pink','哔哩粉']],s0.accent,(accent) => save({ accent }));
   const glass = segmented<Settings['glass']>([['soft','柔和磨砂'],['liquid','液态折射'],['flat','简洁平面']],s0.glass,(glass) => save({ glass }));
   const watch = toggle(s0.watch, '其他页面重设计', (v) => save({ watch: v }));
@@ -50,6 +52,22 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const intro = toggle(s0.intro, '开场动画', (v) => save({ intro: v }));
   const reduceM = toggle(s0.reduceMotion, '减少动画', (v) => save({ reduceMotion: v }));
   const effects = toggle(s0.uiEffects, '控件动效', (v) => save({ uiEffects: v }));
+  const palSpeedIn = h('input', {
+    type: 'number', class: 'city-in palette-speed-in', min: '50', max: '200', step: '10',
+    value: String(s0.paletteSpeed), 'aria-label': '搜索框展开速度（%）', inputmode: 'numeric',
+  }) as HTMLInputElement;
+  const commitPalSpeed = () => {
+    const n = clampPaletteSpeed(Number(palSpeedIn.value));
+    palSpeedIn.value = String(n);
+    if (n !== get().paletteSpeed) void save({ paletteSpeed: n });
+  };
+  palSpeedIn.addEventListener('change', commitPalSpeed);
+  palSpeedIn.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    commitPalSpeed();
+    palSpeedIn.blur();
+  });
   const foot = toggle(s0.footprint, '足迹热力图', (v) => save({ footprint: v }));
   const wxT = toggle(s0.weather, '天气', (v) => save({ weather: v }));
   // v0.43 首页组件开关：存的是「隐藏了哪些」，界面上是「显示哪些」
@@ -228,6 +246,30 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const treeT = toggle(s0.replyTree, '楼中楼对话树', (v) => save({ replyTree: v }));
   const msgT = toggle(s0.msgRemind, '消息提醒', (v) => save({ msgRemind: v }));
   const tabRefreshT = toggle(s0.tabRefresh, '点击分类标签刷新列表', (v) => save({ tabRefresh: v }));
+  // 推荐批次导航（v0.53）：占据分类栏原来的「换一批」位置；关闭后恢复原来的单级「上一批」
+  const batchSizeIn = h('input', {
+    type: 'number', class: 'city-in batch-size-in', min: '1', max: '100', step: '1',
+    value: String(s0.batchSize), 'aria-label': '每批视频数', inputmode: 'numeric',
+  }) as HTMLInputElement;
+  const commitBatchSize = () => {
+    const n = clampBatchSize(Number(batchSizeIn.value));
+    batchSizeIn.value = String(n);
+    if (n !== get().batchSize) void save({ batchSize: n });
+  };
+  batchSizeIn.addEventListener('change', commitBatchSize);
+  batchSizeIn.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    commitBatchSize();
+    batchSizeIn.blur();
+  });
+  const batchRefreshT = toggle(s0.batchRefresh, '批次条刷新按钮', (v) => save({ batchRefresh: v }));
+  const batchPrefetchT = toggle(s0.batchPrefetch, '预载下一轮', (v) => save({ batchPrefetch: v }));
+  const batchOpts = h('div', { class: 'batch-opts', hidden: !s0.batchNav },
+    row('每批视频数', '一次「换一批」约 24 条，按此切成多批；1–100 之间', batchSizeIn),
+    row('预载下一轮', '始终保留一轮预载：加载、换一批或翻到预载内容后自动补下一轮；关闭则到末批点右箭头才请求', batchPrefetchT),
+    row('显示刷新按钮', '关闭后批次条只保留左右箭头；刷新键可在任意批次直接追加新内容', batchRefreshT));
+  const batchNavT = toggle(s0.batchNav, '批次导航', (v) => { batchOpts.hidden = !v; void save({ batchNav: v }); });
 
   const kw = chipInput(s0.filters.keywords, '输入关键词，回车添加；/正则/ 也可以', (v) => save({ filters: { ...get().filters, keywords: v } }));
   const ups = chipInput(s0.filters.ups, 'UP 主昵称或 MID', (v) => save({ filters: { ...get().filters, ups: v } }));
@@ -441,6 +483,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('控件动效', '按钮、面板、三连和卡片过渡；背景与天气独立设置', effects),
       row('减少动画', '暂停背景、天气和悬停动画，并减少界面过渡；系统减少动态效果始终生效', reduceM),
+      row('搜索栏样式', '旧版沿用首页搜索栏，新版原位展开搜索面板', searchStyle),
+      row('搜索框展开速度', '点击搜索框展开命令面板的动画速度（%），50–200 之间，100 为默认；数字越大越快', palSpeedIn),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
       drawer('字体与缩放', () => { const st = get(); return [st.titleFont === 'sans' ? '无衬线标题' : '衬线标题', st.bodyFont || '', st.zoom !== 100 ? `${st.zoom}%` : ''].filter(Boolean).join(' · '); },
         block('标题字体', '页面标题和大号文字用衬线（宋体）还是无衬线（黑体）', fontS),
@@ -475,6 +519,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('搜索框', '关掉后用顶栏的小搜索框', searchT),
       row('日期栏', '推荐上方的日期和「For You」', dateT),
       row('换一批按钮', null, refreshT),
+      row('批次导航', '每次「换一批」只加载一页，底部左右箭头切换批次；开启后推荐页不再随滚动自动补页', batchNavT),
+      batchOpts,
       row('点击分类标签刷新列表', null, tabRefreshT),
       row('足迹热力图', '关掉只是不显示，足迹照样在本机记录', foot),
       row('天气', '关掉后不再请求天气和城市定位', wxT),
@@ -523,6 +569,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       intro.setAttribute('aria-checked', String(s.intro));
       reduceM.setAttribute('aria-checked', String(s.reduceMotion));
       effects.setAttribute('aria-checked', String(s.uiEffects));
+      if (!palSpeedIn.matches(':focus')) palSpeedIn.value = String(s.paletteSpeed);
+      searchStyle.set(s.searchStyle);
       appT.setAttribute('aria-checked', String(s.appFeed));
       rankT.setAttribute('aria-checked', String(s.rerank));
       sponsorT.setAttribute('aria-checked', String(s.sponsorSkip));
@@ -535,6 +583,11 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       dateT.setAttribute('aria-checked', String(!s.homeHide.includes('date')));
       refreshT.setAttribute('aria-checked', String(!s.homeHide.includes('refresh')));
       tabRefreshT.setAttribute('aria-checked', String(s.tabRefresh));
+      batchNavT.setAttribute('aria-checked', String(s.batchNav));
+      batchRefreshT.setAttribute('aria-checked', String(s.batchRefresh));
+      batchPrefetchT.setAttribute('aria-checked', String(s.batchPrefetch));
+      if (!batchSizeIn.matches(':focus')) batchSizeIn.value = String(s.batchSize);
+      batchOpts.hidden = !s.batchNav;
       cardBits.set(shownCard(s.homeHide));
       order = normalizeHomeOrder(s.homeOrder);
       paintOrder();

@@ -143,6 +143,7 @@ export function attachGlass(el: HTMLElement, filters: SVGSVGElement, o: GlassOpt
 /** 原版两张位移图（兜底 / 首帧），CSS 里可用 url(#lg-bar) / url(#lg-thumb) */
 export function glassFilters(): SVGSVGElement {
   const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('data-margin-glass-filters', '');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
   svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
@@ -159,5 +160,5 @@ export function glassFilters(): SVGSVGElement {
 
 /** 在 shadow root 里找到（或建好）滤镜容器 */
 export function filtersIn(root: ShadowRoot): SVGSVGElement {
-  return (root.querySelector('svg[aria-hidden="true"]') as SVGSVGElement | null) ?? root.appendChild(glassFilters());
+  return root.querySelector<SVGSVGElement>('svg[data-margin-glass-filters]') ?? root.appendChild(glassFilters());
 }

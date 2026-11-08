@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+## v0.6.14 · 2026-11-08
+
+- Integrate batch navigation and both search styles, defaulting to classic search with settings for the expanding panel and animation speed.
+- Display native comment locations from existing public reply data, handling recycled nodes, missing fields and escaped text.
+- Improve creator information and follow markers, simplify toolbar surfaces, and cancel stale batch refreshes after tab changes.
+
 ## v0.6.13 · 2026-11-08
 
 - Fix #102 higher-specificity follow-button styles overriding the selected accent. Search tabs, sorting and pagination follow the accent across light/dark themes, hover and restoration of classic colors.

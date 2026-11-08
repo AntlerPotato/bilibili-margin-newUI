@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadSettings, saveSettings, sanitizeSettings, normalizeHomeOrder,
-  cleanFont, cleanHost, DEFAULTS,
+  cleanFont, cleanHost, DEFAULTS, clampPaletteSpeed,
 } from '../../src/shared/settings';
 
 /** chrome.storage.local 的最小模拟：loadSettings / saveSettings 只用到 get(KEY) / set */
@@ -19,6 +19,14 @@ const setChromeMock = () => {
 };
 
 describe('settings 迁移（merge / loadSettings）', () => {
+  it('旧设置使用经典搜索，切换新版可以保存和重新载入', async () => {
+    store.set('margin:settings', {});
+    expect((await loadSettings()).searchStyle).toBe('classic');
+    await saveSettings({ searchStyle: 'new' });
+    expect((await loadSettings()).searchStyle).toBe('new');
+    expect(sanitizeSettings({ searchStyle: 'classic', paletteSpeed: 200 })?.paletteSpeed).toBe(200);
+    expect(sanitizeSettings({ searchStyle: 'unknown' })?.searchStyle).toBe('classic');
+  });
   beforeEach(() => { store.clear(); setChromeMock(); });
   it('动态菜单默认显示全部，开关可保存并兼容旧配置', async () => {
     expect((await loadSettings()).dynamicVideoOnly).toBe(false);
@@ -59,6 +67,19 @@ describe('settings 迁移（merge / loadSettings）', () => {
     expect(sanitizeSettings({ danmakuAirborne: true })?.danmakuAirborne).toBe(true);
     await saveSettings({ danmakuAirborne: true });
     expect((await loadSettings()).danmakuAirborne).toBe(true);
+  });
+
+  it('批次导航默认关闭、每批 12 条，条数导入时收敛到合法范围', async () => {
+    expect(DEFAULTS.batchNav).toBe(false);
+    expect(DEFAULTS.batchSize).toBe(12);
+    expect(DEFAULTS.batchRefresh).toBe(true);
+    expect(DEFAULTS.batchPrefetch).toBe(false);
+    expect(sanitizeSettings({ batchPrefetch: true })?.batchPrefetch).toBe(true);
+    expect(sanitizeSettings({ batchPrefetch: 'true' })?.batchPrefetch).toBe(false);
+    expect(sanitizeSettings({ batchNav: 'true' })?.batchNav).toBe(false);
+    expect(sanitizeSettings({ batchNav: true })?.batchNav).toBe(true);
+    expect(sanitizeSettings({ batchSize: 1 })?.batchSize).toBe(1);
+    expect(sanitizeSettings({ batchSize: 999 })?.batchSize).toBe(100);
   });
 
   it('撤回的播放页评论布局选项不再导入或作为默认设置', () => {
