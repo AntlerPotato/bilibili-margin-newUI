@@ -34,6 +34,10 @@ jobs:
           SMOKE_OUT: smoke-artifacts/space-content
       - name: Application window navigation
         run: npm run test:app-window
+      - name: Recommendation batch navigation
+        run: node tests/feed-batches.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/feed-batches
       - name: Native controls follow the selected accent
         run: node tests/accent-controls.mjs
         env:

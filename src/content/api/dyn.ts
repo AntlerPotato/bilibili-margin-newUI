@@ -177,7 +177,7 @@ export async function dynCommentTarget(d: Dyn): Promise<{ type: number; oid: str
   return { type: item.cmtType, oid: item.cmtOid };
 }
 
-export interface Reply { rpid: string; name: string; face: string; mid: number; text: string; richText?: DynText[]; like: number; ts: number; rcount: number }
+export interface Reply { rpid: string; name: string; face: string; mid: number; text: string; richText?: DynText[]; like: number; ts: number; rcount: number; location?: string }
 function toReply(r: any): Reply {
   return {
     rpid: String(r.rpid_str ?? r.rpid), name: r.member?.uname ?? '', face: https(r.member?.avatar), mid: Number(r.mid ?? r.member?.mid) || 0,
@@ -187,6 +187,7 @@ function toReply(r: any): Reply {
       return { text, ...(/^https:\/\//.test(emoji) ? { emoji } : {}) };
     }),
     like: r.like ?? 0, ts: r.ctime ?? 0, rcount: r.rcount ?? 0,
+    location: typeof r.reply_control?.location === 'string' ? r.reply_control.location.trim() || undefined : undefined,
   };
 }
 /** 热门评论第一页（旧版 /x/v2/reply 不要 wbi 签名） */
