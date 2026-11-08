@@ -4,6 +4,24 @@
 
 ## Unreleased
 
+## v0.6.11 · 2026-11-08
+
+- Improve #103 errors for HTML responses and clear failed navigation/WBI promises so space loading can recover on retry.
+- Fix #101 preview delays caused by movement inside a cover, discard stale hover requests, and retry failed metadata or expired media URLs.
+- Add #104 sequential multi-image messaging with file selection, paste, drop and per-image removal. Keep failed and remaining images, remove confirmed sends, and cancel the remaining queue when switching conversations.
+- Add #99 a persistent video-only filter to the header dynamic menu, defaulting to all content. Place Watch Later on covers and ignore stale responses after filter changes.
+
+## v0.6.10 · 2026-11-08
+
+- Fix #108 by preserving the watched video ID and part number in history links, including history search and header history entries.
+- Fix #107 by keeping first-time feed tab changes at the first video row and restoring cached scroll positions after rendering. Reserve loading space and suppress scroll anchoring during the replacement.
+- Fix #100 by scrolling the selected followed creator into view, with immediate positioning when reduced motion is enabled.
+
+## v0.6.9 · 2026-11-08
+
+- Integrate PR #112 to remove the holographic strip and its animation from the avatar card.
+- Keep the quick-entry label on one line, adjust icon sizes and spacing, and verify text wrapping and row overflow.
+
 ## v0.6.8 · 2026-11-08
 
 - Integrate cross-tab message synchronization based on PR #122. Use actual server unread counts, retain unread state after failed private-message acknowledgements, coalesce requests and broadcasts, and retry after delayed server updates.

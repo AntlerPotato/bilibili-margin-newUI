@@ -102,6 +102,10 @@ jobs:
         run: node tests/latest-feedback.mjs
         env:
           SMOKE_OUT: smoke-artifacts/latest-feedback
+      - name: Cover preview timing and stale request cancellation
+        run: node tests/preview-timing.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/preview-timing
       - name: Comment feedback, search drops and filter scanning
         run: node tests/comment-feedback.mjs
         env:

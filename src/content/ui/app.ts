@@ -350,7 +350,7 @@ export class MarginApp {
     this.tab = id;
     tabs.querySelectorAll<HTMLElement>('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === id)));
     const m = this.tabMem.get(id);
-    if (!m) { this.reload(); return; }
+    if (!m) { this.reload(false, Math.min(this.app.scrollTop, this.videoTop())); return; }
     this.tabMem.delete(id);
     const s = m.s!;
     this.gen++;
@@ -363,8 +363,7 @@ export class MarginApp {
     this.snap = m.back;
     if (this.backBtn) this.backBtn.hidden = !this.snap;
     this.status.replaceChildren();
-    this.repaint();
-    this.app.scrollTo({ top: m.top });
+    this.repaint(m.top);
   }
 
   private tabMem = new Map<Tab, { s: Snap; top: number; back: Snap | null }>();
@@ -392,7 +391,7 @@ export class MarginApp {
     this.repaint();
   }
 
-  private reload(keep = false): void {
+  private reload(keep = false, top = 0): void {
     if (keep && this.refreshBtn?.getAttribute('aria-busy') === 'true') return;
     const prev = { snap: this.snap, page: this.page, round: this.round, appIdx: this.appIdx, done: this.done };
     const gen = ++this.gen;
@@ -410,11 +409,15 @@ export class MarginApp {
     resetClassics();
     if (!keep) {
       this.refreshBusy(false);
+      clearTimeout(this.anchorTimer);
+      this.app.style.overflowAnchor = 'none';
+      this.grid.style.minHeight = top > 0 ? `${this.app.clientHeight}px` : '';
       this.grid.replaceChildren();
       this.items = [];
       this.seen.clear();
-      this.app.scrollTo({ top: 0 });
       this.load();
+      this.app.scrollTo({ top, behavior: 'instant' });
+      this.anchorTimer = window.setTimeout(() => { this.app.style.overflowAnchor = ''; }, 600);
       return;
     }
     // #39：换一批时旧列表留在原位，等新一批拉齐后整块替换；中途不再清空网格 / 闪骨架
@@ -453,6 +456,7 @@ export class MarginApp {
       clearTimeout(this.anchorTimer);
       this.app.style.overflowAnchor = 'none';
       this.grid.replaceChildren(frag);
+      this.grid.style.minHeight = '';
       // 整块换掉时不做入场动画：否则新卡片会从透明淡入，看起来又像整页闪了一下
       this.grid.querySelectorAll('.card').forEach((n) => n.classList.add('still'));
       if (this.done) this.status.replaceChildren(h('span', {}, '没有更多了'));
@@ -510,13 +514,22 @@ export class MarginApp {
   }
 
   /** 过滤条件变化后，用已加载的数据重画网格 */
-  private repaint(): void {
+  private repaint(top?: number): void {
     const gen = this.gen;
     void this.filter.prepare(this.items.map((v) => v.bvid)).then(() => {
       if (gen !== this.gen) return;
       const shown = this.items.filter((v) => this.filter.allows(targetOfVideo(v)));
+      if (top !== undefined) {
+        clearTimeout(this.anchorTimer);
+        this.app.style.overflowAnchor = 'none';
+      }
       this.grid.replaceChildren(...shown.map((v, i) => videoCard(v, i, this.cardOpts())));
+      this.grid.style.minHeight = '';
       this.grid.querySelectorAll('.card').forEach((c) => c.classList.add('still'));
+      if (top !== undefined) {
+        this.app.scrollTo({ top, behavior: 'instant' });
+        this.anchorTimer = window.setTimeout(() => { this.app.style.overflowAnchor = ''; }, 600);
+      }
       this.fillIfShort();
     });
   }
@@ -624,12 +637,14 @@ export class MarginApp {
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
       added = this.appendCards(list, { items: this.items, seen: this.seen }, this.grid);
+      this.grid.style.minHeight = '';
       if (this.done) this.status.replaceChildren(h('span', {}, '没有更多了'));
     } catch (err) {
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
       // 推荐接口偶发风控 / 超时：先静默重试两次，再给出重试按钮
       if (attempt < 2) { this.loading = false; window.setTimeout(() => { if (gen === this.gen) this.load(attempt + 1); }, 800 * (attempt + 1)); return; }
+      this.grid.style.minHeight = '';
       this.status.replaceChildren(h('span', {}, `加载失败：${(err as Error).message}`), h('button', { class: 'ghost small', type: 'button', onclick: () => this.load() }, '重试'));
       return;
     } finally {

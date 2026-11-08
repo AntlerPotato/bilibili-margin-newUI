@@ -457,6 +457,16 @@ for (const theme of THEMES) {
       const state = await page.evaluate(() => { clearInterval(window.marginLinkTimer); return window.marginLinkProbe; });
       const miss = [];
       if (!state.frames) miss.push('pointer did not enter the interactive link');
+      const shortcuts = await page.locator('#margin-root .idcl-back .idcl-connect').evaluate((row) => {
+        const label = row.querySelector('span');
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        return { lines: range.getClientRects().length, overflow: row.scrollWidth > row.clientWidth + 1 };
+      });
+      if (shortcuts.lines !== 1) miss.push('quick entries label wrapped');
+      if (shortcuts.overflow) miss.push('quick entries overflow their row');
+      if (await page.locator('#margin-root .idcl-holo').count()) miss.push('holographic strip still rendered');
+      await page.screenshot({ path: join(OUT, `id-card-back-${theme}.png`) });
       if (state.grabbing) miss.push(`interactive link inherited drag cursor in ${state.grabbing}/${state.frames} samples`);
       if (state.shift > 1) miss.push(`interactive link moves under pointer by ${state.shift.toFixed(2)}px`);
       if (state.movementAfterEntry) miss.push(`card position changed after entering its link in ${state.movementAfterEntry} samples`);

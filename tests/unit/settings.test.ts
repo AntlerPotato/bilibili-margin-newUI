@@ -20,6 +20,13 @@ const setChromeMock = () => {
 
 describe('settings 迁移（merge / loadSettings）', () => {
   beforeEach(() => { store.clear(); setChromeMock(); });
+  it('动态菜单默认显示全部，开关可保存并兼容旧配置', async () => {
+    expect((await loadSettings()).dynamicVideoOnly).toBe(false);
+    expect((await saveSettings({ dynamicVideoOnly: true })).dynamicVideoOnly).toBe(true);
+    expect((await loadSettings()).dynamicVideoOnly).toBe(true);
+    expect(sanitizeSettings({ dynamicVideoOnly: 'true' })?.dynamicVideoOnly).toBe(false);
+    expect(sanitizeSettings({ dynamicVideoOnly: true })?.dynamicVideoOnly).toBe(true);
+  });
 
   it('空存储 → 全部默认值', async () => {
     const s = await loadSettings();
