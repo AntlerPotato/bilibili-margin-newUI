@@ -20,7 +20,7 @@ Object.assign(window, { chrome: {
   storage: { local: storage, onChanged: { addListener: (fn: any) => listeners.add(fn), removeListener: (fn: any) => listeners.delete(fn) } },
   runtime: {
     getURL: (path: string) => new URL('/' + path, location.origin).href,
-    getManifest: () => ({ version: '0.60.8', version_name: '0.6.8 Preview' }),
+    getManifest: () => ({ version: '0.60.13', version_name: '0.6.13 Preview' }),
     sendMessage: async () => ({ ok: true }),
   },
 } });
