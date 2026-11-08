@@ -5,7 +5,7 @@
 .app.hs-open .main { z-index: 6; }
 .hs-scrim { position: fixed; inset: 0; z-index: 9; pointer-events: none; opacity: 0; background: rgb(20 20 22 / .28); transition: opacity .3s var(--ease-out); }
 .app[data-theme="dark"] .hs-scrim, :host([data-theme="dark"]) .hs-scrim { background: rgb(0 0 0 / .5); }
-.app.hs-open .hs-scrim[data-active] { opacity: 1; pointer-events: auto; }
+.app.hs-open .hs-scrim { opacity: 1; pointer-events: auto; }
 .hero-search { position: absolute; top: 0; left: 0; right: 0; display: flex; flex-direction: column; border-radius: 28px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(18px) saturate(1.4); box-shadow: var(--sh-sm); overflow: hidden;
   transition: border-radius .3s var(--ease-out), box-shadow .3s var(--ease-out), border-color .2s var(--ease-out), background-color .3s var(--ease-out); }
 .hero-search:focus-within { border-color: color-mix(in srgb, var(--ink) 24%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 6%, transparent), var(--sh-sm); }
@@ -603,13 +603,3 @@
 @keyframes refresh-spin { to { transform: rotate(360deg); } }
 .card:hover .coop, .card:focus-within .coop { opacity: 0; }
 .coop { transition: opacity 150ms var(--ease-out); }
-.top .header-classic { display: block; width: 100%; min-width: 0; height: 44px; margin: 0; }
-.top .header-classic .hero-search { display: flex; height: 44px; }
-.top .header-classic .hs-row { height: 42px; min-height: 42px; }
-.top .header-classic .hs-input, .top .header-classic .hs-ph { font-size: 14px; }
-.top .header-classic .hs-btn { height: 34px; margin: 4px; }
-.app.hs-open .top { z-index: 10; }
-.app.home[data-hide~="search"] > .hs-scrim { display: block; }
-.app:is(.home,.wt) .top .header-classic .hero-search { display: flex; }
-.app.home[data-hide~="search"] .top .header-classic { display: block; }
-.top.no-search:not(.hs-away) .header-classic { visibility: hidden; pointer-events: none; }

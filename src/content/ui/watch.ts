@@ -67,7 +67,7 @@ export class WatchSkin {
     guardTyping(this.host);
     root.append(h('style', {}, css));
     // 搜索页本身有大号搜索框，顶栏那个就不再重复（Ctrl+K / / 仍可唤出命令面板）
-    if (kind === 'search') root.append(h('style', {}, '.top .search, .top .header-classic { visibility: hidden; pointer-events: none; }'));
+    if (kind === 'search') root.append(h('style', {}, '.top .search { visibility: hidden; pointer-events: none; }'));
 
     this.filter = new FilterRuntime(settings);
     this.panel = createSettingsPanel(() => this.settings, () => this.bg.shader);

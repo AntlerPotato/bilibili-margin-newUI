@@ -483,7 +483,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       row('封面悬停预览', '鼠标停留半秒后静音播放', preview),
       row('控件动效', '按钮、面板、三连和卡片过渡；背景与天气独立设置', effects),
       row('减少动画', '暂停背景、天气和悬停动画，并减少界面过渡；系统减少动态效果始终生效', reduceM),
-      row('搜索栏样式', '旧版沿用首页搜索栏，新版原位展开搜索面板', searchStyle),
+      row('搜索栏样式', '旧版保留原顶栏搜索框，新版原位展开搜索面板', searchStyle),
       row('搜索框展开速度', '点击搜索框展开命令面板的动画速度（%），50–200 之间，100 为默认；数字越大越快', palSpeedIn),
       row('其他页面重设计', '播放页、搜索页、空间、动态等，只换外观不改功能', watch),
       drawer('字体与缩放', () => { const st = get(); return [st.titleFont === 'sans' ? '无衬线标题' : '衬线标题', st.bodyFont || '', st.zoom !== 100 ? `${st.zoom}%` : ''].filter(Boolean).join(' · '); },

@@ -15,7 +15,6 @@ import type { FilterRuntime } from '../filter-runtime';
 import { openBili } from '../navigation';
 import { acceptTextDrop } from './text-drop';
 import { hotSearch } from '../api/search';
-import { createHeroSearch } from './hero-search';
 import { onUiMotionChange, uiReducedMotion } from '../motion';
 
 /** 顶栏左上角的小电视：开场动画结束时图标就飞落到这里 */
@@ -44,8 +43,9 @@ export const SITE_LINKS: TabSpec[] = [
 ];
 
 /** 首页和播放页共用的顶栏：标志、搜索、Expandable Tabs、日月主题按钮、投稿、头像 */
-export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch?: (q: string, origin: HTMLElement) => void; onSettings?: () => void; msgRemind?: () => boolean; filter?: FilterRuntime }): Header {
+export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch?: (q: string, origin?: HTMLElement) => void; onSettings?: () => void; msgRemind?: () => boolean; filter?: FilterRuntime }): Header {
   let msgOn = o.msgRemind?.() ?? true;
+  let searchStyle: Settings['searchStyle'] = 'classic';
   const user = h('a', { class: 'user', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '登录');
   const userSlot = h('div', { class: 'um-wrap' }, user);
   const upload = h('a', { class: 'upload', href: 'https://member.bilibili.com/platform/upload/video/frame', target: '_blank', rel: 'noopener' }, icon(ICONS.upload), h('span', {}, '投稿'));
@@ -62,7 +62,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
   if (o.onSearch) {
     // 顶栏搜索框只做入口：点一下、或开始打字，就交给命令面板
     input.readOnly = true;
-    const openP = () => { const q = input.value; input.value = ''; input.blur(); o.onSearch!(q, search); };
+    const openP = () => { const q = input.value; input.value = ''; input.blur(); o.onSearch!(q, searchStyle === 'new' ? search : undefined); };
     search.addEventListener('pointerdown', (e) => { e.preventDefault(); openP(); });
     input.addEventListener('focus', openP);
     const words = h('span', { class: 'search-ph-ws' });
@@ -81,7 +81,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     };
     const startRotation = () => {
       stopRotation?.();
-      if (uiReducedMotion() || !names.length) return;
+      if (searchStyle !== 'new' || uiReducedMotion() || !names.length) return;
       stopRotation = every(3200, () => {
         if (!el.isConnected) { stopRotation?.(); return; }
         if (!search.isConnected) return;
@@ -91,20 +91,25 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
         paint();
       });
     };
+    const syncSearch = () => {
+      const hot = searchStyle === 'new' && names.length > 0;
+      search.classList.toggle('has-hot', hot);
+      if (hot) search.append(placeholder); else placeholder.remove();
+      startRotation();
+    };
     onUiMotionChange(startRotation);
-    onSettingsChange((n, p) => { if (n.searchStyle !== p.searchStyle) startRotation(); });
+    loadSettings().then(st => { searchStyle = st.searchStyle; syncSearch(); }).catch(() => {});
+    onSettingsChange((n, p) => { searchStyle = n.searchStyle; if (n.searchStyle !== p.searchStyle) syncSearch(); });
     hotSearch().then(list => {
       names = list.slice(0, 10).map(item => item.name);
       if (!names.length) return;
-      search.classList.add('has-hot');
-      search.append(placeholder);
       paint();
-      startRotation();
+      syncSearch();
     }).catch(() => {});
   }
 
   acceptTextDrop(search, (text) => {
-    if (o.onSearch) { o.onSearch(text, search); return; }
+    if (o.onSearch) { o.onSearch(text, searchStyle === 'new' ? search : undefined); return; }
     input.value = text;
     input.focus();
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -148,22 +153,6 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     search,
     h('div', { class: 'acts' }, tabsNav.el, sunMoon.el, o.onSettings ? createSettingsButton(o.onSettings) : null, upload, userSlot),
   );
-
-  const classic = createHeroSearch(() => el.closest<HTMLElement>('.app')!, undefined, 'header-hs-list');
-  classic.el.classList.add('header-classic');
-  const setSearchStyle = (st: Settings) => {
-    const old = st.searchStyle === 'classic';
-    if (old && search.parentElement === el) search.replaceWith(classic.el);
-    if (!old && classic.el.parentElement === el) {
-      if (classic.el.querySelector('.hero-search')?.getAttribute('data-open') === 'true') classic.close();
-      classic.el.replaceWith(search);
-    }
-    const app = el.closest<HTMLElement>('.app');
-    if (old && app && !classic.scrim.isConnected) app.append(classic.scrim);
-    if (!old) classic.scrim.remove();
-  };
-  loadSettings().then(setSearchStyle).catch(() => {});
-  onSettingsChange(setSearchStyle);
 
   account().then((a) => {
     if (!a) return;
@@ -229,5 +218,5 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     e.preventDefault();
     input.focus();
   });
-  return { el, input, sunMoon, glass: [search, classic.el.querySelector<HTMLElement>('.hero-search')!, tabsNav.el, sunMoon.glass], thumb: tabsNav.thumb, setMsgRemind };
+  return { el, input, sunMoon, glass: [search, tabsNav.el, sunMoon.glass], thumb: tabsNav.thumb, setMsgRemind };
 }

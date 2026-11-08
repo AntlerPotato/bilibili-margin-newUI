@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## v0.6.15 · 2026-11-08
+
+- Restore the original compact header search with its icon, placeholder and shortcut hint, without a submit button.
+- Classic search uses the original panel interaction. In-place expansion and rotating trends remain optional, while homepage search and other fixes are preserved.
+
 ## v0.6.14 · 2026-11-08
 
 - Integrate batch navigation and both search styles, defaulting to classic search with settings for the expanding panel and animation speed.
