@@ -432,8 +432,6 @@ for (const theme of THEMES) {
       await page.locator('#margin-root .idcl-name').click(); await sleep(1000);
       await page.locator('#margin-root .user.in').hover(); await sleep(500);
       const link = page.locator('#margin-root .idcl-back .idcl-connect-icons a').first();
-      const rect = await link.boundingBox();
-      if (!rect) return ['account link has no bounds'];
       await link.evaluate((el) => {
         let start = null;
         window.marginLinkProbe = { grabbing: 0, frames: 0, shift: 0, movementAfterEntry: 0, cardTransform: null, flipperTransform: null };
@@ -451,8 +449,8 @@ for (const theme of THEMES) {
           p.frames++;
         }, 16);
       });
-      // 旋转后的外接矩形边缘可能在链接实际命中区域之外。
-      await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      // 使用浏览器计算的内容四边形命中位置，避免 3D 外接矩形中心与实际链接错位。
+      await link.hover({ force: true });
       await sleep(500);
       const state = await page.evaluate(() => { clearInterval(window.marginLinkTimer); return window.marginLinkProbe; });
       const miss = [];
@@ -504,7 +502,8 @@ for (const theme of THEMES) {
         ['home', HOME, 'margin-root'], ['watch', WATCH, 'margin-watch-top'], ['search', SEARCH, 'margin-watch-top'],
         ['space-header', 'https://space.bilibili.com/1/video', 'margin-root'],
         ['space-self', 'https://space.bilibili.com/1/video', 'margin-root', true],
-        ['message', MESSAGE, 'margin-root'], ['native-space', 'https://space.bilibili.com/1/favlist', 'margin-space-hooks'],
+        ['space-favorites', 'https://space.bilibili.com/1/favlist', 'margin-root'],
+        ['message', MESSAGE, 'margin-root'], ['native-space', 'https://space.bilibili.com/1/favlist?ftype=collect', 'margin-space-hooks'],
         ['feed', 'https://t.bilibili.com/', 'margin-root'], ['history', 'https://www.bilibili.com/history', 'margin-root'],
       ]) {
         await seed({ favDirect: true });

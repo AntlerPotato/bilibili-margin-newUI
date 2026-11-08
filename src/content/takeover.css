@@ -69,6 +69,8 @@ html.margin-reduce .sp-menu { animation: none; }
 .sp-collection .cover { width: 100%; }
 .sp-collection .cover > svg { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; color: var(--muted); }
 .sp-collection .title { text-align: left; }
+.sp-content-card .cover > svg { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; color: var(--muted); }
+.sp-bar .tabs { flex-wrap: wrap; }
 .sp-collection-head { display: flex; align-items: center; gap: 16px; padding: 16px 0; }
 .sp-collection-head[hidden] { display: none; }
 .sp-collection-head h2 { margin: 0; font: 500 22px/1.4 var(--serif); overflow-wrap: anywhere; }

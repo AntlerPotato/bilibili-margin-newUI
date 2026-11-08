@@ -114,7 +114,12 @@ const isLiveHome = () => location.hostname === 'live.bilibili.com' && location.p
 const SKIP = /^\/(?:[a-z]{2}(?:-[A-Za-z]{2,4})?\/)?(?:blackboard|correspond|v\/topic|festival|bnj|ssr)/;
 const isPage = () => /^(www|space|t)\.bilibili\.com$/.test(location.hostname) && !SKIP.test(location.pathname) && window.top === window;
 const LOC = '(?:[a-z]{2}(?:-[A-Za-z]{2,4})?/)?';
-const spaceMatch = () => location.hostname === 'space.bilibili.com' ? location.pathname.match(new RegExp(`^/${LOC}(\\d+)(?:/(video|upload/video|dynamic|upload))?/?$`)) : null;
+const spaceMatch = () => {
+  if (location.hostname !== 'space.bilibili.com') return null;
+  const match = location.pathname.match(new RegExp(`^/${LOC}(\\d+)(?:/(video|upload/(?:video|opus|article|audio)|dynamic|article|opus|audio|favlist|upload))?/?$`));
+  if (match?.[2] === 'favlist' && new URLSearchParams(location.search).get('ftype') === 'collect') return null;
+  return match;
+};
 const isMessage = () => location.hostname === 'message.bilibili.com' && window.top === window;
 const isHistory = () => location.hostname === 'www.bilibili.com' && /^\/(?:account\/)?history\/?$/.test(location.pathname) && window.top === window;
 const isFeed = () => location.hostname === 't.bilibili.com' && /^\/?$/.test(location.pathname) && window.top === window;
@@ -278,7 +283,11 @@ async function start(): Promise<void> {
   if (isWatch()) return startWatch();
   const sm = spaceMatch();
   // 空间页的投稿接口依赖原版脚本写的指纹 cookie，不拦会 412
-  if (sm) return takeover(load('space'), (m, st) => new m.SpaceApp(st, Number(sm[1]), sm[2] === 'dynamic' ? 'dynamic' : new URLSearchParams(location.search).get('margin_tab') === 'collections' ? 'collections' : 'video'), false);
+  if (sm) {
+    const path = sm[2]?.replace(/^upload\//, '');
+    const tab = path === 'dynamic' ? 'dynamic' : path === 'article' || path === 'opus' ? 'article' : path === 'audio' ? 'audio' : path === 'favlist' ? 'favorites' : new URLSearchParams(location.search).get('margin_tab') === 'collections' ? 'collections' : 'video';
+    return takeover(load('space'), (m, st) => new m.SpaceApp(st, Number(sm[1]), tab), false);
+  }
   if (isMessage()) return takeover(load('message'), (m, st) => new m.MessageApp(st));
   if (isHistory()) return takeover(load('history'), (m, st) => new m.HistoryApp(st));
   if (isFeed()) return takeover(load('feed'), (m, st) => new m.FeedApp(st));

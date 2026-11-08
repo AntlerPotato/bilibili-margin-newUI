@@ -169,7 +169,10 @@ try {
     await page.waitForTimeout(400);
     assert(Math.abs(await app.evaluate(e => e.scrollTop) - before) < 2, 'rapid switching lost saved scroll');
     await app.evaluate(e => { e.scrollTop = 0; });
-    await page.locator('#margin-root .refresh:not(.back)').click();
+    await page.waitForTimeout(300);
+    assert.equal(await app.evaluate(e => e.scrollTop), 0);
+    // 从已确认的顶部触发刷新，避免定位吸顶按钮时自动滚动改变测试场景。
+    await page.locator('#margin-root .refresh:not(.back)').evaluate(button => button.click());
     await page.waitForTimeout(800);
     assert.equal(await app.evaluate(e => e.scrollTop), 0, 'refresh at top moved the page');
     return { before, popular, restored };

@@ -5,8 +5,8 @@ function appWindow(): boolean {
 }
 
 type OpenGesture = Pick<MouseEvent, 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'> & { button?: number };
-function appUrl(url: string, e?: OpenGesture): string | null {
-  if (!appWindow() || (e && ((e.button != null && e.button !== 0) || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey))) return null;
+export function appUrl(url: string, e?: OpenGesture): string | null {
+  if (!appWindow() || (e && ((e.button != null && e.button !== 0 && e.button !== 1) || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey))) return null;
   try {
     const u = new URL(url, location.href);
     return u.protocol === 'https:' && (u.hostname === 'bilibili.com' || u.hostname.endsWith('.bilibili.com')) ? u.href : null;
@@ -25,13 +25,15 @@ export function installAppNavigation(enabled: boolean): void {
   on = enabled;
   if (installed) return;
   installed = true;
-  document.addEventListener('click', (e) => {
+  const navigate = (e: MouseEvent) => {
     if (!on || e.defaultPrevented) return;
     const a = e.composedPath().find((n): n is HTMLAnchorElement => n instanceof HTMLAnchorElement);
-    if (!a || a.target !== '_blank' || a.hasAttribute('download')) return;
+    if (!a || (e.button !== 1 && a.target !== '_blank') || a.hasAttribute('download')) return;
     const same = appUrl(a.href, e);
     if (!same) return;
     e.preventDefault();
     location.assign(same);
-  }, true);
+  };
+  document.addEventListener('click', navigate, true);
+  document.addEventListener('auxclick', navigate, true);
 }

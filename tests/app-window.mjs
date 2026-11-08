@@ -27,6 +27,13 @@ for (const app of [false, true]) {
       assert.match(popup.url(), /bilibili\.com\/video\//);
       assert.equal(page.url(), 'https://www.bilibili.com/'); await popup.close();
       console.log('PASS normal browser keeps new-tab video links');
+      await page.evaluate(() => document.addEventListener('auxclick', e => {
+        window.marginMiddleClick = { button: e.button, prevented: e.defaultPrevented }; e.preventDefault();
+      }, { once: true }));
+      await page.locator('#margin-root .grid .card .cover').first().click({ button: 'middle' });
+      assert.deepEqual(await page.evaluate(() => window.marginMiddleClick), { button: 1, prevented: false });
+      assert.equal(page.url(), 'https://www.bilibili.com/');
+      console.log('PASS normal browser middle-click is handed to the browser');
     } else {
       const input = page.locator('#margin-root .hero-search input');
       await input.fill('映间');
@@ -44,6 +51,19 @@ for (const app of [false, true]) {
       await Promise.all([page.waitForURL('https://www.bilibili.com/video/**'), page.locator('#margin-root .grid .card .cover').first().click()]);
       assert.equal(ctx.pages().length, 1);
       console.log('PASS app video link stays in the same window');
+      for (const [name, url, selector, destination] of [
+        ['video', 'https://www.bilibili.com/', '#margin-root .grid .card .cover', 'https://www.bilibili.com/video/**'],
+        ['profile', 'https://search.bilibili.com/all?keyword=test', '#margin-watch-top .user.in', 'https://space.bilibili.com/**'],
+        ['dynamic card', 'https://t.bilibili.com/', '#margin-root .fd-list > .dy .dy-text', 'https://www.bilibili.com/**'],
+      ]) {
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
+        const link = page.locator(selector).first(); await link.waitFor();
+        await page.waitForTimeout(500);
+        await Promise.all([page.waitForURL(destination), link.click({ button: 'middle' })]);
+        assert.equal(ctx.pages().length, 1);
+        assert.equal(await page.evaluate(() => matchMedia('(display-mode: standalone)').matches), true);
+        console.log(`PASS app middle-click ${name} stays in the same window`);
+      }
       await page.goto('https://www.bilibili.com/', { waitUntil: 'domcontentloaded' });
       // --app 的原生新标签可能交给独立浏览器，未必产生 Playwright popup。
       // 在冒泡阶段记录扩展是否拦截，再由测试取消默认操作，验证交还浏览器的边界。

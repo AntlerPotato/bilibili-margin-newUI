@@ -341,7 +341,7 @@ html.margin-watch .upinfo-btn-panel > :is(.new-charge-btn, .charge-btn, .old-cha
 }
 html.margin-watch .upinfo-btn-panel > .follow-btn.not-follow,
 html.margin-watch .upinfo-btn-panel > .follow-btn.not-follow .follow-btn-inner {
-  background: var(--m-ink) !important; color: var(--m-canvas) !important; border: 0 !important;
+  background: var(--margin-primary, var(--m-ink)) !important; color: var(--margin-primary-fg, var(--m-canvas)) !important; border: 0 !important;
 }
 html.margin-watch .upinfo-btn-panel > .follow-btn .follow-btn-inner { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
 html.margin-watch .upinfo-btn-panel > .follow-btn:not(.not-follow) { background: var(--m-chip) !important; color: var(--m-muted) !important; }

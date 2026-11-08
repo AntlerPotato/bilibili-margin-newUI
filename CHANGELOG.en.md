@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+## v0.6.13 · 2026-11-08
+
+- Fix #102 higher-specificity follow-button styles overriding the selected accent. Search tabs, sorting and pagination follow the accent across light/dark themes, hover and restoration of classic colors.
+- Extend #18 application-window navigation to middle-clicked Bilibili links and dynamic cards. Ordinary browser tabs, modified clicks, external links and downloads keep browser handling.
+- Limit unit-test discovery to tests so local backup copies cannot run stale tests.
+
+## v0.6.12 · 2026-11-08
+
+- Complete #103 with creator-space articles, audio and public favorite folders, including incremental loading, empty states, retries and direct links. Public folders show their videos; private folders and subscribed collections use the native page.
+- Integrate PR #124 to omit the ignored WebGPU powerPreference option on Windows while retaining low-power preference elsewhere. Disposal during platform lookup prevents subsequent GPU initialization.
+- Use browser-computed content geometry in the profile-card hover regression to hit transformed links reliably.
+
 ## v0.6.11 · 2026-11-08
 
 - Improve #103 errors for HTML responses and clear failed navigation/WBI promises so space loading can recover on retry.
