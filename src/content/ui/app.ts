@@ -203,7 +203,7 @@ export class MarginApp {
       { id: 'off', title: '本次回到 B 站原版', cat: '操作', icon: ICONS.exit, keys: ['原版', '关闭'], run: () => { sessionStorage.setItem('margin:off', '1'); location.reload(); } },
     ]);
     const cm = createContextMenu();
-    const head = createHeader({ onTheme: () => this.toggleTheme(), onSearch: (q) => palette.open(q), onSettings: () => this.panel.sheet.open(), msgRemind: () => this.settings.msgRemind, filter: this.filter, tabs: [
+    const head = createHeader({ onTheme: () => this.toggleTheme(), onSearch: (q, origin) => palette.open(q, origin), onSettings: () => this.panel.sheet.open(), msgRemind: () => this.settings.msgRemind, filter: this.filter, tabs: [
       ...SITE_LINKS,
       'separator',
       { title: '收藏', icon: ICONS.fav, run: () => this.fav.open() },

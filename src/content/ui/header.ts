@@ -14,6 +14,8 @@ import { createSettingsButton } from './settings-btn';
 import type { FilterRuntime } from '../filter-runtime';
 import { openBili } from '../navigation';
 import { acceptTextDrop } from './text-drop';
+import { hotSearch } from '../api/search';
+import { onUiMotionChange, uiReducedMotion } from '../motion';
 
 /** 顶栏左上角的小电视：开场动画结束时图标就飞落到这里 */
 function tv(): HTMLElement { const s = h('span', { class: 'tv', 'aria-hidden': 'true' }); setMarkup(s, BILI_TIGHT); liveTv(s); return s; }
@@ -41,7 +43,7 @@ export const SITE_LINKS: TabSpec[] = [
 ];
 
 /** 首页和播放页共用的顶栏：标志、搜索、Expandable Tabs、日月主题按钮、投稿、头像 */
-export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch?: (q: string) => void; onSettings?: () => void; msgRemind?: () => boolean; filter?: FilterRuntime }): Header {
+export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch?: (q: string, origin: HTMLElement) => void; onSettings?: () => void; msgRemind?: () => boolean; filter?: FilterRuntime }): Header {
   let msgOn = o.msgRemind?.() ?? true;
   const user = h('a', { class: 'user', href: 'https://passport.bilibili.com/login', target: '_blank', rel: 'noopener' }, '登录');
   const userSlot = h('div', { class: 'um-wrap' }, user);
@@ -59,13 +61,48 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
   if (o.onSearch) {
     // 顶栏搜索框只做入口：点一下、或开始打字，就交给命令面板
     input.readOnly = true;
-    const openP = () => { const q = input.value; input.value = ''; input.blur(); o.onSearch!(q); };
+    const openP = () => { const q = input.value; input.value = ''; input.blur(); o.onSearch!(q, search); };
     search.addEventListener('pointerdown', (e) => { e.preventDefault(); openP(); });
     input.addEventListener('focus', openP);
+    const words = h('span', { class: 'search-ph-ws' });
+    const placeholder = h('span', { class: 'search-ph', 'aria-hidden': 'true' }, words);
+    let names: string[] = [], index = 0;
+    let stopRotation: (() => void) | undefined;
+    const paint = () => {
+      const previous = words.querySelector('.search-ph-w:not(.out)');
+      const next = h('span', { class: `search-ph-w${previous && !uiReducedMotion() ? ' in' : ''}` }, names[index]);
+      words.append(next);
+      if (previous) {
+        previous.classList.add('out');
+        if (uiReducedMotion()) previous.remove();
+        else setTimeout(() => previous.remove(), 420);
+      }
+    };
+    const startRotation = () => {
+      stopRotation?.();
+      if (uiReducedMotion() || !names.length) return;
+      stopRotation = every(3200, () => {
+        if (!search.isConnected) { stopRotation?.(); stopMotion(); return; }
+        const rect = search.getBoundingClientRect();
+        if (input.value || rect.bottom <= 0 || rect.top >= innerHeight || getComputedStyle(search).opacity === '0') return;
+        index = (index + 1) % names.length;
+        paint();
+      });
+    };
+    const stopMotion = onUiMotionChange(startRotation);
+    hotSearch().then(list => {
+      if (!search.isConnected) { stopMotion(); return; }
+      names = list.slice(0, 10).map(item => item.name);
+      if (!names.length) return;
+      search.classList.add('has-hot');
+      search.append(placeholder);
+      paint();
+      startRotation();
+    }).catch(() => {});
   }
 
   acceptTextDrop(search, (text) => {
-    if (o.onSearch) { o.onSearch(text); return; }
+    if (o.onSearch) { o.onSearch(text, search); return; }
     input.value = text;
     input.focus();
     input.dispatchEvent(new Event('input', { bubbles: true }));

@@ -97,7 +97,7 @@ export class WatchSkin {
     this.head = createHeader({
       onTheme: () => this.toggleTheme(),
       onSettings: () => this.panel.sheet.open(),
-      onSearch: (q) => palette.open(q),
+      onSearch: (q, origin) => palette.open(q, origin),
       msgRemind: () => this.settings.msgRemind,
       filter: this.filter,
       tabs: [
