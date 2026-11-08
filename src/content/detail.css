@@ -97,6 +97,9 @@ html.margin-detail .bili-tabs__nav__item { font: 400 18px/48px var(--m-serif) !i
 html.margin-detail .bili-tabs__nav__item.is-active, html.margin-detail .bili-tabs__nav__item--active, html.margin-detail .bili-tabs__nav__item[aria-selected="true"] { color: var(--m-ink) !important; }
 html.margin-detail .bili-tabs__nav__bar, html.margin-detail .bili-tabs__nav-bar, html.margin-detail .bili-tabs__active-bar { background: var(--m-ink) !important; height: 2px !important; border-radius: 2px; }
 html.margin-detail .bili-tabs__content, html.margin-detail .comment-wrap { padding-left: 32px !important; padding-right: 32px !important; }
+/* 原生评论嵌套容器只保留一层横向留白，给时间、IP 标签与回复操作留足宽度。 */
+html.margin-detail .bili-tabs__content .comment-wrap,
+html.margin-detail .comment-wrap .bili-comment-container { padding-left: 0 !important; padding-right: 0 !important; }
 
 /* ── 单条动态：一张卡 ── */
 html[data-margin-detail="dyn"] #app .content .card {

@@ -5,10 +5,10 @@ const API = 'https://api.bilibili.com';
 
 interface Resp<T> { code: number; message?: string; data: T }
 
-export async function getJSON<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
+export async function getJSON<T>(path: string, params: Record<string, string | number> = {}, signal?: AbortSignal): Promise<T> {
   const q = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
   const url = `${API}${path}${q.size ? `?${q}` : ''}`;
-  const res = await fetch(url, { credentials: 'include' });
+  const res = await fetch(url, { credentials: 'include', signal });
   // 412 / -352 是风控：下次进页面放行原版脚本，让它补齐指纹 cookie
   if (res.status === 412) setGuard(false);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -48,13 +48,14 @@ function getMixinKey(): Promise<string> {
   return mixinKey;
 }
 
-export async function getWbi<T>(path: string, params: Record<string, string | number>): Promise<T> {
+export async function getWbi<T>(path: string, params: Record<string, string | number>, signal?: AbortSignal): Promise<T> {
   const key = await getMixinKey();
+  signal?.throwIfAborted();
   const all: Record<string, string> = { ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])), wts: String(Math.round(Date.now() / 1000)) };
   const query = Object.keys(all).sort()
     .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(all[k].replace(/[!'()*]/g, ''))}`)
     .join('&');
-  const res = await fetch(`${API}${path}?${query}&w_rid=${md5(query + key)}`, { credentials: 'include' });
+  const res = await fetch(`${API}${path}?${query}&w_rid=${md5(query + key)}`, { credentials: 'include', signal });
   const body = (await res.json()) as Resp<T>;
   if (body.code !== 0) throw new Error(body.message || `code ${body.code}`);
   return body.data;

@@ -1,5 +1,5 @@
 import type { Settings } from '../../shared/settings';
-import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceLive, spaceRecent, spaceVideos, spaceCollections, spaceCollectionVideos, type SpaceCollection, type SpaceInfo, type VideoOrder } from '../api/space';
+import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceLive, spaceRecent, spaceVideos, spaceCollections, spaceCollectionVideos, createSpaceSearch, type SpaceCollection, type SpaceInfo, type VideoOrder } from '../api/space';
 import { spaceDynamics } from '../api/dyn';
 import { videoCard, skeleton } from './card';
 import { dynCard, dynData } from './dyn';
@@ -51,11 +51,17 @@ export class SpaceApp {
   private layoutSeg!: HTMLElement;
   private collection: SpaceCollection | null = null;
   private collectionHead!: HTMLElement;
+  /** 搜索结果上方的合集入口（搜索命中合集名时出现，GitHub #113） */
+  private hitBox!: HTMLElement;
   private layout: Layout = (localStorage.getItem(LAYOUT_KEY) as Layout) === 'list' ? 'list' : 'grid';
   private info: SpaceInfo | null = null;
   /** 投稿搜索词（v0.47，评论区：进了 UP 主页没法搜他的视频） */
   private q = '';
   private searchBox!: HTMLElement;
+  private qInput!: HTMLInputElement;
+  private search: ReturnType<typeof createSpaceSearch> | null = null;
+  private searchController: AbortController | null = null;
+  private searchCards = new Map<string, HTMLElement>();
   /** 最近投币 / 点赞：进页面时各请求一次，对方公开了才出标签 */
   private recent: Partial<Record<'coin' | 'like', Video[]>> = {};
 
@@ -80,10 +86,11 @@ export class SpaceApp {
     tabs.append(mk('video', '视频'), mk('collections', '合集和系列'), mk('dynamic', '动态'));
     const input = h('input', { type: 'search', class: 'sp-q-in', placeholder: '搜索 TA 的视频', 'aria-label': '搜索 TA 的视频', autocomplete: 'off' }) as HTMLInputElement;
     let qt = 0;
-    const apply = () => { const v = input.value.trim(); if (v === this.q) return; this.q = v; if (this.tab === 'video') this.reload(); };
+    const apply = () => { const v = input.value.trim(); if (v === this.q) return; this.q = v; if (this.tab === 'video' || this.collection) this.reload(); };
     input.addEventListener('input', () => { clearTimeout(qt); qt = window.setTimeout(apply, 400); });
     input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { clearTimeout(qt); apply(); } if (e.key === 'Escape') { input.value = ''; clearTimeout(qt); apply(); } });
     this.searchBox = h('label', { class: 'sp-q' }, icon(ICONS.search), input);
+    this.qInput = input;
     this.sort = segmented<VideoOrder>([['pubdate', '最新发布'], ['click', '最多播放']], this.order, (v) => { this.order = v; this.reload(); });
     this.sort.classList.add('sp-sort');
     this.layoutSeg = segmented<Layout>([['grid', '网格'], ['list', '列表']], this.layout, (v) => { this.layout = v; localStorage.setItem(LAYOUT_KEY, v); this.reload(); });
@@ -93,10 +100,11 @@ export class SpaceApp {
     this.status = h('div', { class: 'status' });
     this.sentinel = h('div', { class: 'sentinel' });
     this.collectionHead = h('div', { class: 'sp-collection-head', hidden: true });
+    this.hitBox = h('div', { class: 'sp-search-hit-box', hidden: true });
     attachPreview(this.list, () => s.settings.hoverPreview);
     // 吸顶时标签变成和首页一样的玻璃胶囊，不再直接压在封面上（v0.47.1）
     const barMark = h('div', { class: 'bar-mark', 'aria-hidden': 'true' });
-    s.main.append(hero, barMark, bar, this.collectionHead, this.list, this.status, this.sentinel);
+    s.main.append(hero, barMark, bar, this.collectionHead, this.hitBox, this.list, this.status, this.sentinel);
     new IntersectionObserver(([e]) => { bar.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 80); }, { root: s.app, rootMargin: '-72px 0px 0px 0px', threshold: 0 }).observe(barMark);
 
     let profile: HTMLElement | null = null;
@@ -308,6 +316,7 @@ export class SpaceApp {
     if (t === this.tab) return;
     this.tab = t;
     this.collection = null;
+    this.clearQuery();
     history.replaceState(null, '', `/${this.mid}${t === 'dynamic' ? '/dynamic' : t === 'collections' ? '?margin_tab=collections' : ''}`);
     this.applyTabUi();
     this.reload();
@@ -316,19 +325,49 @@ export class SpaceApp {
   private applyTabUi(): void {
     this.shell.main.querySelectorAll<HTMLElement>('.sp-bar .tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === this.tab)));
     const vid = this.tab !== 'dynamic' && (this.tab !== 'collections' || !!this.collection);
+    const searchable = this.tab === 'video' || (this.tab === 'collections' && !!this.collection);
     this.sort.hidden = this.tab !== 'video';
-    this.searchBox.hidden = this.tab !== 'video';
+    this.searchBox.hidden = !searchable;
+    if (this.qInput) {
+      const label = this.tab === 'collections' ? '搜索合集内视频' : '搜索 TA 的视频';
+      this.qInput.placeholder = label;
+      this.qInput.setAttribute('aria-label', label);
+    }
     this.layoutSeg.hidden = !vid;
     this.list.className = this.tab === 'dynamic' ? 'dy-list' : vid && this.layout === 'list' ? 'vlist' : 'grid';
     this.collectionHead.hidden = this.tab !== 'collections' || !this.collection;
   }
 
+  /** 清空搜索词并同步输入框（切标签 / 从搜索结果进合集时用） */
+  private clearQuery(): void {
+    this.q = '';
+    if (this.qInput) this.qInput.value = '';
+  }
+
+  /** 搜索命中合集时，在结果上方给一条入口：点开就是该合集的完整列表（GitHub #113） */
+  private searchHit(c: SpaceCollection): HTMLElement {
+    const open = () => {
+      this.clearQuery();
+      this.collection = c;
+      this.tab = 'collections';
+      history.replaceState(null, '', `/${this.mid}?margin_tab=collections`);
+      this.collectionHead.replaceChildren(
+        h('button', { class: 'ghost small', type: 'button', onclick: () => { this.clearQuery(); this.collection = null; this.reload(); } }, icon(ICONS.back), '合集和系列'),
+        h('h2', {}, c.name));
+      this.reload();
+    };
+    return h('button', { class: 'sp-search-hit', type: 'button', onclick: open },
+      h('span', { class: 'sp-search-hit-name' }, `合集 · ${c.name}`),
+      h('span', { class: 'sp-search-hit-meta' }, `${c.total} 个视频 · 查看合集`));
+  }
+
   private collectionCard(c: SpaceCollection): HTMLElement {
     const open = () => {
+      this.clearQuery();
       this.collection = c;
       this.collectionHead.replaceChildren(
         h('button', { class: 'ghost small', type: 'button', onclick: () => {
-          this.collection = null; this.reload();
+          this.clearQuery(); this.collection = null; this.reload();
         } }, icon(ICONS.back), '合集和系列'),
         h('h2', {}, c.name));
       this.reload();
@@ -343,16 +382,22 @@ export class SpaceApp {
   }
 
   private reload(): void {
+    this.searchController?.abort();
+    this.searchController = null;
+    this.search = null;
+    this.searchCards.clear();
     this.gen++;
     this.page = 1; this.offset = ''; this.done = false; this.loading = false;
     this.list.replaceChildren();
     this.status.replaceChildren();
+    if (this.hitBox) { this.hitBox.hidden = true; this.hitBox.replaceChildren(); }
     this.applyTabUi();
     this.load();
   }
 
-  private async load(): Promise<void> {
+  private async load(manual = false): Promise<void> {
     if (this.loading || this.done) return;
+    if (this.q && this.search && !manual) return;
     this.loading = true;
     this.status.replaceChildren();
     const gen = this.gen;
@@ -378,6 +423,36 @@ export class SpaceApp {
         this.done = true;
         if (!list.length) this.status.replaceChildren(h('span', {}, '对方没有公开，或者最近没有'));
       } else if (this.tab === 'video' || this.collection) {
+        const searching = !!this.q;
+        if (searching) {
+          this.search ??= createSpaceSearch(this.mid, this.q, this.order, this.collection ?? undefined);
+          const controller = new AbortController();
+          this.searchController = controller;
+          const timer = window.setTimeout(() => controller.abort(), 8000);
+          const r = await this.search(controller.signal).finally(() => {
+            clearTimeout(timer);
+            if (this.searchController === controller) this.searchController = null;
+          });
+          if (gen !== this.gen) return;
+          skNodes.forEach((n) => (n as Element).remove());
+          this.hitBox.replaceChildren(...r.collections.map(c => this.searchHit(c)));
+          this.hitBox.hidden = !r.collections.length;
+          this.list.replaceChildren(...r.list.map((v, i) => {
+            const card = this.searchCards.get(v.bvid) ?? (listMode ? this.row(v, i + 1) : videoCard(v, i, { compact: false }));
+            this.searchCards.set(v.bvid, card);
+            const number = card.querySelector('.vr-no');
+            if (number) number.textContent = String(i + 1).padStart(2, '0');
+            card.toggleAttribute('data-margin-filtered', !this.allows(targetOfVideo(v)));
+            return card;
+          }));
+          this.done = r.done;
+          this.status.replaceChildren(h('span', {}, r.list.length
+            ? `${r.done && !r.warning ? '共' : '已找到'} ${r.list.length} 个视频${r.collections.length ? '（含合集）' : ''}`
+            : !r.done ? '本批暂未找到匹配视频' : this.collection ? '合集里没有匹配的视频' : `没有找到「${this.q}」相关的视频`));
+          if (r.warning) this.status.append(h('span', {}, '部分内容暂未搜索完成'));
+          if (!r.done) this.status.append(h('button', { type: 'button', class: 'ghost small sp-search-more', onclick: () => this.load(true) }, '继续搜索'));
+          return;
+        }
         const r = this.collection ? await spaceCollectionVideos(this.mid, this.collection, this.page) : await spaceVideos(this.mid, this.page, this.order, this.q);
         if (gen !== this.gen) return;
         this.page++;
@@ -389,7 +464,7 @@ export class SpaceApp {
           this.list.append(card);
         });
         this.done = r.list.length === 0 || this.list.children.length >= r.total;
-        if (!this.list.children.length) this.status.replaceChildren(h('span', {}, this.collection ? '暂无公开视频' : this.q ? `没有找到「${this.q}」相关的视频` : '还没有投稿'));
+        if (!this.list.children.length) this.status.replaceChildren(h('span', {}, this.collection ? '暂无公开视频' : '还没有投稿'));
       } else {
         const r = await spaceDynamics(this.mid, this.offset);
         if (gen !== this.gen) return;
@@ -407,7 +482,7 @@ export class SpaceApp {
     } catch (err) {
       if (gen !== this.gen) return;
       skNodes.forEach((n) => (n as Element).remove());
-      this.status.replaceChildren(h('span', {}, `加载失败：${(err as Error).message}`), h('button', { class: 'ghost small', type: 'button', onclick: () => this.load() }, '重试'));
+      this.status.replaceChildren(h('span', {}, `加载失败：${(err as Error).message}`), h('button', { class: 'ghost small', type: 'button', onclick: () => this.load(true) }, '重试'));
       return;
     } finally {
       if (gen === this.gen) this.loading = false;

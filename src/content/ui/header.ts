@@ -1,6 +1,7 @@
 import { every } from '../sched';
 import { loadSettings, onSettingsChange, type Settings } from '../../shared/settings';
 import { account, dynamicUpdates, resetDynamicBaseline, unreadTotal } from '../api/account';
+import { onMsgRead } from '../api/msg';
 import { h, icon, ICONS, setMarkup } from './dom';
 import { createExpandableTabs, type TabItem, type TabSpec } from './expandable-tabs';
 import { createUserMenu } from './user-menu';
@@ -114,17 +115,23 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     userSlot.replaceWith(createUserMenu(a));
     // 消息中心里点开消息后（v0.46）重新拉一次未读，顶栏角标立刻跟上；关闭消息提醒时完全忽略
     let unreadT = 0;
-    addEventListener('margin:unread', () => {
+    let unreadGeneration = 0;
+    addEventListener('margin:unread', (e) => {
       if (!msgOn) return;
-      clearTimeout(unreadT); unreadT = window.setTimeout(() => unreadTotal().then((n) => tabsNav.badge('msg', n)).catch(() => {}), 600);
+      clearTimeout(unreadT);
+      // 事件里带了刚取到的未读总数（下拉面板 / 消息页）：直接用，避免再发一次请求、口径或时点又对不上
+      const total = (e as CustomEvent<{ total?: number }>).detail?.total;
+      if (typeof total === 'number' && Number.isFinite(total) && total >= 0) { unreadGeneration++; tabsNav.badge('msg', total); return; }
+      unreadT = window.setTimeout(() => pollMsg(true), 80);
     });
     // 未读角标：页面可见时每 2 分钟问一次；切回标签页时立即刷新。
     // 消息提醒同时管动态：关闭后消息和动态的角标都不再轮询。
     let polled = 0;
-    const pollMsg = () => {
-      if (!msgOn || document.hidden) return;
+    const pollMsg = (force = false) => {
+      if (!msgOn || (document.hidden && !force)) return;
       polled = Date.now();
-      unreadTotal().then((n) => tabsNav.badge('msg', n)).catch(() => {});
+      const generation = ++unreadGeneration;
+      unreadTotal().then((n) => { if (msgOn && generation === unreadGeneration) tabsNav.badge('msg', n); }).catch(() => {});
     };
     const pollDyn = () => {
       if (!msgOn || document.hidden) return;
@@ -134,6 +141,8 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     const poll = () => { pollDyn(); pollMsg(); };
     poll();
     every(120_000, poll);
+    // 消息在别的标签页被读掉：立刻按服务端真值对齐（隐藏页也更新，切回来不会挂着旧数字）
+    onMsgRead(() => pollMsg(true));
     // 刚在别的标签读完消息也要更新；只合并同一次恢复触发的 focus / visibility 事件。
     const onReturn = () => { if (Date.now() - polled > 500) poll(); };
     document.addEventListener('visibilitychange', () => { if (!document.hidden) onReturn(); });
@@ -165,5 +174,5 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     e.preventDefault();
     input.focus();
   });
-  return { el, input, sunMoon, glass: [search, tabsNav.el], thumb: tabsNav.thumb, setMsgRemind };
+  return { el, input, sunMoon, glass: [search, tabsNav.el, sunMoon.glass], thumb: tabsNav.thumb, setMsgRemind };
 }

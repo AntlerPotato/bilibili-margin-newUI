@@ -46,10 +46,10 @@ try {
       const geometry = await page.locator(`${host} .ts`).evaluate(button => {
         const track = button.querySelector('.ts-c').getBoundingClientRect();
         const sun = button.querySelector('.ts-sm').getBoundingClientRect();
-        return { top: sun.top - track.top, bottom: track.bottom - sun.bottom, left: sun.left - track.left };
+        return { top: sun.top - track.top, bottom: track.bottom - sun.bottom, right: track.right - sun.right };
       });
       assert(Math.abs(geometry.top - geometry.bottom) < 1, JSON.stringify(geometry));
-      assert(Math.abs(geometry.left - geometry.top) < 1, JSON.stringify(geometry));
+      assert(Math.abs(geometry.right - geometry.top) < 1, JSON.stringify(geometry));
       return geometry;
     });
     if (name !== 'watch') await check(`93-cover-tooltip-${name}`, async () => {

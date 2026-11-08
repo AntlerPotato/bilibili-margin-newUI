@@ -52,6 +52,10 @@ jobs:
         run: node tests/effect-controls.mjs
         env:
           SMOKE_OUT: smoke-artifacts/effect-controls
+      - name: Glass theme switch integration
+        run: node tests/sun-moon.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/sun-moon
       - name: Private message images and emojis
         run: npm run test:message-media
         env:
@@ -60,6 +64,10 @@ jobs:
         run: npm run test:message-loading
         env:
           SMOKE_OUT: smoke-artifacts/message-loading
+      - name: Cross-tab message unread synchronization
+        run: node tests/message-sync.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/message-sync
       - name: Transparent header over high-contrast backgrounds
         run: npm run test:header-surface
         env:
@@ -98,6 +106,10 @@ jobs:
         run: node tests/comment-feedback.mjs
         env:
           SMOKE_OUT: smoke-artifacts/comment-feedback
+      - name: Comment metadata and collapse positioning
+        run: node tests/comment-layout.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/comment-layout
       - name: Opening animation and graphics fallback
         run: node tests/intro.mjs
         env:

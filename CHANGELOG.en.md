@@ -4,6 +4,22 @@
 
 ## Unreleased
 
+## v0.6.8 · 2026-11-08
+
+- Integrate cross-tab message synchronization based on PR #122. Use actual server unread counts, retain unread state after failed private-message acknowledgements, coalesce requests and broadcasts, and retry after delayed server updates.
+- Integrate space and collection search based on PR #119. Continue through upload, collection-directory, and collection-video pages with up to three concurrent collection requests per batch. Cancel stale queries, allow retries, reuse result cards, and honor the selected sort order.
+- Fix stacked horizontal padding in dynamic-detail comments for third-party IP labels and action rows. Keep the reply-collapse button in normal document flow (#121).
+
+## v0.6.7 · 2026-11-08
+
+- Apply the shared header refraction filter, translucent surface, and reflections to the theme-switch capsule. Follow liquid, soft, and flat glass settings and the system reduced-transparency preference.
+
+## v0.6.6 · 2026-11-08
+
+- Add a circular glass theme switch with round sun and moon particles, muted cool and warm highlights, press deformation, and a slower spring release. Supports click, drag, and keyboard input.
+- Batch particle drawing, cache unchanged icons, combine glow rendering, and coalesce drag updates per frame. Pause animation while idle, offscreen, or in a hidden tab, respecting system and extension motion preferences.
+- Keep theme persistence through the existing settings writer, initialize directly to the saved theme, and release observers and motion subscriptions when the control is removed.
+
 ## [v0.6.5](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.5) · Pending release
 
 - Fix slight movement of profile-card links during hover with high-refresh interpolation. Synchronize the physics state with the displayed position before pausing movement over a link.

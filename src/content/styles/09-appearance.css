@@ -6,18 +6,18 @@
 .app[data-glass="soft"] :is(.idcl-card,.cp-panel,.gf-menu,.dp) {
   backdrop-filter:blur(16px) saturate(1.1);
 }
-.app[data-glass="soft"] :is(.search,.et) {
+.app[data-glass="soft"] :is(.search,.et,.ts-c) {
   background:color-mix(in srgb,var(--surface) 74%,transparent);
 }
 @media(prefers-reduced-transparency:reduce) {
-  .app[data-glass="soft"] :is(.idcl-card,.cp-panel,.gf-menu,.dp,.search,.et) { backdrop-filter:none!important;background:var(--surface); }
+  .app[data-glass="soft"] :is(.idcl-card,.cp-panel,.gf-menu,.dp,.search,.et,.ts-c) { backdrop-filter:none!important;background:var(--surface); }
 }
 
 .app[data-glass="flat"] {
   --sh-xs:0 0 transparent;--sh-sm:0 0 transparent;--sh-md:0 0 transparent;--sh-lg:0 0 transparent;
 }
 .app[data-glass="flat"] *, .app[data-glass="flat"] *::before, .app[data-glass="flat"] *::after { backdrop-filter:none!important; }
-.app[data-glass="flat"] :is(.search,.et,.hero-search,.sheet,.idcl-card,.cp-panel,.gf-menu,.dp,.wx) {
+.app[data-glass="flat"] :is(.search,.et,.ts-c,.hero-search,.sheet,.idcl-card,.cp-panel,.gf-menu,.dp,.wx) {
   background:var(--surface);box-shadow:var(--ring);
 }
 .app[data-glass="flat"] :is(.gf-frost,.gf-shadow,.gf-back-sheen,.gf-tint,.idcl-holo) { display:none; }

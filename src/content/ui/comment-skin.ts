@@ -256,7 +256,7 @@ function replyCollapse(list: HTMLElement): void {
   if (!button) {
     button = document.createElement('button');
     button.type = 'button'; button.className = 'margin-replies-toggle';
-    button.style.cssText = 'display:block;position:sticky;top:80px;z-index:2;margin:8px 0;padding:6px 12px;border:0;border-radius:999px;'
+    button.style.cssText = 'display:block;position:static;margin:8px 0;padding:6px 12px;border:0;border-radius:999px;'
       + 'background:var(--m-surface,#fff);color:var(--m-muted,#666);font:500 12px/1.5 var(--m-sans,system-ui);cursor:pointer;scroll-margin-top:88px';
     button.textContent = '收起回复'; button.setAttribute('aria-expanded', 'true');
     button.addEventListener('click', (e) => {

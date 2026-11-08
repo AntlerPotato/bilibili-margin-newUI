@@ -10,7 +10,7 @@ describe('空间合集和系列', () => {
   it('合并两类列表，保留各自 ID 并回退系列封面', async () => {
     vi.mocked(getJSON).mockResolvedValue({ items_lists: { page: { total: 12 }, seasons_list: [{ meta: { season_id: 9, name: '合集', total: 10, cover: '//i0.hdslb.com/a.jpg' } }], series_list: [{ meta: { series_id: 9, name: '系列', total: 2 }, archives: [{ pic: 'http://i0.hdslb.com/b.jpg' }] }] } });
     const r = await spaceCollections(2, 3);
-    expect(getJSON).toHaveBeenCalledWith('/x/polymer/web-space/seasons_series_list', { mid: 2, page_num: 3, page_size: 20 });
+    expect(getJSON).toHaveBeenCalledWith('/x/polymer/web-space/seasons_series_list', { mid: 2, page_num: 3, page_size: 20 }, undefined);
     expect(r.total).toBe(12);
     expect(r.list).toEqual([{ ...collection, name: '合集', total: 10, cover: 'https://i0.hdslb.com/a.jpg' }, { ...collection, kind: 'series', name: '系列', total: 2, cover: 'https://i0.hdslb.com/b.jpg' }]);
   });

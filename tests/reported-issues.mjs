@@ -402,6 +402,11 @@ try {
     const prev = page.getByRole('button', { name: '向左滚动关注列表', exact: true });
     const next = page.getByRole('button', { name: '向右滚动关注列表', exact: true });
     await next.waitFor({ timeout: 4000 });
+    // Avatar nodes mount before the scheduled overflow measurement enables navigation.
+    await page.waitForFunction(() => {
+      const root = document.getElementById('margin-root').shadowRoot;
+      return !root.querySelector('[aria-label="向右滚动关注列表"]').disabled;
+    });
     assert(await prev.isDisabled()); assert(await next.isEnabled());
     await next.click(); await page.waitForTimeout(600);
     assert(await row.evaluate(e => e.scrollLeft > 100));
@@ -536,6 +541,77 @@ try {
       await live.screenshot({ path: join(out, 'live-fullscreen-topbar.png') });
       return evidence;
     } finally { await live.close(); }
+  });
+  await check('113-space-collection-search', async () => {
+    const mid = 2;
+    const col = [
+      { aid: 1, bvid: 'BVcol1', title: '【从零开始的 AI 学习】什么是 AI', pic: 'https://i0.hdslb.com/test.jpg', duration: 100, pubdate: 1700000300, stat: { view: 30 } },
+      { aid: 2, bvid: 'BVcol2', title: '【从零开始的AI学习】提示词', pic: 'https://i0.hdslb.com/test.jpg', duration: 100, pubdate: 1700000200, stat: { view: 20 } },
+      { aid: 3, bvid: 'BVcol3', title: '【从零开始的AI学习】Agent', pic: 'https://i0.hdslb.com/test.jpg', duration: 100, pubdate: 1700000100, stat: { view: 10 } },
+    ];
+    override = raw => {
+      const u = new URL(raw), p = u.pathname, q = u.searchParams;
+      if (p.endsWith('/x/web-interface/nav')) return { code: -101, data: { isLogin: false, wbi_img: { img_url: 'https://i0.hdslb.com/bfs/wbi/aaaa.png', sub_url: 'https://i0.hdslb.com/bfs/wbi/bbbb.png' } } };
+      if (p.endsWith('/seasons_series_list')) return { code: 0, data: { items_lists: { page: { total: 1 }, seasons_list: [{ meta: { season_id: 7, name: '【从零开始的 AI 学习】', total: 3, cover: '' } }], series_list: [] } } };
+      if (p.endsWith('/seasons_archives_list')) return { code: 0, data: { page: { total: 3 }, archives: col } };
+      if (p.endsWith('/arc/search')) {
+        // 复刻真实行为：带空格的关键词只命中标题里也带空格的那一条，剩下 2 条只能靠合集补搜
+        const kw = q.get('keyword') || '';
+        const vlist = kw === '从零开始的 AI 学习'
+          ? [{ bvid: 'BVcol1', title: col[0].title, pic: '', length: '01:40', author: 'UP', mid, play: 30, video_review: 0, created: 1700000300 }]
+          : [];
+        return { code: 0, data: { page: { count: vlist.length }, list: { vlist } } };
+      }
+    };
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('https://space.bilibili.com/2');
+    await page.locator('#margin-root .tab[data-tab="video"]').waitFor();
+    const input = page.locator('#margin-root .sp-q-in');
+    await input.fill('从零开始的 AI 学习');
+    await input.press('Enter');
+    const hit = page.locator('#margin-root .sp-search-hit');
+    await hit.waitFor({ timeout: 4000 });
+    assert.match(await hit.textContent(), /从零开始的 AI 学习/);
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.main > :is(.grid,.vlist) > .card').length === 3);
+    assert.equal(await page.locator('#margin-root .main > .status').textContent(), '共 3 个视频（含合集）');
+    // 入口进合集：搜索框保留，用来在合集内筛选
+    await hit.click();
+    await page.locator('#margin-root .sp-collection-head h2').waitFor();
+    assert.equal(await page.locator('#margin-root .sp-q:visible').count(), 1);
+    assert.match(await page.locator('#margin-root .sp-q-in').getAttribute('placeholder'), /合集/);
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.main > :is(.grid,.vlist) > .card').length === 3);
+    await input.fill('提示词');
+    await input.press('Enter');
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.main > :is(.grid,.vlist) > .card').length === 1);
+    assert.equal(await page.locator('#margin-root .main > .status').textContent(), '共 1 个视频');
+    await input.fill('');
+    await input.press('Enter');
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.main > :is(.grid,.vlist) > .card').length === 3);
+  });
+  await check('113-space-search-later-pages', async () => {
+    override = raw => {
+      const u = new URL(raw), path = u.pathname;
+      if (path.endsWith('/seasons_series_list')) return { code: 0, data: { items_lists: { page: { total: 1 }, seasons_list: [{ meta: { season_id: 9, name: '课程合集', total: 120 } }], series_list: [] } } };
+      if (path.endsWith('/seasons_archives_list')) {
+        const page = Number(u.searchParams.get('page_num'));
+        return { code: 0, data: { page: { total: 120 }, archives: Array.from({ length: 30 }, (_, i) => ({ bvid: `BVpage${page}item${i}`, title: page === 4 && i === 29 ? '目标视频' : '其他内容', duration: 120, stat: { view: 10 } })) } };
+      }
+      if (path.endsWith('/arc/search')) return { code: 0, data: { page: { count: 1 }, list: { vlist: [{ bvid: 'BVdirect', title: '目标投稿', pic: '', length: '02:00', mid: 2, created: 10 }] } } };
+    };
+    await page.goto('https://space.bilibili.com/2');
+    const input = page.locator('#margin-root .sp-q-in');
+    await input.fill('目标'); await input.press('Enter');
+    const more = page.locator('#margin-root .sp-search-more');
+    await more.waitFor();
+    for (let i = 0; i < 3; i++) {
+      await more.click();
+      await page.locator('#margin-root .main > :is(.grid,.vlist) > .sk').waitFor({ state: 'detached' });
+      if (i < 2) await more.waitFor();
+    }
+    await more.waitFor({ state: 'detached' });
+    assert.equal(await page.locator('#margin-root .main > :is(.grid,.vlist) > .card').count(), 2);
+    assert.match(await page.locator('#margin-root .main > .status').textContent(), /共 2 个视频/);
+    assert.ok(await page.locator('#margin-root .main').getByText('目标视频', { exact: true }).count());
   });
   assert.deepEqual(errors, []);
 } finally {

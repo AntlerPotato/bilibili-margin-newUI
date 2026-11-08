@@ -2,6 +2,37 @@
 const https = (u: unknown) => String(u ?? '').replace(/^\/\//, 'https://').replace(/^http:/, 'https:');
 const BASE = { build: '0', mobi_app: 'web' };
 
+/** 跨标签页「消息已读」信号。顶栏消息入口是 target=_blank，页内 CustomEvent 传不过去，
+ *  消息在另一个标签页被读掉后，原页面的角标只能等 2 分钟轮询——借 chrome.storage.onChanged 广播。 */
+const MSG_READ_KEY = 'margin:msg-read';
+let markTimer = 0;
+let unreadRevision = 0;
+let unreadRequest: Promise<Unread> | null = null;
+/** 已读操作成功后合并广播；窗口内的后续操作也会包含在最后的重拉中。 */
+export function markMsgRead(): void {
+  unreadRevision++;
+  unreadRequest = null;
+  if (markTimer) return;
+  markTimer = window.setTimeout(() => {
+    markTimer = 0;
+    void chrome.storage.local.set({ [MSG_READ_KEY]: Date.now() + Math.random() }).catch(() => {});
+  }, 150);
+}
+/** 收到已读信号：立刻重拉一次，1.5 秒后再拉一次（B 站服务端落库有延迟，两次覆盖竞态） */
+export function onMsgRead(cb: () => void): () => void {
+  let immediate = 0, retry = 0;
+  const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (area !== 'local' || !changes[MSG_READ_KEY]) return;
+    unreadRevision++;
+    unreadRequest = null;
+    clearTimeout(immediate); clearTimeout(retry);
+    immediate = window.setTimeout(cb, 80);
+    retry = window.setTimeout(cb, 1500);
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => { clearTimeout(immediate); clearTimeout(retry); chrome.storage.onChanged.removeListener(listener); };
+}
+
 async function get<T>(url: string, params: Record<string, string | number> = {}): Promise<T> {
   // _t 时间戳打散 URL：实测 msgfeed 的响应会被某层按 URL 为 key 的缓存（TTL 约半小时）冻住，
   // cache: 'no-cache' 的重新验证会被 304 糊弄回去，同 URL 21 秒内两次都吐同一份 29 分钟前的旧数据。
@@ -41,7 +72,17 @@ function jumpUrl(kind: 'reply' | 'at' | 'like', item: any): string {
 const person = (u: any): Person => ({ mid: u?.mid ?? 0, name: u?.nickname ?? u?.name ?? '', face: https(u?.avatar ?? u?.face) });
 const VERB: Record<string, string> = { video: '视频', reply: '评论', dynamic: '动态', article: '专栏', album: '动态' };
 
-export async function unread(): Promise<Unread> {
+export function unread(): Promise<Unread> {
+  if (unreadRequest) return unreadRequest;
+  const revision = unreadRevision;
+  const request = fetchUnread().then(value => revision === unreadRevision ? value : unread());
+  unreadRequest = request;
+  const clear = () => { if (unreadRequest === request) unreadRequest = null; };
+  void request.then(clear, clear);
+  return request;
+}
+
+async function fetchUnread(): Promise<Unread> {
   const [a, b] = await Promise.all([
     // v0.48：和 B 站网页顶栏用同一个新接口（旧接口偶尔会多算一条已经读掉的系统通知，B 站评论反馈「永远剩一个」）
     get<any>('https://api.vc.bilibili.com/x/im/web/msgfeed/unread', { build: 0, mobi_app: 'web' })

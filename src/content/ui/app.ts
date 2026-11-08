@@ -326,7 +326,7 @@ export class MarginApp {
 
   private async toggleTheme(): Promise<void> {
     const next = this.resolvedTheme() === 'dark' ? 'light' : 'dark';
-    // 页面颜色和日月动画用同一时长淡入淡出（替代原来的 View Transition 圆形揭幕，它会冻结按钮动画）
+    // 页面颜色按开关提供的时长淡入；滑块弹簧独立运行，避免 View Transition 冻结按钮动画。
     if (!reducedMotion()) {
       this.app.classList.add('theme-fading');
       this.app.style.setProperty('--fade', `${this.sunMoon.duration}ms`);

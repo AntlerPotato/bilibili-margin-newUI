@@ -18,9 +18,10 @@ export function setUiEffects(on: boolean): void {
   if (had !== !on) de.dispatchEvent(new CustomEvent(UI_EVENT, { bubbles: true }));
 }
 
-export function onUiMotionChange(fn: () => void): void {
-  onMotionChange(fn);
+export function onUiMotionChange(fn: () => void): () => void {
+  const stopMotion = onMotionChange(fn);
   document.addEventListener(UI_EVENT, fn);
+  return () => { stopMotion(); document.removeEventListener(UI_EVENT, fn); };
 }
 
 /** 由入口脚本在设置加载 / 变化时调用；只有真正变化才通知订阅者 */
@@ -31,8 +32,9 @@ export function setUserReducedMotion(on: boolean): void {
   if (had !== on) de.dispatchEvent(new CustomEvent(EVENT, { bubbles: true }));
 }
 
-/** 订阅用户开关或系统偏好的变化。页面级组件常驻到页面卸载，无需清理。 */
-export function onMotionChange(fn: () => void): void {
+/** 订阅用户开关或系统偏好变化；可移除的组件通过返回函数解除订阅。 */
+export function onMotionChange(fn: () => void): () => void {
   document.addEventListener(EVENT, fn);
   MQ.addEventListener('change', fn);
+  return () => { document.removeEventListener(EVENT, fn); MQ.removeEventListener('change', fn); };
 }

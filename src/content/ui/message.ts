@@ -1,6 +1,6 @@
 import type { Settings } from '../../shared/settings';
 import { nav } from '../api/http';
-import { ackSession, ats, fillPeople, likes, messages, readAllMessages, readAllSessions, replies, sessions, system, systemRead, unread, type MessageEmote, type Msg, type MsgCard, type Notice, type Page, type Session, type Unread } from '../api/msg';
+import { ackSession, ats, fillPeople, likes, markMsgRead, onMsgRead, messages, readAllMessages, readAllSessions, replies, sessions, system, systemRead, unread, type MessageEmote, type Msg, type MsgCard, type Notice, type Page, type Session, type Unread } from '../api/msg';
 import { dayBucket, fmtAgo, h, icon, ICONS } from './dom';
 import { openLightbox } from './lightbox';
 import { toast } from './controls';
@@ -96,6 +96,7 @@ export class MessageApp {
     }
     this.shell.filter.onChange(() => this.applyFilters());
     this.render();
+    onMsgRead(() => { if (this.me) void this.refreshUnread(); });
     // 进入页面（广义）就强制取数：① 标签页切走超过 10 秒后切回；② bfcache 前进/后退恢复（DOM 是旧的）；
     // ③ 页面开着时每 15 秒检查一次；④ 窗口获得焦点（部分标签页恢复路径不发 visibilitychange，focus 兜底）。
     // 私信视图不自动刷（会冲掉正在输入的草稿）；重拉后滚动位置原样还回去。
@@ -144,6 +145,10 @@ export class MessageApp {
       try {
         const failed = await readAllMessages(csrf());
         const u = await this.refreshUnread();
+        // 上游「全部已读」不走 setCount()，需在此补一次跨标签广播：
+        // 其他标签页收到后按服务端真值重拉角标（含 1.5s 二次拉取覆盖已读落库延迟），
+        // 部分分类失败也不会被误清成 0
+        markMsgRead();
         if (u?.chat === 0) this.pane.querySelectorAll('.wh-dot').forEach((dot) => dot.remove());
         const names = { reply:'回复',at:'@ 我的',like:'赞',system:'系统通知',chat:'私信' };
         toast(this.shell.app, failed.length ? `未能全部完成：${failed.map((key) => names[key]).join('、')}` : !u ? '已处理，暂未刷新未读数' : Object.values(u).some((n) => n > 0) ? '已处理，仍有未读消息' : '消息已全部标为已读');
@@ -191,8 +196,8 @@ export class MessageApp {
     if (!u) return null;
     const n: Record<View, number> = { whisper: u.chat, reply: u.reply, at: u.at, like: u.like, system: u.system };
     this.nav.querySelectorAll<HTMLElement>('.ms-item').forEach((b) => { const c = n[b.dataset.view as View]; b.querySelector('.ms-n')!.textContent = c ? (c > 99 ? '99+' : String(c)) : ''; });
-    // 顶栏角标同步：进页面拿到最新未读后，让顶栏「消息」角标也跟着对齐
-    dispatchEvent(new CustomEvent('margin:unread'));
+    // 顶栏角标同步：直接带上本次取到的未读总数，避免顶栏另发一次请求拿到不同口径的数字
+    dispatchEvent(new CustomEvent('margin:unread', { detail: { total: u.reply + u.at + u.like + u.system + u.chat } }));
     return u;
   }
 
@@ -203,7 +208,9 @@ export class MessageApp {
     const cur = el.textContent === '99+' ? 100 : Number(el.textContent) || 0;
     const n = Math.max(0, f(cur));
     el.textContent = n ? (n > 99 ? '99+' : String(n)) : '';
-    dispatchEvent(new CustomEvent('margin:unread'));
+    // 走跨标签页广播（顶栏消息入口是新标签页，页内事件传不过去），所有页面的角标按服务端真值对齐；
+    // 不再派发无 total 的 margin:unread，消掉 600ms 重拉与服务端已读落库之间的竞态
+    markMsgRead();
   }
 
   private go(v: View): void {
@@ -332,6 +339,7 @@ export class MessageApp {
       readAll.textContent = '处理中…';
       try {
         const n = await readAllSessions(csrf(), (k) => { readAll.textContent = `已读 ${k}…`; });
+        markMsgRead();
         list.querySelectorAll('.wh-dot').forEach((d) => d.remove());
         await this.refreshUnread();
         toast(this.shell.app, n ? `已把 ${n} 个会话标为已读` : '没有未读的私信');
@@ -390,7 +398,6 @@ export class MessageApp {
     b.dataset.talker = String(s.talker);
     b.addEventListener('click', () => {
       list.querySelectorAll('.wh-s').forEach((x) => x.toggleAttribute('data-selected', x === b));
-      b.querySelector('.wh-dot')?.remove();
       history.replaceState(null, '', `#/whisper/mid${s.talker}`);
       this.openChat(s, s.person?.name || `UID ${s.talker}`, chat);
     });
@@ -478,8 +485,13 @@ export class MessageApp {
         paint(list); if (cached && !atBottom) log.scrollTop = top;
       }
       const seq = list.reduce((m, x) => Math.max(m, x.seq), 0);
-      if (seq) ackSession(s.talker, seq, csrf()).catch(() => {});
-      if (s.unread) { const n = s.unread; s.unread = 0; this.setCount('whisper', (c) => c - n); }
+      if (seq) void ackSession(s.talker, seq, csrf()).then(() => {
+        if (s.unread) {
+          const n = s.unread; s.unread = 0;
+          this.pane.querySelector(`[data-talker="${s.talker}"] .wh-dot`)?.remove();
+          this.setCount('whisper', (c) => c - n);
+        }
+      }).catch(() => {});
     } catch (e) {
       if (!revision && composer.el.isConnected) {
         if (cached) toast(this.shell.app, '聊天记录刷新失败，暂时显示上次内容');
