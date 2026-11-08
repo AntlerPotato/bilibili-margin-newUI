@@ -69,6 +69,8 @@ html.margin-reduce .sp-menu { animation: none; }
 .sp-collection .cover { width: 100%; }
 .sp-collection .cover > svg { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; color: var(--muted); }
 .sp-collection .title { text-align: left; }
+.sp-content-card .cover > svg { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; color: var(--muted); }
+.sp-bar .tabs { flex-wrap: wrap; }
 .sp-collection-head { display: flex; align-items: center; gap: 16px; padding: 16px 0; }
 .sp-collection-head[hidden] { display: none; }
 .sp-collection-head h2 { margin: 0; font: 500 22px/1.4 var(--serif); overflow-wrap: anywhere; }
@@ -276,8 +278,9 @@ html.margin-reduce .sp-menu { animation: none; }
 .wh-tool svg { width: 19px; height: 19px; }
 .wh-count { margin-left: auto; font: 11px/1 var(--mono); color: var(--faint); }
 .wh-media-hint { margin-left: 6px; font: 12px/1.4 var(--sans); color: var(--muted); }
-.wh-attachment { display: flex; align-items: center; gap: 12px; align-self: flex-start; max-width: 100%; padding: 5px 10px 5px 5px; border: 1px solid var(--line); border-radius: 12px; background: var(--chip); }
-.wh-attachment > img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; }
+.wh-attachment { display: flex; flex-direction: column; gap: 8px; align-self: stretch; max-height: 192px; overflow-y: auto; }
+.wh-attachment-item { display: flex; align-items: center; gap: 12px; padding: 5px 10px 5px 5px; border: 1px solid var(--line); border-radius: 12px; background: var(--chip); }
+.wh-attachment-item > img { width: 56px; height: 56px; flex: none; border-radius: 8px; object-fit: cover; }
 .wh-filename { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .wh-attachment-remove { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--muted); transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out), scale 120ms var(--ease-out); }
 .wh-tool:active:not(:disabled), .wh-attachment-remove:active:not(:disabled) { scale: .97; }

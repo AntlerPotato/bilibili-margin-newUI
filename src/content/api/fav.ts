@@ -3,6 +3,24 @@ import type { Video } from './feed';
 
 export interface Folder { id: number; title: string; count: number; cover: string; mid: number; kind?: 'collected' | 'season'; /** 默认收藏夹不能删除 */ isDefault: boolean; isPrivate: boolean }
 
+/** 空间页只列出该 UP 自己创建的公开收藏夹。 */
+export async function publicFolders(mid: number, page: number): Promise<{ list: Folder[]; more: boolean }> {
+  const data = await getJSON<{ list?: { id: number; title: string; media_count: number; cover?: string; attr: number }[]; count?: number; has_more?: boolean } | null>(
+    '/x/v3/fav/folder/created/list', { up_mid: mid, pn: page, ps: 20 });
+  return {
+    list: (data?.list || []).filter(f => Number.isInteger(f.attr) && (f.attr & 1) === 0).map(f => ({
+      id: f.id, title: f.title, count: f.media_count, cover: https(f.cover), mid, isDefault: (f.attr & 2) === 0, isPrivate: false,
+    })),
+    more: data?.has_more ?? page * 20 < (data?.count || 0),
+  };
+}
+
+export async function publicFolder(mid: number, id: number): Promise<Folder> {
+  const data = await getJSON<{ id: number; mid: number; title: string; media_count: number; cover?: string; attr: number } | null>('/x/v3/fav/folder/info', { media_id: id });
+  if (!data || data.mid !== mid || !Number.isInteger(data.attr) || (data.attr & 1)) throw new Error('收藏夹未公开或不属于当前空间');
+  return { id: data.id, mid, title: data.title, count: data.media_count, cover: https(data.cover), isDefault: (data.attr & 2) === 0, isPrivate: false };
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function folders(): Promise<Folder[] | null> {
   const n = await nav();

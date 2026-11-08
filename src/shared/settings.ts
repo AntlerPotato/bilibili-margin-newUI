@@ -110,6 +110,8 @@ export interface Settings {
   danmakuAirborne: boolean;
   /** 顶栏消息未读轮询与消息角标（v0.47）；动态角标不受影响 */
   msgRemind: boolean;
+  /** 顶栏动态悬停菜单仅显示视频，默认显示全部动态。 */
+  dynamicVideoOnly: boolean;
   /** 首页板块顺序（v0.47） */
   homeOrder: HomeSection[];
   /** App 推荐流（v0.48 实验，默认关）：首页「推荐」改走手机 App 的推荐接口，扫码授权后与手机同一套个性化推荐 */
@@ -179,6 +181,7 @@ export const DEFAULTS: Settings = {
   danmakuJump: false,
   danmakuAirborne: false,
   msgRemind: true,
+  dynamicVideoOnly: false,
   homeOrder: [...HOME_SECTIONS],
   appFeed: false,
   rerank: false,
@@ -245,6 +248,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     danmakuJump: r.danmakuJump === true,
     danmakuAirborne: r.danmakuAirborne === true,
     msgRemind: r.msgRemind !== false,
+    dynamicVideoOnly: r.dynamicVideoOnly === true,
     homeOrder: normalizeHomeOrder(r.homeOrder),
     appFeed: r.appFeed === true,
     rerank: r.rerank === true,
@@ -285,6 +289,7 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (r.accent === 'classic' || r.accent === 'blue' || r.accent === 'pink') out.accent = r.accent;
   if (r.glass === 'soft' || r.glass === 'liquid' || r.glass === 'flat') out.glass = r.glass;
   if (typeof r.uiEffects === 'boolean') out.uiEffects = r.uiEffects;
+  if (typeof r.dynamicVideoOnly === 'boolean') out.dynamicVideoOnly = r.dynamicVideoOnly;
   if (r.favColumns === 2 || r.favColumns === 3 || r.favColumns === 4) out.favColumns = r.favColumns;
   const bool = (k: 'enabled' | 'hoverPreview' | 'watch' | 'intro' | 'footprint' | 'weather' | 'favDirect' | 'autoWeb' | 'webScroll' | 'speedKeys' | 'replyTree' | 'idDrag' | 'monoNum' | 'reduceMotion' | 'wide' | 'hideAds' | 'sponsorSkip' | 'danmakuJump' | 'danmakuAirborne' | 'msgRemind' | 'appFeed' | 'rerank' | 'headHover' | 'tabRefresh') => { if (typeof r[k] === 'boolean') out[k] = r[k] as boolean; };
   bool('sponsorSkip'); bool('danmakuJump');

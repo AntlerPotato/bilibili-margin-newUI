@@ -33,6 +33,173 @@ try {
     catch (e) { results.push({ name, ok: false, error: e.message }); console.log(`FAIL ${name}: ${e.message}`); await page.screenshot({ path: join(out, `${name}-failed.png`) }); }
     override = undefined;
   };
+  await check('105-existing-duration-control', async () => {
+    await seed({ appFeed: false, filters: { keywords: [], ups: [], minViews: 0, minDuration: 0 } });
+    await page.goto('https://www.bilibili.com/');
+    await page.locator('#margin-root .card:not(.sk)').first().waitFor();
+    const before = await page.locator('#margin-root .card:not(.sk)').count();
+    await page.locator('#margin-root .hd-settings').click();
+    await page.getByRole('button', { name: '播放量与时长', exact: true }).click();
+    await page.getByRole('radio', { name: '10 分钟', exact: true }).click();
+    await page.waitForFunction(() => {
+      const durations = [...document.getElementById('margin-root').shadowRoot.querySelectorAll('.card:not(.sk) .dur')];
+      return durations.length && durations.every(e => e.textContent.split(':').reduce((s, n) => s * 60 + Number(n), 0) >= 600);
+    });
+    const after = await page.locator('#margin-root .card:not(.sk)').count();
+    assert(after < before);
+    await page.getByRole('radio', { name: '不限', exact: true }).last().click();
+    await page.locator('.sheet-layer[data-open="true"] .sheet-x').click();
+    return { before, after, minimumSeconds: 600 };
+  });
+  await check('106-existing-header-visibility', async () => {
+    await seed({ headHide: [] });
+    await page.goto('https://www.bilibili.com/');
+    await page.locator('#margin-root .hd-settings').click();
+    await page.getByRole('button', { name: /顶栏入口/ }).click();
+    const toggle = page.getByRole('switch', { name: '顶栏显示直播', exact: true });
+    await toggle.click();
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelector('.et-btn[aria-label="直播"]').hidden);
+    await toggle.click();
+    await page.waitForFunction(() => !document.getElementById('margin-root').shadowRoot.querySelector('.et-btn[aria-label="直播"]').hidden);
+    await page.locator('.sheet-layer[data-open="true"] .sheet-x').click();
+  });
+  await check('103-space-html-response-recovery', async () => {
+    let fail = true;
+    const pattern = '**/x/space/wbi/arc/search?*';
+    await ctx.route(pattern, async route => {
+      if (!fail) return route.fallback();
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<!DOCTYPE html><html>temporary error</html>' });
+    });
+    try {
+      await page.goto('https://space.bilibili.com/2/video');
+      await page.getByText(/B 站接口返回了非 JSON 页面/).waitFor();
+      fail = false;
+      await page.getByRole('button', { name: '重试', exact: true }).click();
+      await page.locator('#margin-root .card:not(.sk)').first().waitFor();
+      assert.equal(await page.getByText(/Unexpected token/).count(), 0);
+    } finally { await ctx.unroute(pattern); }
+  });
+  await check('99-dynamic-video-filter', async () => {
+    await ctx.addCookies([{ name: 'bili_jct', value: 'offline-test-token', domain: '.bilibili.com', path: '/' }]);
+    await seed({ dynamicVideoOnly: false });
+    const fixture = apiBody('https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all');
+    const video = fixture.data.items.find(x => x.modules.module_dynamic.major?.archive);
+    const word = fixture.data.items.find(x => !x.modules.module_dynamic.major?.archive);
+    let holdAll = false, releaseAll;
+    override = async u => {
+      if (!u.includes('web-dynamic/v1/feed/all')) return;
+      const videoOnly = new URL(u).searchParams.get('type') === 'video';
+      if (!videoOnly && holdAll) { holdAll = false; await new Promise(resolve => { releaseAll = resolve; }); }
+      return { code: 0, data: { ...fixture.data, items: videoOnly ? [video] : [video, word], has_more: false, offset: '' } };
+    };
+    await page.goto('https://www.bilibili.com/');
+    await page.locator('#margin-root .et-btn[aria-label="动态"]').hover();
+    const pop = page.locator('#margin-root .dp[aria-label="最新动态"]');
+    await pop.locator('.dp-row').nth(1).waitFor();
+    const toggle = pop.getByRole('switch', { name: '动态菜单仅显示视频' });
+    assert.equal(await toggle.getAttribute('aria-checked'), 'false');
+    await toggle.click();
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelectorAll('.dp[aria-label="最新动态"] .dp-row').length === 1);
+    const entry = pop.locator('.dp-entry').first();
+    const cover = await entry.locator('.dp-cover').boundingBox();
+    const button = await entry.locator('.card-later').boundingBox();
+    assert(button.x >= cover.x && button.y >= cover.y && button.x + button.width <= cover.x + cover.width + 1 && button.y + button.height <= cover.y + cover.height + 1);
+    await entry.locator('.card-later').click();
+    await entry.locator('.card-later[data-state="ok"]').waitFor();
+    holdAll = true;
+    await toggle.click();
+    await page.waitForTimeout(100);
+    assert(releaseAll, 'delayed all-feed request did not start');
+    await toggle.click();
+    releaseAll();
+    await page.waitForTimeout(300);
+    assert.equal(await pop.locator('.dp-row').count(), 1, 'stale all-feed response replaced video filter');
+    await page.reload();
+    await page.locator('#margin-root .et-btn[aria-label="动态"]').hover();
+    await pop.locator('.dp-row').waitFor();
+    assert.equal(await toggle.getAttribute('aria-checked'), 'true');
+    await page.screenshot({ path: join(out, 'dynamic-video-filter.png') });
+    await seed({ dynamicVideoOnly: false });
+  });
+  await check('100-following-selected-avatar', async () => {
+    const portal = apiBody('https://api.bilibili.com/x/polymer/web-dynamic/v1/portal');
+    const sample = portal.data.up_list.items[0];
+    portal.data.up_list.items = Array.from({ length: 32 }, (_, i) => ({ ...sample, mid: i + 1000, uname: `UP ${i + 1}`, has_update: false }));
+    override = u => u.includes('/v1/portal') ? portal : undefined;
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('https://t.bilibili.com/');
+    const row = page.locator('#margin-root .fd-ups-row');
+    await row.locator('.fd-up').last().waitFor({ state: 'attached' });
+    await row.evaluate(row => {
+      const edge = row.getBoundingClientRect().right;
+      const clipped = [...row.children].find(e => { const r = e.getBoundingClientRect(); return r.left < edge && r.right > edge; });
+      if (!clipped) throw new Error('No partially clipped avatar in fixture');
+      clipped.click();
+    });
+    await page.waitForTimeout(650);
+    const geometry = await row.evaluate(row => {
+      const selected = row.querySelector('[aria-pressed="true"]').getBoundingClientRect();
+      const bounds = row.getBoundingClientRect();
+      return { left: selected.left - bounds.left, right: bounds.right - selected.right, scrollLeft: row.scrollLeft };
+    });
+    assert(geometry.scrollLeft > 0 && geometry.left >= -1 && geometry.right >= -1, JSON.stringify(geometry));
+    return geometry;
+  });
+  await check('107-home-tab-scroll', async () => {
+    await seed({ appFeed: false, rerank: false });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('https://www.bilibili.com/');
+    await page.locator('#margin-root .card:not(.sk)').first().waitFor();
+    await page.waitForTimeout(400);
+    const app = page.locator('#margin-root .app');
+    await app.evaluate(e => { e.scrollTop = 600; });
+    await page.waitForTimeout(500);
+    const before = await app.evaluate(e => e.scrollTop);
+    assert(before > 300, `fixture must be scrolled: ${before}`);
+    await page.locator('#margin-root .tab[data-tab="popular"]').click();
+    await page.waitForTimeout(700);
+    const popular = await app.evaluate(e => e.scrollTop);
+    assert(popular > 100, `new tab jumped back to page top: ${popular}`);
+    await page.locator('#margin-root .tab[data-tab="rcmd"]').click();
+    await page.waitForTimeout(700);
+    const restored = await app.evaluate(e => e.scrollTop);
+    assert(Math.abs(restored - before) < 2, `cached position ${before} restored as ${restored}`);
+    await page.locator('#margin-root .tab[data-tab="popular"]').click();
+    await page.locator('#margin-root .tab[data-tab="rcmd"]').click();
+    await page.waitForTimeout(400);
+    assert(Math.abs(await app.evaluate(e => e.scrollTop) - before) < 2, 'rapid switching lost saved scroll');
+    await app.evaluate(e => { e.scrollTop = 0; });
+    await page.waitForTimeout(300);
+    assert.equal(await app.evaluate(e => e.scrollTop), 0);
+    // 从已确认的顶部触发刷新，避免定位吸顶按钮时自动滚动改变测试场景。
+    await page.locator('#margin-root .refresh:not(.back)').evaluate(button => button.click());
+    await page.waitForTimeout(800);
+    assert.equal(await app.evaluate(e => e.scrollTop), 0, 'refresh at top moved the page');
+    return { before, popular, restored };
+  });
+  await check('108-history-episode-links', async () => {
+    const fixture = apiBody('https://api.bilibili.com/x/web-interface/history/cursor');
+    const item = fixture.data.list.find(x => x.history.business === 'archive');
+    item.history.page = 4;
+    item.uri = 'https://www.bilibili.com/video/BV1first?p=1';
+    fixture.data.list = [item];
+    override = u => u.includes('/history/cursor') || u.includes('/history/search') ? fixture : undefined;
+    await page.goto('https://www.bilibili.com/account/history');
+    const link = page.locator('#margin-root .hi-card').first();
+    await link.waitFor();
+    const expected = new URL(await link.getAttribute('href'));
+    assert.equal(expected.pathname, `/video/${item.history.bvid}`);
+    assert.equal(expected.searchParams.get('p'), '4');
+    const popup = page.waitForEvent('popup');
+    await link.click();
+    const target = await popup;
+    assert.equal(new URL(target.url()).searchParams.get('p'), '4');
+    await target.close();
+    await page.locator('#margin-root .hi-input').fill('合集');
+    await page.waitForTimeout(600);
+    assert.equal(new URL(await link.getAttribute('href')).searchParams.get('p'), '4');
+    return { url: expected.href };
+  });
   await check('69-footprint-full-width', async () => {
     await page.goto('https://www.bilibili.com/');
     await page.locator('#margin-root .fp-card').waitFor();

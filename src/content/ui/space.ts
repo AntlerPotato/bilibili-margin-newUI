@@ -16,8 +16,10 @@ import { account } from '../api/account';
 import { targetOfVideo, targetOfDyn } from '../filter-targets';
 import type { FilterTarget } from '../filter';
 import { openBili } from '../navigation';
+import { spaceArticles, spaceAudio, type SpaceContent } from '../api/space-content';
+import { publicFolders, publicFolder, folderVideos, type Folder } from '../api/fav';
 
-type Tab = 'video' | 'dynamic' | 'coin' | 'like' | 'collections';
+type Tab = 'video' | 'dynamic' | 'coin' | 'like' | 'collections' | 'article' | 'audio' | 'favorites';
 type Layout = 'grid' | 'list';
 const LAYOUT_KEY = 'margin:space-layout';
 
@@ -62,6 +64,8 @@ export class SpaceApp {
   private search: ReturnType<typeof createSpaceSearch> | null = null;
   private searchController: AbortController | null = null;
   private searchCards = new Map<string, HTMLElement>();
+  private folder: Folder | null = null;
+  private contentSeen = new Set<string>();
   /** 最近投币 / 点赞：进页面时各请求一次，对方公开了才出标签 */
   private recent: Partial<Record<'coin' | 'like', Video[]>> = {};
 
@@ -83,7 +87,7 @@ export class SpaceApp {
       b.dataset.tab = id;
       return b;
     };
-    tabs.append(mk('video', '视频'), mk('collections', '合集和系列'), mk('dynamic', '动态'));
+    tabs.append(mk('video', '视频'), mk('collections', '合集和系列'), mk('article', '图文'), mk('audio', '音频'), mk('favorites', '公开收藏夹'), mk('dynamic', '动态'));
     const input = h('input', { type: 'search', class: 'sp-q-in', placeholder: '搜索 TA 的视频', 'aria-label': '搜索 TA 的视频', autocomplete: 'off' }) as HTMLInputElement;
     let qt = 0;
     const apply = () => { const v = input.value.trim(); if (v === this.q) return; this.q = v; if (this.tab === 'video' || this.collection) this.reload(); };
@@ -120,6 +124,18 @@ export class SpaceApp {
     this.shell.filter.onChange(() => this.applyFilters());
     this.applyTabUi();
     this.load();
+    const fid = Number(new URLSearchParams(location.search).get('fid'));
+    if (this.tab === 'favorites' && Number.isSafeInteger(fid) && fid > 0) {
+      const gen = this.gen;
+      publicFolder(this.mid, fid).then(folder => { if (gen === this.gen && this.tab === 'favorites') this.openFolder(folder); })
+        .catch(() => {
+          if (gen !== this.gen) return;
+          // 原有收藏入口也会打开自己的私密夹；交回原页处理权限与内容。
+          const url = new URL(location.href);
+          url.searchParams.set('margin', 'off');
+          location.replace(url.href);
+        });
+    }
     for (const [k, label] of [['coin', '最近投币'], ['like', '最近点赞']] as const) {
       spaceRecent(this.mid, k).then((list) => {
         if (!list?.length) { if (this.tab === k) this.switchTab('video'); return; }
@@ -316,15 +332,17 @@ export class SpaceApp {
     if (t === this.tab) return;
     this.tab = t;
     this.collection = null;
+    this.folder = null;
     this.clearQuery();
-    history.replaceState(null, '', `/${this.mid}${t === 'dynamic' ? '/dynamic' : t === 'collections' ? '?margin_tab=collections' : ''}`);
+    const path = t === 'favorites' ? '/favlist' : ['dynamic', 'article', 'audio'].includes(t) ? `/${t}` : t === 'collections' ? '?margin_tab=collections' : '';
+    history.replaceState(null, '', `/${this.mid}${path}`);
     this.applyTabUi();
     this.reload();
   }
 
   private applyTabUi(): void {
     this.shell.main.querySelectorAll<HTMLElement>('.sp-bar .tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === this.tab)));
-    const vid = this.tab !== 'dynamic' && (this.tab !== 'collections' || !!this.collection);
+    const vid = ['video', 'coin', 'like'].includes(this.tab) || !!this.collection || !!this.folder;
     const searchable = this.tab === 'video' || (this.tab === 'collections' && !!this.collection);
     this.sort.hidden = this.tab !== 'video';
     this.searchBox.hidden = !searchable;
@@ -335,13 +353,43 @@ export class SpaceApp {
     }
     this.layoutSeg.hidden = !vid;
     this.list.className = this.tab === 'dynamic' ? 'dy-list' : vid && this.layout === 'list' ? 'vlist' : 'grid';
-    this.collectionHead.hidden = this.tab !== 'collections' || !this.collection;
+    this.collectionHead.hidden = !this.collection && !this.folder;
   }
 
   /** 清空搜索词并同步输入框（切标签 / 从搜索结果进合集时用） */
   private clearQuery(): void {
     this.q = '';
     if (this.qInput) this.qInput.value = '';
+  }
+
+  private contentCard(item: SpaceContent): HTMLElement {
+    const ext = { target: '_blank', rel: 'noopener' };
+    return h('article', { class: 'card sp-content-card', 'data-id': item.id },
+      h('a', { class: 'cover', href: item.url, ...ext, 'aria-label': item.title },
+        item.cover ? h('img', { src: item.cover, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : icon(ICONS.image),
+        item.duration ? h('span', { class: 'dur' }, fmtDuration(item.duration)) : null),
+      h('a', { class: 'title', href: item.url, ...ext }, item.title),
+      h('div', { class: 'meta' }, [item.author, item.views != null ? `${fmtCount(item.views)} 播放` : '',
+        item.likes ? `${item.likes} 点赞` : '', item.published ? fmtAgo(item.published) : ''].filter(Boolean).join(' · ')));
+  }
+
+  private openFolder(folder: Folder): void {
+    this.folder = folder;
+    history.replaceState(null, '', `/${this.mid}/favlist?fid=${folder.id}`);
+    this.collectionHead.replaceChildren(
+      h('button', { class: 'ghost small', type: 'button', onclick: () => {
+        this.folder = null; history.replaceState(null, '', `/${this.mid}/favlist`); this.reload();
+      } }, icon(ICONS.back), '公开收藏夹'), h('h2', {}, folder.title));
+    this.reload();
+  }
+
+  private folderCard(folder: Folder): HTMLElement {
+    const open = () => this.openFolder(folder);
+    return h('article', { class: 'card sp-collection' },
+      h('button', { class: 'cover', type: 'button', 'aria-label': `打开${folder.title}`, onclick: open },
+        folder.cover ? h('img', { src: folder.cover, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : icon(ICONS.folder),
+        h('span', { class: 'dur' }, `${folder.count} 个内容`)),
+      h('button', { class: 'title', type: 'button', onclick: open }, folder.title));
   }
 
   /** 搜索命中合集时，在结果上方给一条入口：点开就是该合集的完整列表（GitHub #113） */
@@ -386,6 +434,7 @@ export class SpaceApp {
     this.searchController = null;
     this.search = null;
     this.searchCards.clear();
+    this.contentSeen.clear();
     this.gen++;
     this.page = 1; this.offset = ''; this.done = false; this.loading = false;
     this.list.replaceChildren();
@@ -402,12 +451,48 @@ export class SpaceApp {
     this.status.replaceChildren();
     const gen = this.gen;
     const vid = this.tab !== 'dynamic';
-    const listMode = vid && this.layout === 'list' && (this.tab !== 'collections' || !!this.collection);
+    const listMode = this.layout === 'list' && (['video', 'coin', 'like'].includes(this.tab) || !!this.collection || !!this.folder);
     const sk = listMode ? h('div', { class: 'vrow sk' }, h('div', { class: 'line' })) : vid ? skeleton(this.list.children.length ? 5 : 15) : h('div', { class: 'dy sk' }, h('div', { class: 'line' }), h('div', { class: 'line' }), h('div', { class: 'line short' }));
     const skNodes = sk instanceof DocumentFragment ? [...sk.childNodes] : [sk];
     this.list.append(sk);
     try {
-      if (this.tab === 'collections' && !this.collection) {
+      if (this.tab === 'article' || this.tab === 'audio') {
+        const r: { list: SpaceContent[]; more: boolean; offset?: string } = this.tab === 'article' ? await spaceArticles(this.mid, this.offset) : await spaceAudio(this.mid, this.page);
+        if (gen !== this.gen) return;
+        skNodes.forEach(n => (n as Element).remove());
+        this.page++;
+        this.offset = r.offset || '';
+        for (const item of r.list) {
+          if (this.contentSeen.has(item.id)) continue;
+          this.contentSeen.add(item.id); this.list.append(this.contentCard(item));
+        }
+        this.done = !r.more;
+        if (!this.list.children.length) this.status.replaceChildren(h('span', {}, this.tab === 'article' ? '还没有公开图文' : '还没有投稿音频'));
+      } else if (this.tab === 'favorites') {
+        if (this.folder) {
+          const r = await folderVideos(this.folder.id, this.page);
+          if (gen !== this.gen) return;
+          skNodes.forEach(n => (n as Element).remove());
+          this.page++;
+          for (const video of r.list) {
+            if (this.contentSeen.has(video.bvid)) continue;
+            this.contentSeen.add(video.bvid);
+            this.list.append(listMode ? this.row(video, this.contentSeen.size) : videoCard(video, this.contentSeen.size - 1, { compact: false }));
+          }
+          this.done = !r.more;
+        } else {
+          const r = await publicFolders(this.mid, this.page);
+          if (gen !== this.gen) return;
+          skNodes.forEach(n => (n as Element).remove());
+          this.page++;
+          for (const folder of r.list) {
+            if (this.contentSeen.has(String(folder.id))) continue;
+            this.contentSeen.add(String(folder.id)); this.list.append(this.folderCard(folder));
+          }
+          this.done = !r.more;
+        }
+        if (!this.list.children.length) this.status.replaceChildren(h('span', {}, this.folder ? '暂无可播放视频' : '没有公开的收藏夹'));
+      } else if (this.tab === 'collections' && !this.collection) {
         const r = await spaceCollections(this.mid, this.page);
         if (gen !== this.gen) return;
         skNodes.forEach((n) => (n as Element).remove());

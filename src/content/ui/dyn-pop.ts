@@ -9,6 +9,7 @@ import type { FilterRuntime } from '../filter-runtime';
 import type { FilterTarget } from '../filter';
 import { targetOfPopRow } from '../filter-targets';
 import { laterButton } from './later-btn';
+import { loadSettings, onSettingsChange, saveSettings } from '../../shared/settings';
 
 /** 悬停多久才弹出：只是路过顶栏时不打扰 */
 // 用户 2026-11-01：悬停立即展开，不要等
@@ -21,7 +22,8 @@ export interface PopSpec {
   title: string;
   all: { href: string; label: string };
   /** null = 未登录 */
-  load: () => Promise<PopRow[] | null>;
+  load: (videosOnly?: boolean) => Promise<PopRow[] | null>;
+  videoFilter?: boolean;
   empty: string;
   onOpen?: () => void;
   /** 每行只有一行文字的紧凑样式（消息分类） */
@@ -29,7 +31,7 @@ export interface PopSpec {
   /** 多列图标网格（分区） */
   grid?: boolean;
   /** 滚到底继续加载（v0.47.2，GitHub #9：动态弹窗固定 8 条，往下拉不会继续读）；返回空数组表示没有更多 */
-  more?: () => Promise<PopRow[]>;
+  more?: (videosOnly?: boolean) => Promise<PopRow[]>;
   /** 当前功能是否允许打开（例如关闭消息提醒后不再弹消息面板） */
   enabled?: () => boolean;
   /** 该入口的行如何参与屏蔽词过滤；不设置表示不过滤 */
@@ -90,11 +92,13 @@ function allLink(spec: PopSpec): HTMLElement {
 export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: FilterRuntime): PopHandle {
   const pop = h('div', { class: 'dp' + (spec.compact ? ' compact' : '') + (spec.grid ? ' grid' : ''), role: 'dialog', 'aria-label': spec.title, hidden: '' });
   const list = h('div', { class: 'dp-list' });
+  const videoFilter = spec.videoFilter ? h('button', { type: 'button', class: 'dp-video-filter', role: 'switch', 'aria-label': '动态菜单仅显示视频', 'aria-checked': 'false' }, '仅视频') : null;
   pop.append(
-    h('div', { class: 'dp-head' }, h('span', {}, spec.title), allLink(spec)),
+    h('div', { class: 'dp-head' }, h('span', {}, spec.title), videoFilter, allLink(spec)),
     list,
   );
   let openT = 0, closeT = 0, loadedAt = 0, open = false, done = true, busy = false;
+  let videosOnly = false, generation = 0;
   // 屏蔽词过滤：主列表和分页追加都走同一套判断
   const visible = (rows: PopRow[]) => filter && spec.filterRow
     ? rows.filter((r) => { const t = spec.filterRow!(r); return !t || filter.allows(t); })
@@ -112,36 +116,62 @@ export function attachHoverList(btn: HTMLElement, spec: PopSpec, filter?: Filter
     if (!tail.isConnected) list.append(tail);
     if (!tailSeen) return;
     busy = true;
+    const current = generation;
     const sk = h('div', { class: 'dp-skel' });
     tail.before(sk);
-    spec.more().then(async (rows) => {
+    spec.more(videosOnly).then(async (rows) => {
+      if (current !== generation) return;
       sk.remove();
       if (!rows.length) { done = true; tail.before(h('p', { class: 'dp-end' }, '没有更多了')); return; }
       await prepareRows(rows);
+      if (current !== generation) return;
       const shown = visible(rows);
       tail.before(...shown.map(row));
       if (!shown.length) requestAnimationFrame(fill);
-    }).catch(() => { sk.remove(); done = true; })
-      .finally(() => { busy = false; requestAnimationFrame(fill); });
+    }).catch(() => { if (current === generation) { sk.remove(); done = true; } })
+      .finally(() => { if (current === generation) { busy = false; requestAnimationFrame(fill); } });
   };
   if (spec.more) new IntersectionObserver((es) => { tailSeen = es[es.length - 1].isIntersecting; if (tailSeen) fill(); }, { root: list, rootMargin: '0px 0px 160px 0px' }).observe(tail);
 
   const load = () => {
     if (Date.now() - loadedAt < 60_000 && list.querySelector('.dp-row')) return;
     loadedAt = Date.now();
+    const current = ++generation;
+    busy = true; done = true;
     list.replaceChildren(...Array.from({ length: spec.compact ? 5 : 4 }, () => h('div', { class: 'dp-skel' })));
-    spec.load().then(async (rows) => {
+    spec.load(videosOnly).then(async (rows) => {
+      if (current !== generation) return;
       if (rows === null) { loadedAt = 0; list.replaceChildren(h('p', { class: 'dp-empty' }, `登录后可在这里看到${spec.title}`)); return; }
       await prepareRows(rows);
+      if (current !== generation) return;
       const shown = visible(rows);
       list.replaceChildren(...(shown.length ? shown.map(row) : [h('p', { class: 'dp-empty' }, spec.empty)]));
       done = !spec.more || !rows.length;
       requestAnimationFrame(fill);
     }).catch(() => {
+      if (current !== generation) return;
       loadedAt = 0;
       list.replaceChildren(h('p', { class: 'dp-empty' }, '暂时没取到，稍后再试'));
-    });
+      done = true;
+    }).finally(() => { if (current === generation) { busy = false; requestAnimationFrame(fill); } });
   };
+
+  if (videoFilter) {
+    const apply = (value: boolean) => {
+      videoFilter.setAttribute('aria-checked', String(value));
+      if (videosOnly === value) return;
+      videosOnly = value; loadedAt = 0; generation++; busy = false; done = true;
+      if (open) load();
+    };
+    loadSettings().then(s => apply(s.dynamicVideoOnly)).catch(() => {});
+    onSettingsChange(s => apply(s.dynamicVideoOnly));
+    videoFilter.onclick = async () => {
+      (videoFilter as HTMLButtonElement).disabled = true;
+      try { await saveSettings({ dynamicVideoOnly: !videosOnly }); }
+      catch { videoFilter.title = '设置保存失败，请重试'; }
+      finally { (videoFilter as HTMLButtonElement).disabled = false; }
+    };
+  }
 
   const place = (target?: DOMRect) => {
     // 挂在顶栏里（顶栏 z-index 高于正文），按顶栏坐标定位
@@ -269,23 +299,25 @@ export const POPS: Record<string, (o: { onDyn?: () => void; msgRemind?: () => bo
     },
   }),
   动态: (o) => {
-    let offset = '', more = true;
+    let offset = '', more = true, generation = 0;
     const toRow = (d: Dyn): PopRow => {
       const s = dynSummary(d);
       const laterBvid = d.video?.bvid || d.orig?.video?.bvid || bvidFromHref(d.attachment?.url || d.orig?.attachment?.url);
       return { href: d.url, face: d.face, who: d.author, sub: `${ago(d.ts, d.time)} · ${s.kind}`, title: s.line, cover: s.cover || undefined, laterBvid };
     };
-    const page = async (first: boolean) => {
-      if (first) { offset = ''; more = true; }
+    const page = async (first: boolean, videosOnly = false) => {
+      if (first) { offset = ''; more = true; generation++; }
       if (!more) return [];
-      const r = await followFeed('all', offset);
+      const current = generation;
+      const r = await followFeed(videosOnly ? 'video' : 'all', offset);
+      if (current !== generation) return [];
       offset = r.offset; more = r.more && !!r.offset;
       return r.list.map(toRow);
     };
     return {
       title: '最新动态', all: { href: 'https://t.bilibili.com/', label: '全部动态' }, empty: '还没有新动态', onOpen: o.onDyn,
       filterRow: (r) => targetOfPopRow(r),
-      load: () => page(true), more: () => page(false),
+      videoFilter: true, load: (videosOnly) => page(true, videosOnly), more: (videosOnly) => page(false, videosOnly),
     };
   },
   历史: () => ({

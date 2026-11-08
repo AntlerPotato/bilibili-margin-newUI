@@ -2,7 +2,7 @@ import { dynCommentTarget, dynLike, dynReplies, dynReply, dynRepost, dynReserve,
 import { fmtAgo, fmtCount, h, icon, ICONS, safeUrl } from './dom';
 import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
-import { openBili } from '../navigation';
+import { appUrl, openBili } from '../navigation';
 
 const img = (src: string, w: number, hgt?: number) => h('img', { src: src ? `${src}@${w}w${hgt ? `_${hgt}h_1c` : ''}.webp` : '', alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
 const ext = { target: '_blank', rel: 'noopener' };
@@ -147,7 +147,7 @@ function reserveCard(d: Dyn): HTMLElement {
 
 /**
  * 整张卡片可点进详情（GitHub #8：「查看详情」按钮太小）。卡片里的链接、按钮照常；
- * 选中文字时不跳转；转发里的原动态点进原动态。Ctrl / 中键也是新标签。
+ * 选中文字时不跳转；转发里的原动态点进原动态。应用窗口内中键沿用站内导航。
  */
 function clickable(el: HTMLElement, url: string): HTMLElement {
   if (!url || !safeUrl(url)) return el;
@@ -159,6 +159,11 @@ function clickable(el: HTMLElement, url: string): HTMLElement {
     openBili(url, '_blank', 'noopener', e);
   };
   el.addEventListener('click', go);
+  // Windows 自动滚屏会吞掉非链接卡片的 auxclick，应用窗口内先取消它。
+  el.addEventListener('mousedown', (e) => {
+    if (e.button !== 1 || (e.target as HTMLElement).closest('a, button, input, textarea, video, .dy-box')) return;
+    if (appUrl(url, e)) e.preventDefault();
+  });
   el.addEventListener('auxclick', (e) => { if (e.button === 1) go(e); });
   return el;
 }

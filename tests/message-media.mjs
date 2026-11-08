@@ -9,6 +9,7 @@ import { installMocks } from './mocks.mjs';
 const ext=resolve(process.env.SMOKE_EXT||'dist'),out=resolve(process.env.SMOKE_OUT||'tests/artifacts/message-media');mkdirSync(out,{recursive:true});
 const ctx=await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(),'margin-media-')),{...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{channel:'chromium'}),headless:true,args:['--headless=new','--no-sandbox',`--disable-extensions-except=${ext}`,`--load-extension=${ext}`],viewport:{width:1440,height:1000},locale:'zh-CN'});
 const results=[],sent=[],attempts=[];let uploads=0,emojiLoads=0,failUpload=false,failImage=false,failText=false,releaseUpload,holdHistory=false,releaseHistory;
+let failImageAt = 0, holdSend = false, releaseSend;
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jC1cAAAAASUVORK5CYII=','base64');
 const file={name:'test.png',mimeType:'image/png',buffer:png};
 const emotes=[{text:'[tv_doge]',uri:'https://i0.hdslb.com/bfs/emote/doge.png',gif_url:'https://i0.hdslb.com/bfs/emote/doge.gif'}];
@@ -27,12 +28,15 @@ try{
   await ctx.route('**/x/dynamic/feed/draw/upload_bfs',async route=>{
     uploads++;const raw=route.request().postDataBuffer().toString();assert(raw.includes('name="file_up"')&&raw.includes('name="biz"')&&raw.includes('\r\nim\r\n'),'upload form mismatch');
     if(releaseUpload!==undefined)await new Promise(r=>{releaseUpload=r;});
-    await json(route,failUpload?{code:-1,message:'模拟上传失败'}:{code:0,data:{image_url:'https://message.biliimg.com/bfs/im_new/test.png',image_width:1,image_height:1,img_size:1}}).catch(()=>{});
+    const filename = raw.match(/filename="([^"]+)"/)?.[1] || 'test.png';
+    await json(route,failUpload?{code:-1,message:'模拟上传失败'}:{code:0,data:{image_url:'https://message.biliimg.com/bfs/im_new/' + encodeURIComponent(filename),image_width:1,image_height:1,img_size:1}}).catch(()=>{});
   });
   await ctx.route('**/web_im/v1/web_im/send_msg',async route=>{
     const b=new URLSearchParams(route.request().postData());const m={to:Number(b.get('msg[receiver_id]')),from:Number(b.get('msg[sender_uid]')),type:Number(b.get('msg[msg_type]')),face:b.get('msg[new_face_version]'),content:JSON.parse(b.get('msg[content]'))};attempts.push(m);
-    if(m.type===1&&failText||m.type===2&&failImage)return json(route,{code:-1,message:'模拟发送失败'});
-    sent.push(m);await json(route,{code:0,data:{msg_key:String(sent.length)}});
+    if(m.type===1&&failText||m.type===2&&(failImage||attempts.filter(x=>x.type===2).length===failImageAt))return json(route,{code:-1,message:'模拟发送失败'});
+    sent.push(m);
+    if (holdSend) { holdSend = false; await new Promise(resolve => { releaseSend = resolve; }); }
+    await json(route,{code:0,data:{msg_key:String(sent.length)}});
   });
   const sw=ctx.serviceWorkers()[0]||await ctx.waitForEvent('serviceworker');await sw.evaluate(()=>chrome.storage.local.set({'margin:settings':{theme:'dark',intro:false}}));
   await ctx.addInitScript(()=>sessionStorage.setItem('margin:intro-played','1'));
@@ -70,6 +74,57 @@ try{
     await send.click();await page.waitForFunction(()=>document.getElementById('margin-root').shadowRoot.querySelector('.wh-attachment').hidden);await page.waitForTimeout(100);
     assert.equal(sent.length,n+1);assert.equal(await input.inputValue(),'图片说明');assert(await attachment.isHidden());const uploaded=uploads;
     failText=false;await send.click();await page.waitForFunction(()=>document.getElementById('margin-root').shadowRoot.querySelector('.wh-input').value==='');assert.equal(sent.length,n+2);assert.equal(uploads,uploaded);
+  });
+  await check('multiple images keep order and retry only the failed remainder', async () => {
+    const files = ['a.png', 'b.png', 'c.png'].map(name => ({ ...file, name }));
+    await pick.setInputFiles(files);
+    assert.equal(await attachment.locator('.wh-attachment-item').count(), 3);
+    await input.fill('三张图的说明');
+    const before = sent.length;
+    failImageAt = attempts.filter(x => x.type === 2).length + 2;
+    await send.click();
+    await page.waitForFunction(() => !document.getElementById('margin-root').shadowRoot.querySelector('.wh-send').disabled);
+    assert.equal(sent.length, before + 1);
+    assert(sent.at(-1).content.url.endsWith('/a.png'));
+    assert.equal(await attachment.locator('.wh-attachment-item').count(), 2);
+    assert.equal(await input.inputValue(), '三张图的说明');
+    const uploaded = uploads;
+    failImageAt = 0;
+    await send.click();
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelector('.wh-attachment').hidden);
+    await page.waitForFunction(() => document.getElementById('margin-root').shadowRoot.querySelector('.wh-input').value === '');
+    assert.equal(uploads, uploaded + 1);
+    assert.deepEqual(sent.slice(before).map(x => x.type === 2 ? x.content.url.split('/').pop() : x.content.content), ['a.png', 'b.png', 'c.png', '三张图的说明']);
+  });
+  await check('paste and drop append multiple images and allow individual removal', async () => {
+    for (const event of ['paste', 'drop']) {
+      await input.evaluate((input, { event, bytes }) => {
+        const transfer = new DataTransfer();
+        for (const name of ['first.png', 'second.png']) transfer.items.add(new File([new Uint8Array(bytes)], name, { type: 'image/png' }));
+        input.dispatchEvent(event === 'paste' ? new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }) : new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+      }, { event, bytes: [...png] });
+    }
+    assert.equal(await attachment.locator('.wh-attachment-item').count(), 4);
+    await attachment.getByRole('button', { name: '移除图片', exact: true }).nth(1).click();
+    assert.equal(await attachment.locator('.wh-attachment-item').count(), 3);
+    await page.screenshot({ path: join(out, 'message-multiple-images.png') });
+    while (await attachment.locator('.wh-attachment-item').count()) await attachment.getByRole('button', { name: '移除图片', exact: true }).first().click();
+  });
+  await check('switching conversations after an in-flight send cancels remaining images', async () => {
+    await pick.setInputFiles(['first.png', 'second.png'].map(name => ({ ...file, name })));
+    const before = sent.length, uploaded = uploads;
+    holdSend = true;
+    await send.click();
+    const deadline = Date.now() + 5000;
+    while (!releaseSend && Date.now() < deadline) await page.waitForTimeout(20);
+    assert(releaseSend, 'held send did not start');
+    await sessions.nth(1).click();
+    releaseSend(); releaseSend = undefined;
+    await page.waitForTimeout(250);
+    assert.equal(sent.length, before + 1);
+    assert.equal(uploads, uploaded + 1);
+    await sessions.first().click();
+    await input.waitFor();
   });
   await check('switching conversations cancels pending upload before any message is sent',async()=>{
     await pick.setInputFiles(file);releaseUpload=null;const n=sent.length;await send.click();await page.waitForTimeout(100);

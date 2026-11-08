@@ -28,8 +28,16 @@ jobs:
           SMOKE_OUT: smoke-artifacts/popup-version
       - name: Space drawer regressions
         run: npm run test:drawers
+      - name: Space articles, audio and public favorites
+        run: node tests/space-content.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/space-content
       - name: Application window navigation
         run: npm run test:app-window
+      - name: Native controls follow the selected accent
+        run: node tests/accent-controls.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/accent-controls
       - name: Watch Later creator filters and groups
         run: npm run test:watch-later
         env:
@@ -102,6 +110,10 @@ jobs:
         run: node tests/latest-feedback.mjs
         env:
           SMOKE_OUT: smoke-artifacts/latest-feedback
+      - name: Cover preview timing and stale request cancellation
+        run: node tests/preview-timing.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/preview-timing
       - name: Comment feedback, search drops and filter scanning
         run: node tests/comment-feedback.mjs
         env:

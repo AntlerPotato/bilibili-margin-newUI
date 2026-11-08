@@ -63,9 +63,9 @@ html.margin-search:has(.search-input-wrap:focus-within) body::after { opacity: 1
 html.margin-search .search-tabs { border-bottom: 1px solid var(--m-line); }
 html.margin-search .vui_tabs--nav-item { color: var(--m-muted) !important; font-size: 14px !important; }
 html.margin-search .vui_tabs--nav-item:hover { color: var(--m-ink) !important; }
-html.margin-search .vui_tabs--nav-item-active { color: var(--m-ink) !important; font-weight: 600 !important; }
+html.margin-search .vui_tabs--nav-item-active, html.margin-search .vui_tabs--nav-item-active:hover { color: var(--margin-primary, var(--m-ink)) !important; font-weight: 600 !important; }
 html.margin-search .vui_tabs--nav-item-active .vui_tabs--nav-text, html.margin-search .vui_tabs--nav-item-active { font-family: var(--m-serif) !important; }
-html.margin-search .vui_tabs--nav-bar, html.margin-search .vui_tabs--nav-link-active::after { background: var(--m-ink) !important; height: 2px !important; border-radius: 2px; }
+html.margin-search .vui_tabs--nav-bar, html.margin-search .vui_tabs--nav-link-active::after { background: var(--margin-primary, var(--m-ink)) !important; height: 2px !important; border-radius: 2px; }
 html.margin-search .vui_tabs--nav-num { font-family: var(--m-mono) !important; font-size: 11px !important; color: var(--m-faint) !important; }
 
 /* 排序 / 筛选：胶囊 */
@@ -74,7 +74,7 @@ html.margin-search .search-condition-row .vui_button, html.margin-search .more-c
   border-radius: 999px !important; border: 0 !important; background: transparent !important; color: var(--m-muted) !important; padding: 0 14px !important;
 }
 html.margin-search .vui_button--active, html.margin-search .search-conditions .vui_button--active,
-html.margin-search .search-condition-row .vui_button--active { background: var(--m-ink) !important; color: var(--m-canvas) !important; }
+html.margin-search .search-condition-row .vui_button--active { background: var(--margin-primary, var(--m-ink)) !important; color: var(--margin-primary-fg, var(--m-canvas)) !important; }
 html.margin-search .vui_button:not(.search-button):not(.vui_button--active):hover { color: var(--m-ink) !important; background: var(--m-chip) !important; }
 
 /* 视频卡片 */
@@ -99,7 +99,7 @@ html.margin-search .user-name, html.margin-search .media-card-content-head-title
 
 /* 分页 */
 html.margin-search .vui_pagenation--btn { border-radius: 999px !important; border: 0 !important; background: color-mix(in srgb, var(--m-surface) 80%, transparent) !important; color: var(--m-ink) !important; font-family: var(--m-mono) !important; }
-html.margin-search .vui_pagenation--btn-num.vui_button--active, html.margin-search .vui_pagenation--btn.vui_button--active { background: var(--m-ink) !important; color: var(--m-canvas) !important; }
+html.margin-search .vui_pagenation--btn-num.vui_button--active, html.margin-search .vui_pagenation--btn.vui_button--active { background: var(--margin-primary, var(--m-ink)) !important; color: var(--margin-primary-fg, var(--m-canvas)) !important; }
 html.margin-search .vui_button--disabled { opacity: .45; }
 
 /* 广告：统一由 global.css 的 html.margin-ads-hide 控制（v0.47） */

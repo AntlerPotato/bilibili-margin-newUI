@@ -170,6 +170,10 @@ export class FeedApp {
         this.host = this.host === mid ? 0 : mid;
         b.classList.remove('fresh');
         this.strip.querySelectorAll<HTMLElement>('.fd-up').forEach((x) => x.setAttribute('aria-pressed', String(Number(x.dataset.mid) === this.host)));
+        if (b.parentElement === row) {
+          const item = b.getBoundingClientRect(), bounds = row.getBoundingClientRect();
+          row.scrollBy({ left: item.left - bounds.left - (bounds.width - item.width) / 2, behavior: reducedMotion() ? 'instant' : 'smooth' });
+        }
         this.reload();
       });
       return b;

@@ -8,27 +8,27 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
   const send = h('button', { class: 'wh-send', type: 'button', disabled: '' }, '发送') as HTMLButtonElement;
   const photo = h('button', { class: 'wh-tool', type: 'button', 'aria-label': '添加图片', title: '添加图片' }, icon(ICONS.image)) as HTMLButtonElement;
   const emoji = h('button', { class: 'wh-tool', type: 'button', 'aria-label': '选择表情', title: '选择表情', 'aria-expanded': 'false' }, icon(ICONS.smile)) as HTMLButtonElement;
-  const fileInput = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/gif,image/webp', hidden: '' }) as HTMLInputElement;
+  const fileInput = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/gif,image/webp', multiple: true, hidden: '' }) as HTMLInputElement;
   const count = h('span', { class: 'wh-count', 'aria-live': 'off' }, '0/500');
-  const thumb = h('img', { alt: '待发送图片' });
-  const remove = h('button', { class: 'wh-attachment-remove', type: 'button', 'aria-label': '移除图片' }, icon(ICONS.close)) as HTMLButtonElement;
-  const filename = h('span', { class: 'wh-filename' });
-  const attachment = h('div', { class: 'wh-attachment', hidden: '' }, thumb, filename, remove);
+  const attachment = h('div', { class: 'wh-attachment', hidden: '' });
   const hint = h('small', { class: 'wh-media-hint', hidden: '' }, '图片和文字将分别发送');
   const panel = h('section', { class: 'wh-emoji-panel', role: 'dialog', 'aria-label': 'B站表情', hidden: '' });
   const el = h('div', { class: 'wh-compose' }, panel, attachment,
     h('div', { class: 'wh-compose-row' }, input, send),
     h('div', { class: 'wh-compose-tools' }, photo, emoji, fileInput, hint, count));
-  let active = true, busy = false, selected: File | null = null, uploaded: MessageImage | null = null, objectUrl = '';
+  let active = true, busy = false;
+  const images: { file: File; url: string; uploaded: MessageImage | null; el: HTMLElement }[] = [];
   let start = 0, end = 0, packs: EmotePack[] | null = null, loading = false;
   let panelAnimation: Animation | null = null, attachmentAnimation: Animation | null = null;
   const selectedEmotes = new Set<string>();
   const controller = new AbortController();
   const sync = () => {
     count.textContent = `${input.value.length}/500`;
-    send.disabled = busy || input.value.length > 500 || (!selected && !input.value.trim());
-    input.disabled = photo.disabled = emoji.disabled = remove.disabled = busy;
-    hint.hidden = !(selected && input.value.trim());
+    send.disabled = busy || input.value.length > 500 || (!images.length && !input.value.trim());
+    input.disabled = photo.disabled = emoji.disabled = busy;
+    attachment.querySelectorAll<HTMLButtonElement>('button').forEach(button => { button.disabled = busy; });
+    attachment.hidden = !images.length;
+    hint.hidden = !(images.length && input.value.trim());
     send.textContent = busy ? '发送中…' : '发送';
   };
   const closePicker = (focus = false) => {
@@ -38,25 +38,37 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
     if (focus) emoji.focus({ preventScroll: true });
   };
   const outside = (e: Event) => { if (!e.composedPath().includes(panel) && !e.composedPath().includes(emoji)) closePicker(); };
-  const clearImage = () => {
+  const clearImages = () => {
     attachmentAnimation?.cancel(); attachmentAnimation = null;
-    selected = null; uploaded = null; attachment.hidden = true; thumb.removeAttribute('src');
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
-    objectUrl = ''; fileInput.value = ''; sync();
+    images.forEach(image => URL.revokeObjectURL(image.url));
+    images.length = 0; attachment.replaceChildren(); fileInput.value = ''; sync();
   };
-  const selectFile = (file?: File) => {
-    if (!file || busy || !active) return;
-    try { validateMessageImage(file); } catch (e) { o.say((e as Error).message); fileInput.value = ''; return; }
-    clearImage(); selected = file; objectUrl = URL.createObjectURL(file);
-    thumb.src = objectUrl; filename.textContent = file.name || '粘贴的图片'; attachment.hidden = false; sync(); input.focus();
+  const removeImage = (image: typeof images[number]) => {
+    images.splice(images.indexOf(image), 1);
+    URL.revokeObjectURL(image.url); image.el.remove(); sync();
+  };
+  const selectFiles = (files: File[]) => {
+    if (busy || !active) return;
+    for (const file of files) {
+      try { validateMessageImage(file); } catch (e) { o.say((e as Error).message); continue; }
+      const url = URL.createObjectURL(file);
+      const remove = h('button', { class: 'wh-attachment-remove', type: 'button', 'aria-label': '移除图片', title: `移除 ${file.name || '粘贴的图片'}` }, icon(ICONS.close));
+      const item = h('div', { class: 'wh-attachment-item' }, h('img', { alt: '待发送图片' }), h('span', { class: 'wh-filename' }, file.name || '粘贴的图片'), remove);
+      // Blob URL 由本组件创建，图片节点通过属性赋值接入。
+      (item.firstElementChild as HTMLImageElement).src = url;
+      const image = { file, url, uploaded: null as MessageImage | null, el: item };
+      images.push(image); attachment.append(item);
+      remove.onclick = () => { if (!busy) { removeImage(image); input.focus(); } };
+    }
+    fileInput.value = ''; sync(); input.focus();
+    attachmentAnimation?.cancel();
     if (!reducedMotion()) attachmentAnimation = attachment.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out' });
   };
   photo.onclick = () => fileInput.click();
-  fileInput.onchange = () => selectFile(fileInput.files?.[0]);
-  remove.onclick = () => { if (!busy) { clearImage(); input.focus(); } };
-  input.addEventListener('paste', (e) => { const file = e.clipboardData?.files[0]; if (file?.type.startsWith('image/')) { e.preventDefault(); selectFile(file); } });
+  fileInput.onchange = () => selectFiles(Array.from(fileInput.files ?? []));
+  input.addEventListener('paste', (e) => { const files = Array.from(e.clipboardData?.files ?? []).filter(file => file.type.startsWith('image/')); if (files.length) { e.preventDefault(); selectFiles(files); } });
   el.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
-  el.addEventListener('drop', (e) => { if (e.dataTransfer?.files.length) { e.preventDefault(); selectFile(e.dataTransfer.files[0]); } });
+  el.addEventListener('drop', (e) => { if (e.dataTransfer?.files.length) { e.preventDefault(); selectFiles(Array.from(e.dataTransfer.files)); } });
   const remember = () => { start = input.selectionStart; end = input.selectionEnd; };
   for (const event of ['select', 'keyup', 'click', 'blur']) input.addEventListener(event, remember);
   input.addEventListener('input', () => { remember(); sync(); });
@@ -116,15 +128,17 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
   panel.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); closePicker(true); } });
   const go = async () => {
     const text = input.value.trim();
-    if (busy || !active || (!text && !selected)) return;
+    if (busy || !active || (!text && !images.length)) return;
     if (input.value.length > 500) { o.say('消息不能超过 500 字'); return; }
     busy = true; closePicker(); sync(); let sent = false;
     try {
-      if (selected) {
-        uploaded ??= await uploadMessageImage(selected, o.csrf(), controller.signal);
+      while (images.length && active) {
+        const image = images[0];
+        image.uploaded ??= await uploadMessageImage(image.file, o.csrf(), controller.signal);
         if (!active) return;
-        if (!await sendImage(o.me, o.to, uploaded, o.csrf())) throw new Error('图片发送失败，请重试');
-        clearImage(); sent = true;
+        if (!await sendImage(o.me, o.to, image.uploaded, o.csrf())) throw new Error('图片发送失败，请重试');
+        if (!active) return;
+        removeImage(image); sent = true;
       }
       if (text && active) {
         if (!await sendText(o.me, o.to, text, o.csrf(), [...selectedEmotes].some(e => text.includes(e)))) throw new Error('文字发送失败，请重试');
@@ -141,5 +155,5 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
   };
   send.onclick = () => { void go(); };
   input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void go(); } });
-  return { el, focus: () => input.focus(), dispose() { active = false; controller.abort(); closePicker(); clearImage(); } };
+  return { el, focus: () => input.focus(), dispose() { active = false; controller.abort(); closePicker(); clearImages(); } };
 }
