@@ -26,6 +26,8 @@ describe('settings 迁移（merge / loadSettings）', () => {
     expect((await loadSettings()).searchStyle).toBe('new');
     expect(sanitizeSettings({ searchStyle: 'classic', paletteSpeed: 200 })?.paletteSpeed).toBe(200);
     expect(sanitizeSettings({ searchStyle: 'unknown' })?.searchStyle).toBe('classic');
+    expect(clampPaletteSpeed(Number.NaN)).toBe(100);
+    expect(clampPaletteSpeed(999)).toBe(200);
   });
   beforeEach(() => { store.clear(); setChromeMock(); });
   it('动态菜单默认显示全部，开关可保存并兼容旧配置', async () => {
