@@ -183,9 +183,13 @@ try {
     item.history.page = 4;
     item.uri = 'https://www.bilibili.com/video/BV1first?p=1';
     fixture.data.list = [item];
-    override = u => u.includes('/history/cursor') || u.includes('/history/search') ? fixture : undefined;
+    override = async u => {
+      if (!u.includes('/history/cursor') && !u.includes('/history/search')) return undefined;
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return fixture;
+    };
     await page.goto('https://www.bilibili.com/account/history');
-    const link = page.locator('#margin-root .hi-card').first();
+    const link = page.locator('#margin-root a.hi-card[href]').first();
     await link.waitFor();
     const expected = new URL(await link.getAttribute('href'));
     assert.equal(expected.pathname, `/video/${item.history.bvid}`);
@@ -195,8 +199,10 @@ try {
     const target = await popup;
     assert.equal(new URL(target.url()).searchParams.get('p'), '4');
     await target.close();
+    const searched = page.waitForResponse(response => response.url().includes('/history/search'));
     await page.locator('#margin-root .hi-input').fill('合集');
-    await page.waitForTimeout(600);
+    await searched;
+    await link.waitFor();
     assert.equal(new URL(await link.getAttribute('href')).searchParams.get('p'), '4');
     return { url: expected.href };
   });
