@@ -451,7 +451,8 @@ for (const theme of THEMES) {
           p.frames++;
         }, 16);
       });
-      await page.mouse.move(rect.x + rect.width - 2, rect.y + rect.height / 2);
+      // 旋转后的外接矩形边缘可能在链接实际命中区域之外。
+      await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
       await sleep(500);
       const state = await page.evaluate(() => { clearInterval(window.marginLinkTimer); return window.marginLinkProbe; });
       const miss = [];
