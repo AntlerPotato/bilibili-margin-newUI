@@ -1,4 +1,5 @@
 import { ICON_PATHS } from './icon-library';
+import DOMPurify from 'dompurify';
 
 type Attrs = Record<string, string | number | boolean | EventListener | undefined>;
 
@@ -6,12 +7,23 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (v === undefined || v === false) continue;
-    if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+    if (/^on/i.test(k)) { if (typeof v === 'function') el.addEventListener(k.slice(2), v); }
+    else if ((k === 'href' || k === 'src') && !safeUrl(String(v), k === 'src')) continue;
     else if (k === 'class') el.className = String(v);
     else el.setAttribute(k, v === true ? '' : String(v));
   }
   for (const c of children) if (c) el.append(c);
+  if (tag === 'a') el.setAttribute('rel', [...new Set(`${el.getAttribute('rel') ?? ''} noopener noreferrer`.trim().split(/\s+/))].join(' '));
+  if (tag === 'img') el.setAttribute('referrerpolicy', 'no-referrer');
   return el;
+}
+
+export function safeUrl(value: string, image = false): boolean {
+  try {
+    const url = new URL(value, location.href);
+    if (url.username || url.password) return false;
+    return ['https:', 'http:'].includes(url.protocol) || (image && (url.protocol === 'blob:' || /^data:image\/(?:png|jpeg|webp|gif|avif);/i.test(value)));
+  } catch { return false; }
 }
 
 /**
@@ -34,18 +46,12 @@ export function appendMarkup(el: Element, markup: string): void {
   el.append(...nodes(markup, el instanceof SVGElement));
 }
 /**
- * B 站搜索联想返回带 <em class="suggest_high_light"> 的 HTML。只保留高亮，其余一律当纯文本：
- * 拆成文本节点和 <mark>，不把接口内容当 HTML 插入。
+ * 网络搜索高亮经 DOMPurify 过滤：只允许 em / mark 和文字，不接受属性或其他元素。
  */
 export function highlight(el: Element, html: string): void {
-  const text = (s: string) => parser.parseFromString(s.replace(/<[^>]*>/g, ''), 'text/html').body.textContent ?? '';
-  const out: Node[] = [];
-  html.split(/(<em class="suggest_high_light">[\s\S]*?<\/em>)/).forEach((part, i) => {
-    if (!part) return;
-    if (i % 2) { const m = document.createElement('mark'); m.textContent = text(part); out.push(m); }
-    else out.push(document.createTextNode(text(part)));
-  });
-  el.replaceChildren(...out);
+  const fragment = DOMPurify.sanitize(html, { ALLOWED_TAGS: ['em', 'mark'], ALLOWED_ATTR: [], RETURN_DOM_FRAGMENT: true });
+  fragment.querySelectorAll('em').forEach(em => { const mark = document.createElement('mark'); mark.replaceChildren(...em.childNodes); em.replaceWith(mark); });
+  el.replaceChildren(fragment);
 }
 
 export function svg(markup: string): Node {

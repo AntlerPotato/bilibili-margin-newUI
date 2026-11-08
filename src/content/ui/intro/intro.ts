@@ -55,12 +55,14 @@ export function playIntro(parent: HTMLElement, theme: 'light' | 'dark'): Promise
     let fallback: HTMLElement | null = null;
     let fallbackAnimation: Animation | null = null;
     let timeout = 0;
+    let sizeObserver: ResizeObserver | null = null;
     const finish = (fast = false) => {
       if (done) return;
       done = true;
       cancelAnimationFrame(raf);
       clearTimeout(timeout);
       fallbackAnimation?.cancel();
+      sizeObserver?.disconnect();
       setIntroActive(false);
       removeEventListener('keydown', skip, true);
       if (!fast && tilePx && flyToBrand()) return;
@@ -142,23 +144,40 @@ export function playIntro(parent: HTMLElement, theme: 'light' | 'dark'): Promise
       // 调试 / 截图用：localStorage margin:intro-freeze = 秒数，停在那一帧
       let freeze = NaN;
       try { freeze = parseFloat(localStorage.getItem('margin:intro-freeze') ?? ''); } catch { /* ignore */ }
-      // 自适应分辨率：连续几帧超过 ~45fps 的预算就降一档像素密度（CSS 拉伸，玻璃边缘仍够清晰）
+      // Read geometry once, then let ResizeObserver supply size changes. Reading
+      // clientWidth/clientHeight on every frame can flush the page's pending layout.
+      let cw = canvas.clientWidth, ch = canvas.clientHeight;
+      let sizeDirty = true, w = 1, hh = 1, tile = 0;
+      sizeObserver = new ResizeObserver(([entry]) => {
+        if (done || !entry) return;
+        const width = Math.round(entry.contentRect.width), height = Math.round(entry.contentRect.height);
+        if (width === cw && height === ch) return;
+        cw = width; ch = height; sizeDirty = true;
+      });
+      sizeObserver.observe(canvas);
+      // Native 60Hz screens keep their existing budget; high-refresh screens aim for ~10ms.
+      // Reduce pixel density only after repeated misses, keeping the same shader and timeline.
       let dprCap = Math.min(devicePixelRatio || 1, software ? 0.75 : 1.5);
-      let last = 0, slow = 0;
+      let last = 0, slow = 0, nativeFrameMs = 1000 / 60;
       const tick = (now: number) => {
         const t = Number.isFinite(freeze) ? freeze : (now - t0) / 1000;
         if (last && t > 0.15) {
-          slow = now - last > 22 ? slow + 1 : Math.max(0, slow - 1);
-          if (slow >= 4 && dprCap > 0.6) { dprCap = Math.max(0.6, dprCap * 0.75); slow = 0; }
+          const gap = now - last;
+          if (gap >= 4) nativeFrameMs = Math.min(nativeFrameMs, gap);
+          const budget = Math.max(10, nativeFrameMs) * 1.35;
+          slow = gap > budget ? slow + 1 : Math.max(0, slow - 1);
+          if (slow >= 4 && dprCap > 0.6) { dprCap = Math.max(0.6, dprCap * 0.75); slow = 0; sizeDirty = true; }
         }
         last = now;
-        const dpr = dprCap;
-        const cw = canvas.clientWidth, ch = canvas.clientHeight;
-        const w = Math.max(1, Math.round(cw * dpr)), hh = Math.max(1, Math.round(ch * dpr));
-        if (canvas.width !== w || canvas.height !== hh) { canvas.width = w; canvas.height = hh; }
-        const tile = Math.min(P.tileSize, Math.min(cw, ch) / 1.75);
-        tilePx = tile;
-        renderer!.render(frameAt(Math.min(t, end), P), w, hh, tile * dpr);
+        if (sizeDirty) {
+          w = Math.max(1, Math.round(cw * dprCap)); hh = Math.max(1, Math.round(ch * dprCap));
+          if (canvas.width !== w) canvas.width = w;
+          if (canvas.height !== hh) canvas.height = hh;
+          tile = Math.min(P.tileSize, Math.min(cw, ch) / 1.75);
+          tilePx = tile;
+          sizeDirty = false;
+        }
+        renderer!.render(frameAt(Math.min(t, end), P), w, hh, tile * dprCap);
         if (Number.isFinite(freeze)) return;
         if (t >= end + 0.25) { finish(); return; }
         raf = requestAnimationFrame(tick);

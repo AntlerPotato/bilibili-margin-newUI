@@ -11,6 +11,7 @@ import { SITE_LINKS } from './header';
 import { appPoll, appQr, appRevoke, appState } from '../api/appfeed';
 import { clearLoc, savedLoc, setLoc as setLocWithName } from '../api/weather';
 import { createCityPicker } from './city-picker';
+import { forgetSearch } from '../api/search-history';
 
 export interface SettingsPanel { sheet: Sheet; sync(s: Settings): void }
 
@@ -28,6 +29,18 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const save = (patch: Partial<Settings>) => saveSettings(patch);
   const say = (t: string) => toast((sheet.el.closest('.app') as HTMLElement | null) ?? sheet.el, t);
   const s0 = get();
+  const externalT = toggle(s0.privacyExternal, '允许外部辅助服务', (value) => save({ privacyExternal: value }));
+  const historyT = toggle(s0.searchHistory, '保存最近搜索', (value) => save({ searchHistory: value }));
+  const clearHistory = h('button', { type: 'button', class: 'ghost small', onclick: async () => {
+    clearHistory.setAttribute('disabled', '');
+    try {
+      const result = await chrome.runtime.sendMessage({ margin: 'privacy', op: 'history-forget' });
+      if (!result?.ok) throw new Error();
+      forgetSearch();
+      say('搜索记录已清除');
+    } catch { say('清除失败，请重试'); }
+    finally { clearHistory.removeAttribute('disabled'); }
+  } }, '清除搜索记录');
 
   const theme = segmented<Theme>([['auto', '跟随系统'], ['light', '亮色'], ['dark', '暗色']], s0.theme, (v) => save({ theme: v }));
   const accent = segmented<Settings['accent']>([['classic','经典'],['blue','哔哩蓝'],['pink','哔哩粉']],s0.accent,(accent) => save({ accent }));
@@ -416,6 +429,11 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     return wrap;
   };
   sheet.body.append(
+    h('section', { class: 'group' }, h('h3', {}, '隐私'),
+      row('允许外部辅助服务', '默认关闭；开启后允许天气定位、天气查询、社区广告片段和 GitHub 更新查询。服务会接收请求 IP。', externalT),
+      row('保存最近搜索', '默认关闭；开启后只存扩展内，最多 8 条、30 天过期，读取时清理。', historyT),
+      row('搜索记录', null, clearHistory),
+      h('p', { class: 'sd-note' }, 'App 授权仅保留在当前浏览器会话，重启后需重新扫码。')),
     h('section', { class: 'group' }, h('h3', {}, '外观'),
       block('明暗', null, theme),
       row('强调色', null, accent),
@@ -484,7 +502,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     h('section', { class: 'group' }, h('h3', {}, '实验功能'),
       row('App 推荐流', '首页「推荐」改用手机 App 的推荐；关掉就是网页版原来的推荐', appT),
       drawer('App 授权', () => (authed ? '已授权' : '未授权'),
-        h('p', { class: 'sd-note' }, '用 B 站 App 扫一次码，推荐就和你手机上一样。授权凭证只存在本机，随时可以取消'),
+        h('p', { class: 'sd-note' }, '用 B 站 App 扫码授权。凭证只保存在本次浏览器会话，重启后需重新扫码，可随时取消。'),
         h('div', { class: 'af-row' }, appStat, h('div', { class: 'data-acts' }, appBtn, appOff)), appQrBox, appQrNote),
       row('X 式重排', '按你的观看历史重新排：常看完的 UP 往前，秒退和「不感兴趣」的往后，混入关注的人 48 小时内的新稿，看过的不再出现。只在本机计算，可和 App 推荐流一起用', rankT)),
     h('section', { class: 'group' }, h('h3', {}, '数据'),
@@ -495,6 +513,8 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   return {
     sheet,
     sync(s) {
+      externalT.setAttribute('aria-checked', String(s.privacyExternal));
+      historyT.setAttribute('aria-checked', String(s.searchHistory));
       poolCur = null;
       drawers.forEach((f) => f());
       paintPool();

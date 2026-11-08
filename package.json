@@ -1,6 +1,6 @@
 {
   "name": "margin",
-  "version": "0.60.3",
+  "version": "0.60.4",
   "private": true,
   "description": "映间 MARGIN — 一个重新设计的 B 站首页浏览器扩展",
   "type": "module",
@@ -16,6 +16,9 @@
     "test:danmaku-airborne": "node tests/danmaku-airborne.mjs",
     "test:frame-budget": "node tests/frame-budget.mjs",
     "test:performance-ui": "node tests/performance-ui.mjs",
+    "test:animation-performance": "node tests/animation-performance.mjs",
+    "test:content-performance": "node tests/content-performance.mjs",
+    "test:comment-performance": "node tests/comment-performance.mjs",
     "test:message-media": "node tests/message-media.mjs",
     "test:message-loading": "node tests/message-loading.mjs",
     "test:header-surface": "node tests/header-surface.mjs",
@@ -26,6 +29,8 @@
     "test:new-issues": "node tests/watch-screen.mjs && node tests/favorites-subscriptions.mjs && node tests/triple-release.mjs",
     "test:watch-later": "node tests/watch-later-groups.mjs",
     "test:unit": "vitest run",
+    "test:privacy": "node tests/privacy-preview.mjs",
+    "security:check": "node scripts/security-checks.mjs",
     "fonts": "python3 scripts/slice-fonts.py"
   },
   "devDependencies": {
@@ -38,7 +43,11 @@
     "vitest": "^5.1.0"
   },
   "license": "MIT",
+  "overrides": {
+    "@modelcontextprotocol/server": "2.3.1"
+  },
   "dependencies": {
+    "dompurify": "3.4.17",
     "qrcode-generator": "^2.0.4"
   }
 }

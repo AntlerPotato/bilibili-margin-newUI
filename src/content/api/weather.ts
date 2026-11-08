@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** 天气：Open-Meteo（免密钥、CORS 开放）+ ipwho.is 按 IP 粗定位；城市可手动改（Open-Meteo 地理编码）。 */
+import { optionalFetch, PrivacyBlocked } from '../../shared/privacy';
+import { loadSettings } from '../../shared/settings';
 
 export type WeatherKind = 'clear' | 'partly' | 'cloud' | 'rain' | 'drizzle' | 'storm' | 'snow' | 'sleet' | 'mist' | 'windy' | 'heat';
 export interface Loc { name: string; lat: number; lon: number; manual?: boolean; region?: string }
@@ -54,9 +56,9 @@ export function clearLoc(): void {
 
 async function ipLoc(): Promise<Loc> {
   try {
-    const r = await (await fetch('https://ipwho.is/?lang=zh-CN&fields=success,city,latitude,longitude')).json();
+    const r = await (await optionalFetch('ip', 'https://ipwho.is/?lang=zh-CN&fields=success,city,latitude,longitude')).json();
     if (r?.success && typeof r.latitude === 'number') return { name: r.city || '当前位置', lat: r.latitude, lon: r.longitude };
-  } catch { /* 落到默认 */ }
+  } catch (error) { if (error instanceof PrivacyBlocked) throw error; /* 定位故障时落到默认 */ }
   return { name: '上海', lat: 31.23, lon: 121.47 };
 }
 
@@ -68,7 +70,7 @@ export async function geocodeList(q: string, n = 6): Promise<Place[]> {
   const queries = [query];
   if (/^[\u3400-\u9fff]{2,}$/.test(query) && !/(?:省|市|区|县|自治州|盟|旗|镇|乡|村)$/.test(query)) queries.push(`${query}市`);
   const results = await Promise.allSettled(queries.map(async name => {
-    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?count=${n}&language=zh&name=${encodeURIComponent(name)}`);
+    const response = await optionalFetch('city', `https://geocoding-api.open-meteo.com/v1/search?count=${n}&language=zh&name=${encodeURIComponent(name)}`);
     if (!response.ok) throw new Error(`城市搜索失败（HTTP ${response.status}）`);
     const data = await response.json();
     if (data?.error) throw new Error(data.reason || '城市搜索暂时不可用');
@@ -92,6 +94,10 @@ const WEEK = '日一二三四五六';
 export async function weather(): Promise<Wx> {
   const revision = locRevision;
   let loc = savedLoc();
+  const beforePermission = localStorage.getItem(LOC_KEY);
+  const settings = await loadSettings();
+  if (!settings.enabled || !settings.privacyExternal) throw new PrivacyBlocked();
+  if (revision !== locRevision || localStorage.getItem(LOC_KEY) !== beforePermission) throw new DOMException('天气位置已更改', 'AbortError');
   try {
     const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null') as Wx | null;
     if (loc && c?.loc?.lat === loc.lat && c.loc.lon === loc.lon && Date.now() - c.at < TTL) return { ...c, loc };
@@ -108,7 +114,7 @@ export async function weather(): Promise<Wx> {
   const u = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&timezone=auto&forecast_days=7`
     + '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m'
     + '&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min';
-  const d: any = await (await fetch(u)).json();
+  const d: any = await (await optionalFetch('weather', u)).json();
   if (revision !== locRevision || localStorage.getItem(LOC_KEY) !== locationSnapshot) throw new DOMException('天气位置已更改', 'AbortError');
   if (!d?.current) throw new Error('天气暂时取不到');
   const offset = Number(d.utc_offset_seconds) || 0;

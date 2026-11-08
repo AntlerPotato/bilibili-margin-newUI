@@ -54,6 +54,10 @@ export interface Settings {
   footprint: boolean;
   /** 首页顶部天气卡（关掉就不请求天气和定位） */
   weather: boolean;
+  /** 可选的天气、社区跳过与更新查询需要主动允许。 */
+  privacyExternal: boolean;
+  /** 最近搜索只保存在扩展存储，最多 8 条、保留 30 天。 */
+  searchHistory: boolean;
   /** 点收藏夹直接展开全部视频（关掉时先扇形弹出最近 4 个） */
   favDirect: boolean;
   favColumns: 2 | 3 | 4;
@@ -144,6 +148,8 @@ export const DEFAULTS: Settings = {
   intro: true,
   footprint: true,
   weather: true,
+  privacyExternal: false,
+  searchHistory: false,
   favDirect: true,
   favColumns: 3,
   autoWeb: false,
@@ -225,6 +231,8 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     wide: r.wide === true,
     hideAds: r.hideAds !== false,
     sponsorSkip: r.sponsorSkip === true,
+    privacyExternal: r.privacyExternal === true,
+    searchHistory: r.searchHistory === true,
     danmakuJump: r.danmakuJump === true,
     danmakuAirborne: r.danmakuAirborne === true,
     msgRemind: r.msgRemind !== false,
@@ -263,6 +271,8 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const out: Partial<Settings> = {};
+  if (typeof r.privacyExternal === 'boolean') out.privacyExternal = r.privacyExternal;
+  if (typeof r.searchHistory === 'boolean') out.searchHistory = r.searchHistory;
   if (r.accent === 'classic' || r.accent === 'blue' || r.accent === 'pink') out.accent = r.accent;
   if (r.glass === 'soft' || r.glass === 'liquid' || r.glass === 'flat') out.glass = r.glass;
   if (typeof r.uiEffects === 'boolean') out.uiEffects = r.uiEffects;

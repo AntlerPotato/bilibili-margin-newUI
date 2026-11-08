@@ -87,6 +87,7 @@ export function createHeroSearch(app: () => HTMLElement, _onPalette?: () => void
   let ctrl: AbortController | null = null;
   let timer = 0;
   const isOpen = () => box.dataset.open === 'true';
+  addEventListener('margin:search-history', () => { if (isOpen()) render(); });
 
   const go = (q: string) => {
     q = q.trim();

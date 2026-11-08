@@ -41,7 +41,7 @@ try {
       const gap = await page.locator('#margin-root .dash').evaluate(e => e.clientWidth - e.querySelector('.fp-card').getBoundingClientRect().width);
       assert(Math.abs(gap) < 2, `width ${width}: unused space ${gap}px`);
     }
-    await seed({ weather: true });
+    await seed({ weather: true, privacyExternal: true });
     await page.locator('#margin-root .wx').waitFor();
     await seed({ weather: false, footprint: false });
     await page.locator('#margin-root .dash').waitFor({ state: 'hidden' });
@@ -434,7 +434,7 @@ try {
       if (u.includes('geocoding-api.open-meteo.com')) return cities(u);
       if (u.includes('api.open-meteo.com')) forecasts.push(new URL(u).searchParams.get('latitude'));
     };
-    await seed({ weather: true, footprint: true, reduceMotion: true });
+    await seed({ weather: true, privacyExternal: true, footprint: true, reduceMotion: true });
     await page.goto('https://www.bilibili.com/');
     // Legacy same-name location must remain editable, with no automatic migration.
     await page.evaluate(() => {

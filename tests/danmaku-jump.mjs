@@ -114,7 +114,7 @@ try {
   await context.route('https://bsbsb.top/api/**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify([
     { videoID: 'BV14W4B6sET9', segments: [{ cid: '101', category: 'sponsor', actionType: 'skip', segment: [10, 20], videoDuration: 120, votes: 2 }] },
   ]) }));
-  await settings({ sponsorSkip: true });
+  await settings({ sponsorSkip: true, privacyExternal: true });
   await page.locator('#margin-sponsor-notice button').waitFor();
   assert.equal(await notice.count(), 0, 'two notices overlap');
   assert((await time()) >= 20);

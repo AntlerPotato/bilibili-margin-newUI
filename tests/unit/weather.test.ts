@@ -21,6 +21,7 @@ function deferredResponse() {
 }
 
 beforeEach(() => {
+  vi.stubGlobal('chrome', { storage: { local: { get: vi.fn(async () => ({ 'margin:settings': { privacyExternal: true } })) }, onChanged: { addListener: vi.fn() } } });
   const data = new Map<string, string>();
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => data.get(key) ?? null,
@@ -143,6 +144,7 @@ describe('天气位置与缓存', () => {
     const fetcher = vi.fn(async (url: string) => url.includes('ipwho.is') ? ip.promise : response(forecast(25)));
     vi.stubGlobal('fetch', fetcher);
     const pending = weather();
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
     setLoc(guangdong); await weather();
     const discarded = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
     ip.resolve(response({ success: true, city: '上海', latitude: 31.23, longitude: 121.47 })); await discarded;
@@ -155,6 +157,7 @@ describe('天气位置与缓存', () => {
     const fetcher = vi.fn(async (url: string) => url.includes('ipwho.is') ? ip.promise : response(forecast(25)));
     vi.stubGlobal('fetch', fetcher);
     const pending = weather();
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
     setLoc(guangdong); clearLoc();
     const discarded = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
     ip.resolve(response({ success: true, city: '上海', latitude: 31.23, longitude: 121.47 })); await discarded;

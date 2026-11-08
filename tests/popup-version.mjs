@@ -27,6 +27,7 @@ try {
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(release) });
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+  await worker.evaluate(() => chrome.storage.local.set({ 'margin:settings': { privacyExternal: true } }));
   const page = await context.newPage();
   const popup = `chrome-extension://${new URL(worker.url()).hostname}/popup.html`;
   for (const [name, tag, label, update] of [

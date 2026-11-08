@@ -52,6 +52,7 @@ export function createCommandPalette(commands: Command[]): Palette {
   let ctrl: AbortController | null = null;
   let timer = 0;
   let lastFocus: Element | null = null;
+  addEventListener('margin:search-history', () => { if (el.dataset.open === 'true') render(); });
 
   const go = (q: string) => { rememberSearch(q); openBili(searchUrl(q)); close(); };
   const searchRow = (q: string, kind: 'history' | 'hot' | 'sugg', html?: string, n?: number): Row => ({

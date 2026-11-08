@@ -41,7 +41,9 @@ export function createScrollRuler(): HTMLElement {
   };
   const update = () => {
     const p = progress();
-    target = p * H; pct.textContent = `${Math.round(p * 100)}%`;
+    target = p * H;
+    const label = `${Math.round(p * 100)}%`;
+    if (pct.textContent !== label) pct.textContent = label;
     if (reducedMotion()) { y = target; v = 0; }
     if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
   };

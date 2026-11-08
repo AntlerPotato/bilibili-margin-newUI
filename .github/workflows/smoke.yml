@@ -130,3 +130,37 @@ jobs:
           name: smoke-screenshots
           path: smoke-artifacts/
           if-no-files-found: warn
+  privacy-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Animation layout and cleanup
+        run: npm run test:animation-performance
+        env:
+          SMOKE_OUT: privacy-performance/animation
+      - name: Incremental comment processing
+        run: npm run test:comment-performance
+        env:
+          COMMENT_OUT: privacy-performance/comments.json
+      - name: Profile card interactions
+        run: npm run test:content-performance
+        env:
+          SMOKE_OUT: privacy-performance/profile
+      - name: Extension privacy boundaries
+        run: npm run test:privacy
+        env:
+          SMOKE_OUT: privacy-performance/privacy
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: privacy-performance-results
+          path: privacy-performance/
+          if-no-files-found: warn

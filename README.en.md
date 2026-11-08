@@ -103,6 +103,8 @@ On visible pages with GPU acceleration, backgrounds remain animated while scroll
 
 ## Privacy
 
+From 0.6.4, optional external services and recent-search storage are off by default under Settings → Privacy. Allow external services to enable weather, community sponsor data, and manual update checks. Opted-in searches stay in extension storage, capped at eight entries with 30-day expiration and cleanup on read. App-feed authorization lasts for the browser session and requires a new QR sign-in after upgrading or restarting the browser.
+
 Community advertisement skipping is off by default. When enabled, it queries [BilibiliSponsorBlock](https://bsbsb.top/) using a four-character BVID hash prefix and skips marked sponsor ranges in ordinary BV videos, with undo. It sends no Bilibili cookies, account identifiers or full video ID to that service and cannot guarantee Bilibili completion metrics.
 
 The developer does not operate an analytics or data-collection server. Settings, activity records and custom background images stay on your device; exported backups are yours to store.

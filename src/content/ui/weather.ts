@@ -5,6 +5,8 @@ import { weather, setLoc, savedLoc, type Wx } from '../api/weather';
 import { createCityPicker } from './city-picker';
 import { WEATHER_SKIES, WEATHER_SKY_LAYERS, moonAge, weatherScene, glyphSvg, SKY_PITCH, FRAME } from './dotsky';
 import { onMotionChange, reducedMotion } from '../motion';
+import { PrivacyBlocked } from '../../shared/privacy';
+import { onSettingsChange } from '../../shared/settings';
 
 /**
  * 首页天气卡：21st「Weather Widget」（vijayksingh）的横版排法——
@@ -158,6 +160,11 @@ export function createWeather(): HTMLElement {
     if (!quiet) fetchedAt = Date.now();
     weather().then((x) => { if (request === loadSequence) { wx = x; render(); } }).catch((err) => {
       if (request !== loadSequence) return;
+      if (err instanceof PrivacyBlocked) {
+        wx = null; run(); closeCity?.();
+        el.replaceChildren(h('p', { class: 'wx-empty' }, '天气联网已关闭'));
+        return;
+      }
       console.warn('[margin] weather', err);
       if (quiet && wx) return; // 后台刷新失败：保留旧数据
       if (retry < 2) { retryTimer = window.setTimeout(() => load(quiet, retry + 1), 4000 * (retry + 1)); return; }
@@ -165,6 +172,7 @@ export function createWeather(): HTMLElement {
       el.replaceChildren(h('p', { class: 'wx-empty', title: String(err) }, `天气暂时取不到${savedLoc()?.name ? `（${savedLoc()!.name}）` : ''}`));
     });
   };
+  onSettingsChange((next, previous) => { if (next.privacyExternal !== previous.privacyExternal) load(); });
   load();
   return el;
 }

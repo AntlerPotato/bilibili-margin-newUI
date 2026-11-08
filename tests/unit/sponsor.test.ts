@@ -32,7 +32,7 @@ const fetchMock = vi.fn();
 let getSponsorSegments: typeof import('../../src/background/sponsor').getSponsorSegments;
 beforeEach(async () => {
   vi.resetModules(); vi.clearAllMocks(); enabled = true; optIn = true;
-  vi.stubGlobal('chrome', { storage: { local: { get: async () => ({ 'margin:settings': { enabled, sponsorSkip: optIn } }) } }, runtime: { getManifest: () => ({ version: '0.52.0' }) } });
+  vi.stubGlobal('chrome', { storage: { local: { get: async () => ({ 'margin:settings': { enabled, sponsorSkip: optIn, privacyExternal: true } }) }, onChanged: { addListener: vi.fn() } }, runtime: { getManifest: () => ({ version: '0.52.0' }) } });
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => payload([segment()]) });
   ({ getSponsorSegments } = await import('../../src/background/sponsor'));
@@ -49,7 +49,8 @@ describe('社区 API 查询', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toContain('https://bsbsb.top/api/skipSegments/5759?');
     expect(url).not.toContain(bvid);
-    expect(options).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer', headers: { 'x-ext-version': 'MARGIN/0.52.0' } });
+    expect(options).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error' });
+    expect(new Headers(options.headers).get('x-ext-version')).toBe('MARGIN/0.52.0');
   });
   it('同时请求去重且缓存结果，不发送统计或投票', async () => {
     const [a, b] = await Promise.all([getSponsorSegments(bvid), getSponsorSegments(bvid)]);

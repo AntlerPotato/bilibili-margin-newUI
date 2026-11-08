@@ -3,6 +3,7 @@ import simWgsl from './sim.wgsl';
 import dotsWgsl from './dots.wgsl';
 import fadeWgsl from './fade.wgsl';
 import compositeWgsl from './composite.wgsl';
+import { fluxTiming } from './timing';
 
 /**
  * 「流光」：WebGPU 计算着色器版背景（基于 vgpu，vercel-labs，MIT）。
@@ -44,11 +45,11 @@ export class FluxField {
       }
       const particles = storage(gpu, buf.byteLength, 'read-write');
       particles.write(buf);
-      this.sim = compute(gpu, simWgsl, { label: 'flux-sim', set: { particles, sim: { time: 0, dt: 0, aspect: 1.6, count: COUNT } } });
+      this.sim = compute(gpu, simWgsl, { label: 'flux-sim', set: { particles, sim: { time: 0, dt: 0, aspect: 1.6, count: COUNT, damping: 0.2, pad0: 0, pad1: 0, pad2: 0 } } });
       this.dots = draw(gpu, {
         shader: dotsWgsl, vertices: 6, instances: COUNT, label: 'flux-dots',
         blend: { color: { src: 'one', dst: 'one' }, alpha: { src: 'one', dst: 'one' } },
-        set: { particles, view: { res: [1, 1], aspect: 1.6, size: 1.6, c1: [1, 1, 1, 1], c2: [1, 1, 1, 1], c3: [1, 1, 1, 1], dt: 1 / 24, pad0: 0, pad1: 0, pad2: 0 } },
+        set: { particles, view: { res: [1, 1], aspect: 1.6, size: 1.6, c1: [1, 1, 1, 1], c2: [1, 1, 1, 1], c3: [1, 1, 1, 1], dt: 1 / 60, exposure: 1, pad1: 0, pad2: 0 } },
       });
       gpu.lost.then(() => { this.ready = false; });
       await this.sim.compile();
@@ -79,11 +80,12 @@ export class FluxField {
   render(w: number, h: number, t: number, col: FluxColors, dark: number): boolean {
     if (!this.ready || !this.gpu) return false;
     if (w !== this.size[0] || h !== this.size[1]) this.resize(w, h);
-    const dt = this.lastT < 0 ? 1 / 24 : Math.max(0, t - this.lastT);
+    const { dt, decay, damping, exposure } = fluxTiming(t, this.lastT);
     this.lastT = t;
     const a = this.flip, b = 1 - a;
-    this.sim.set({ sim: { time: t, dt } });
-    this.dots.set({ view: { c1: [...col.c1, 1], c2: [...col.c2, 1], c3: [...col.c3, 1], dt: Math.min(dt, 0.1) } });
+    this.sim.set({ sim: { time: t, dt, damping } });
+    this.fades[a].set({ fade: { decay } });
+    this.dots.set({ view: { c1: [...col.c1, 1], c2: [...col.c2, 1], c3: [...col.c3, 1], dt, exposure } });
     // 暗色上粒子发光更明显；亮色上压一点，免得把页面搞花
     this.comps[b].set({ comp: { bg: [...col.bg, 1], gain: 1.25 - 0.4 * dark } });
     try {

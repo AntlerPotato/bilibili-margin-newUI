@@ -1,5 +1,5 @@
 import { dynCommentTarget, dynLike, dynReplies, dynReply, dynRepost, dynReserve, dynSubReplies, type Dyn, type DynText, type Reply } from '../api/dyn';
-import { fmtAgo, fmtCount, h, icon, ICONS } from './dom';
+import { fmtAgo, fmtCount, h, icon, ICONS, safeUrl } from './dom';
 import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
 import { openBili } from '../navigation';
@@ -150,7 +150,7 @@ function reserveCard(d: Dyn): HTMLElement {
  * 选中文字时不跳转；转发里的原动态点进原动态。Ctrl / 中键也是新标签。
  */
 function clickable(el: HTMLElement, url: string): HTMLElement {
-  if (!url) return el;
+  if (!url || !safeUrl(url)) return el;
   el.dataset.href = url;
   const go = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest('a, button, input, textarea, video, .dy-box')) return;

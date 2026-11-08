@@ -3,3 +3,10 @@ dist
 *.zip
 tests/artifacts/
 dist-firefox
+.npm-cache/
+.uv-cache/
+.python/
+.security-venv/
+.security-tools/
+.browsers/
+artifacts/

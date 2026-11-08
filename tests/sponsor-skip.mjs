@@ -53,7 +53,7 @@ try {
     const current = (await chrome.storage.local.get('margin:settings'))['margin:settings'] ?? {};
     await chrome.storage.local.set({ 'margin:settings': { ...current, ...p } });
   }, patch);
-  await settings({ bg: { mode: 'off' }, intro: false });
+  await settings({ bg: { mode: 'off' }, intro: false, privacyExternal: true });
   await page.goto(watch, { waitUntil: 'domcontentloaded' });
   await page.locator('#margin-watch-top header.top').waitFor();
   await page.evaluate(async () => {

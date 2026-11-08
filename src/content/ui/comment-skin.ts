@@ -45,29 +45,41 @@ const watched = new WeakSet<ShadowRoot>();
 let extra: Record<string, string> = {};
 const sheets = new Map<string, CSSStyleSheet>();
 
+function skinElement(el: Element, depth: number): void {
+  const sr = el.shadowRoot;
+  if (!sr) return;
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'bili-comment-replies-renderer') watchReplies(sr);
+  if (!done.has(sr)) {
+    let s = sheets.get(tag);
+    if (!s) {
+      // tag 位于每条评论自己的嵌套 Shadow DOM；主题规则需要注入到包含它的那一层。
+      s = new CSSStyleSheet();
+      s.replaceSync((SKINS[tag] ?? '') + TAG_SKIN + (extra[tag] ?? ''));
+      sheets.set(tag, s);
+    }
+    sr.adoptedStyleSheets = [...sr.adoptedStyleSheets, s];
+    done.add(sr);
+  }
+  if (!watched.has(sr)) {
+    watched.add(sr);
+    // 只扫描新插入的子树；定时补扫仍负责发现已有节点迟延挂载的 shadow root。
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element && node.isConnected) skin(node, depth + 1);
+        }
+      }
+    }).observe(sr, { childList: true, subtree: true });
+  }
+  // 评论项也是 Web Component，继续遍历所有 open shadow root，直到找到 tag 所在层级。
+  skin(sr, depth + 1);
+}
+
 function skin(root: ParentNode, depth = 0): void {
   if (depth > 6) return;
-  for (const el of root.querySelectorAll<HTMLElement>('*')) {
-    const sr = el.shadowRoot;
-    if (!sr) continue;
-    const tag = el.tagName.toLowerCase();
-    if (tag === 'bili-comment-replies-renderer') watchReplies(sr);
-    // tag 位于每条评论自己的嵌套 Shadow DOM；主题规则需要注入到包含它的那一层。
-    const css = (SKINS[tag] ?? '') + TAG_SKIN + (extra[tag] ?? '');
-    if (!done.has(sr)) {
-      let s = sheets.get(tag);
-      if (!s) { s = new CSSStyleSheet(); s.replaceSync(css); sheets.set(tag, s); }
-      sr.adoptedStyleSheets = [...sr.adoptedStyleSheets, s];
-      done.add(sr);
-    }
-    // 评论项也是 Web Component，继续遍历所有 open shadow root，直到找到 tag 所在层级。
-    if (!watched.has(sr)) {
-      watched.add(sr);
-      // 评论是异步、分批插入的；监听当前 root，避免等下一轮 1 秒补扫才显示正确主题。
-      new MutationObserver(() => skin(sr, depth + 1)).observe(sr, { childList: true, subtree: true });
-    }
-    skin(sr, depth + 1);
-  }
+  if (root instanceof Element) skinElement(root, depth);
+  for (const el of root.querySelectorAll<HTMLElement>('*')) skinElement(el, depth);
 }
 
 /** extra：按页面追加到某个组件皮肤后面的样式（详情页隐藏评论区重复的大标题） */
@@ -80,7 +92,7 @@ export function skinComments(more: Record<string, string> = {}): void {
   let updateFrame = 0;
   const run = () => {
     const bc = document.querySelector('bili-comments');
-    if (bc) { skin(bc.parentElement ?? document); tree(bc); }
+    if (bc) skin(bc);
     treeOld();
     const container = document.querySelector('#commentapp, .comment-container');
     if (container && !containers.has(container)) {
@@ -121,7 +133,10 @@ const retry = new WeakMap<ShadowRoot, number>();
 function layout(sr: ShadowRoot): void {
   const reps = [...sr.querySelectorAll<HTMLElement & { data?: any }>('#expander-contents > bili-comment-reply-renderer')];
   if (!treeOn || reps.length < 2) {
-    for (const r of reps) { r.style.removeProperty('order'); delete r.dataset.mDepth; }
+    for (const r of reps) {
+      if (r.style.order) r.style.removeProperty('order');
+      if (r.dataset.mDepth !== undefined) delete r.dataset.mDepth;
+    }
     return;
   }
   // 内容脚本在隔离世界里拿不到 lit 的 .data，只能读 DOM：作者名 + 正文开头的「回复 @某人 :」。
@@ -147,19 +162,27 @@ function layout(sr: ShadowRoot): void {
 function nest(reps: HTMLElement[], info: { name: string; to: string }[]): void {
   const kids = new Map<number, number[]>();
   const tops: number[] = [];
+  const lastAuthor = new Map<string, number>();
   info.forEach((x, i) => {
-    let p = -1;
-    if (x.to) for (let j = i - 1; j >= 0; j--) if (info[j].name === x.to) { p = j; break; }
-    if (p < 0) tops.push(i); else { const k = kids.get(p) ?? []; k.push(i); kids.set(p, k); }
+    // 先找父项再更新作者，保持「最近一条前置回复」的语义，包括回复自己。
+    const p = x.to ? lastAuthor.get(x.to) : undefined;
+    if (p === undefined) tops.push(i); else { const k = kids.get(p) ?? []; k.push(i); kids.set(p, k); }
+    lastAuthor.set(x.name, i);
   });
   let n = 0;
-  const walk = (i: number, d: number) => {
+  const stack = tops.map((i) => ({ i, d: 0 })).reverse();
+  while (stack.length) {
+    const { i, d } = stack.pop()!;
     const r = reps[i];
-    r.style.order = String(n++);
-    if (d) r.dataset.mDepth = String(Math.min(d, 3)); else delete r.dataset.mDepth;
-    for (const k of kids.get(i) ?? []) walk(k, d + 1);
-  };
-  for (const t of tops) walk(t, 0);
+    const order = String(n++);
+    if (r.style.order !== order) r.style.order = order;
+    const depth = d ? String(Math.min(d, 3)) : undefined;
+    if (depth === undefined) {
+      if (r.dataset.mDepth !== undefined) delete r.dataset.mDepth;
+    } else if (r.dataset.mDepth !== depth) r.dataset.mDepth = depth;
+    const children = kids.get(i);
+    if (children) for (let k = children.length - 1; k >= 0; k--) stack.push({ i: children[k], d: d + 1 });
+  }
 }
 
 /**
@@ -195,7 +218,10 @@ function layoutOld(l: HTMLElement): void {
   const reps = [...l.querySelectorAll<HTMLElement>(':scope > .sub-reply-item')];
   if (!treeOn || reps.length < 2) {
     l.classList.remove('m-tree');
-    for (const r of reps) { r.style.removeProperty('order'); delete r.dataset.mDepth; }
+    for (const r of reps) {
+      if (r.style.order) r.style.removeProperty('order');
+      if (r.dataset.mDepth !== undefined) delete r.dataset.mDepth;
+    }
     return;
   }
   l.classList.add('m-tree');
@@ -204,15 +230,6 @@ function layoutOld(l: HTMLElement): void {
     const text = (r.querySelector('.reply-content')?.textContent ?? '').trim();
     return { name, to: /^回复\s*@(.+?)\s*[:：]/.exec(text)?.[1]?.trim() ?? '' };
   }));
-}
-
-function tree(bc: Element): void {
-  const root = bc.shadowRoot;
-  if (!root) return;
-  for (const t of root.querySelectorAll('bili-comment-thread-renderer')) {
-    const sr = t.shadowRoot?.querySelector('bili-comment-replies-renderer')?.shadowRoot;
-    if (sr) watchReplies(sr);
-  }
 }
 
 function watchReplies(sr: ShadowRoot): void {
