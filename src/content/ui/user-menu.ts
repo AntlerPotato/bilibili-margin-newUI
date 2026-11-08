@@ -326,7 +326,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
   };
   let hovering = false, overControl = false, lastMx = '', lastMy = '';
   const updateTilt = (elapsed: number) => {
-    flipCurrent += (flipTarget - flipCurrent) * lanyardEase(0.16, elapsed);
+    if (!overControl) flipCurrent += (flipTarget - flipCurrent) * lanyardEase(0.16, elapsed);
     const over = !dragging && mouse.x > -1000;
     if (over) {
       const cx = cardX + cardW / 2, cy = cardY + cardH / 2;
@@ -354,6 +354,7 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
   let still = 0;
   const settled = () => {
     if (dragging) return false;
+    if (overControl) return true;
     for (const p of points) if (Math.abs(p.x - p.oldx) + Math.abs(p.y - p.oldy) > 0.02) return false;
     return Math.abs(flipTarget - flipCurrent) < 0.05 && Math.abs(tiltTarget.x - tiltCurrent.x) + Math.abs(tiltTarget.y - tiltCurrent.y) < 0.01;
   };
@@ -436,6 +437,14 @@ function mountCard(a: Account, wrap: HTMLElement, trigger: HTMLElement, face: (p
     if (!pendingMove) return;
     const move = pendingMove; pendingMove = null;
     mouse = { x: move.x, y: move.y };
+    if (move.overControl && !overControl) {
+      // 锁定屏幕上已显示的位置，避免停下物理模拟时插值追赶到下一步。
+      for (let i = 0; i < points.length; i++) {
+        const point = points[i], shown = rendered[i], prev = previous[i];
+        point.x = point.oldx = prev.x = shown.x;
+        point.y = point.oldy = prev.y = shown.y;
+      }
+    }
     overControl = move.overControl;
     if (!dragging) {
       const out = !inside(mouse.x, mouse.y);

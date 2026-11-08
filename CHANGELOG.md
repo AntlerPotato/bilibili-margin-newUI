@@ -4,6 +4,10 @@
 
 ## 未发布
 
+## [v0.6.5](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.5) · 待发布
+
+- 修复高刷插值下账号卡片链接悬停时的轻微位移。进入链接区域时，将物理状态同步到当前显示位置，再暂停运动，避免链接在鼠标下继续滑动。
+
 ## [v0.6.4](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.4) · 待发布
 
 - 合入隐私试运行改动，外部辅助服务和最近搜索记录默认关闭。最近搜索启用后仅保存在扩展内，最多 8 条，30 天过期并在读取时清理。

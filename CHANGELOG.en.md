@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+## [v0.6.5](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.5) · Pending release
+
+- Fix slight movement of profile-card links during hover with high-refresh interpolation. Synchronize the physics state with the displayed position before pausing movement over a link.
+
 ## [v0.6.4](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.4) · Pending release
 
 - Integrate the privacy preview with optional external services and recent searches disabled by default. Opted-in searches stay in extension storage, capped at eight entries with 30-day expiration and cleanup on read.
