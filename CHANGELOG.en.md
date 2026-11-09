@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+## v0.6.19 · 2026-11-09
+
+- Display selected emoji as images in private-message drafts while retaining editing, undo/redo, line breaks, the 500-character limit and the native send protocol (#137).
+- Fix settings backups failing to trigger a download. Include the display version in filenames and use the browser's save-location preferences without adding download permissions (#138).
+- Add a default-on switch for the dynamic feed's left follow list while keeping the top avatar strip visible (#139).
+- Use ordinary single-line ellipsis for recommendation usernames instead of combining legacy line clamping with no-wrap text. Add Chromium / Firefox paint checks for both themes and narrow columns.
+
 ## v0.6.18 · 2026-11-09
 
 - Center settings in a compact dialog capped at 960×680, adapting to smaller windows with internal scrolling.

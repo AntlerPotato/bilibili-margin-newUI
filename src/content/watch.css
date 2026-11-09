@@ -222,7 +222,13 @@ html.margin-watch .video-page-card-small .upname, html.margin-watch .video-page-
 html.margin-watch .video-page-card-small .name, html.margin-watch .video-page-card-small .upname a {
   color: var(--m-muted) !important; font-size: 12px !important; line-height: 18px !important; opacity: 1 !important;
 }
-html.margin-watch .video-page-card-small .upname .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.margin-watch .video-page-card-small .upname a { display: flex !important; min-width: 0; }
+/* 单行名称使用普通省略，避免原生旧式 line-clamp 与 nowrap 叠加裁切。 */
+html.margin-watch .video-page-card-small .upname a .name {
+  display: block !important; flex: 1 1 auto; width: auto !important; min-width: 0;
+  -webkit-line-clamp: unset; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html.margin-watch .video-page-card-small .upname a > svg { flex-shrink: 0; }
 html.margin-watch .video-page-card-small .upname svg, html.margin-watch .video-page-card-small .upname-icon,
 html.margin-watch .video-page-card-small .playinfo svg { color: var(--m-muted) !important; fill: currentColor !important; opacity: 1 !important; }
 html.margin-watch .video-page-card-small .playinfo { font-family: var(--m-mono); }

@@ -19,6 +19,12 @@ const setChromeMock = () => {
 };
 
 describe('settings 迁移（merge / loadSettings）', () => {
+  it('动态左侧关注列表默认显示，开关可保存与导入', async () => {
+    expect((await loadSettings()).feedFollowList).toBe(true);
+    expect((await saveSettings({ feedFollowList: false })).feedFollowList).toBe(false);
+    expect(sanitizeSettings({ feedFollowList: false })?.feedFollowList).toBe(false);
+    expect(sanitizeSettings({ feedFollowList: 'false' })?.feedFollowList).toBe(true);
+  });
   it('播放器圆角默认保留，关闭和导入不影响全局圆角', async () => {
     expect((await loadSettings()).playerCorners).toBe(true);
     await saveSettings({playerCorners:false});

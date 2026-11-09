@@ -239,6 +239,7 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
     cdnTest.removeAttribute('disabled'); cdnTest.textContent = '重新测速';
   } }, '测速');
   const idD = toggle(s0.idDrag, '账号卡片可拖拽', (v) => save({ idDrag: v }));
+  const followListT = toggle(s0.feedFollowList, '动态页关注列表', (v) => save({ feedFollowList: v }));
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
   const favCols = segmented<string>([['2','2 列'],['3','3 列'],['4','4 列']], String(s0.favColumns),(v) => save({ favColumns:Number(v) as 2 | 3 | 4 }));
   const wideT = toggle(s0.wide, '宽屏模式', (v) => save({ wide: v }));
@@ -364,13 +365,20 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
 
   // ── 数据：导出 / 导入设置与足迹（JSON 文件，只在本机处理） ──
   const exportData = async () => {
-    const v = await chrome.storage.local.get(ACTIVITY_KEY);
-    const data = { app: 'margin', format: 1, version: chrome.runtime.getManifest().version, exportedAt: new Date().toISOString(), settings: get(), activity: v[ACTIVITY_KEY] ?? {} };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = h('a', { href: URL.createObjectURL(blob), download: `margin-backup-${new Date().toISOString().slice(0, 10)}.json` });
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    say(`已导出设置和 ${Object.keys(data.activity).length} 天足迹`);
+    try {
+      const v = await chrome.storage.local.get(ACTIVITY_KEY);
+      const data = { app: 'margin', format: 1, version: chrome.runtime.getManifest().version, exportedAt: new Date().toISOString(), settings: get(), activity: v[ACTIVITY_KEY] ?? {} };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const manifest = chrome.runtime.getManifest();
+      const filename = `margin-backup-${manifest.version_name || manifest.version}-${new Date().toISOString().slice(0, 10)}.json`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      // 这里只接入本函数创建的 Blob URL，不放宽通用链接的安全过滤。
+      a.href = url; a.download = filename; a.hidden = true;
+      document.body.append(a);
+      try { a.click(); } finally { a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60_000); }
+      say(`已发起导出：${filename}（设置和 ${Object.keys(data.activity).length} 天足迹）。保存位置请在浏览器下载记录中查看。`);
+    } catch { say('导出失败，请重试；若浏览器拦截下载，请检查下载提示。'); }
   };
   const json = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, 'aria-label': '选择要导入的备份文件' });
   json.addEventListener('change', async () => {
@@ -529,6 +537,7 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
     row('收藏夹直接展开', '点收藏夹直接列出全部视频，不再先弹出最近 4 个', favD),
     row('收藏夹列数', null, favCols),
     row('账号卡片可拖拽', '关掉后头像下的卡片固定挂着，不能甩动，点一下仍可翻面', idD),
+    row('动态页关注列表', '显示左侧关注列表，顶部头像条保留', followListT),
     sub('背景'),
     block('模式', '随机：每次打开换一款，不连续重复', mode),
     block('样式', null, swatches),
@@ -666,6 +675,7 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
       paintHead();
       if (!fontIn.matches(':focus')) fontIn.value = s.bodyFont;
       idD.setAttribute('aria-checked', String(s.idDrag));
+      followListT.setAttribute('aria-checked', String(s.feedFollowList));
       kw.set(s.filters.keywords);
       ups.set(s.filters.ups);
       mode.set(s.bg.mode);

@@ -1,3 +1,4 @@
+import { draftValue } from './message-draft.mjs';
 // 冒烟测试：加载构建好的扩展（dist/），在离线伪造的 B 站上依次打开各个接管页面，
 // 断言扩展没有抛未捕获错误、关键元素都在，并保存亮 / 暗两套 1440 截图。
 //   npm run build && node tests/smoke.mjs
@@ -384,12 +385,12 @@ for (const theme of THEMES) {
       await page.waitForFunction(()=>document.getElementById('margin-root')?.shadowRoot?.querySelector('.toast')?.textContent.includes('消息已全部标为已读'));
       const miss=[];
       if(reads.size!==5)miss.push(`not all categories handled: ${[...reads]}`);
-      if(await input.inputValue()!=='未发送的私信草稿')miss.push('read all discarded chat draft');
+      if(await draftValue(input)!=='未发送的私信草稿')miss.push('read all discarded chat draft');
       if(await page.locator('#margin-root .wh-dot').count())miss.push('confirmed read sessions retain dots');
       remaining.like=3;failLike=true;await button.click();
       await page.waitForFunction(()=>document.getElementById('margin-root')?.shadowRoot?.querySelector('.toast')?.textContent.includes('未能全部完成'));
       if(await page.locator('#margin-root [data-view="like"] .ms-n').textContent()!=='3')miss.push('failed category unread was cleared');
-      if(await input.inputValue()!=='未发送的私信草稿')miss.push('failure discarded chat draft');
+      if(await draftValue(input)!=='未发送的私信草稿')miss.push('failure discarded chat draft');
       await page.screenshot({path:join(OUT,'messages-readall-partial.png')});return miss;
     });
 

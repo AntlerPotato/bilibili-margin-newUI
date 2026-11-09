@@ -1,3 +1,4 @@
+import { draftValue } from './message-draft.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -30,7 +31,7 @@ try {
   await page.locator('#margin-root [aria-label="选择表情"]').click();const panel=page.locator('#margin-root .wh-emoji-panel');
   await panel.getByRole('button',{name:'[支持]',exact:true}).waitFor();assert.equal(await panel.getByRole('tab').count(),2);
   assert((await panel.getByRole('button',{name:'[加油]',exact:true}).locator('img').getAttribute('src')).endsWith('animate.gif'));
-  await panel.getByRole('tab',{name:'颜文字'}).click();await panel.getByRole('button',{name:'(｀・ω・´)',exact:true}).click();assert.equal(await input.inputValue(),'(｀・ω・´)');await input.fill('');
+  await panel.getByRole('tab',{name:'颜文字'}).click();await panel.getByRole('button',{name:'(｀・ω・´)',exact:true}).click();assert.equal(await draftValue(input),'(｀・ω・´)');await input.fill('');
  });
  await check('131-composer-grows-to-eight-lines',async()=>{
   const before=await input.boundingBox();await input.fill(Array.from({length:12},()=> '这是一段需要完整查看的长消息').join('\n'));

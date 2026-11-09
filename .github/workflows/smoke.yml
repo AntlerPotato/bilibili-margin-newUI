@@ -180,8 +180,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox
       - run: npm run build
+      - name: Rich message draft editing in Chromium and Firefox
+        run: node tests/message-editor.mjs
+        env:
+          SMOKE_OUT: privacy-performance/message-editor
+      - name: Native recommendation username rendering
+        run: node tests/watch-upnames.mjs
+        env:
+          SMOKE_OUT: privacy-performance/upnames
+      - name: Settings export and dynamic follow-list preferences
+        run: node tests/new-feedback.mjs
+        env:
+          SMOKE_OUT: privacy-performance/new-feedback
       - name: Animation layout and cleanup
         run: npm run test:animation-performance
         env:
