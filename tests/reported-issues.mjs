@@ -76,7 +76,9 @@ try {
       await page.goto('https://space.bilibili.com/2/video');
       await page.getByText(/B 站接口返回了非 JSON 页面/).waitFor();
       fail = false;
-      await page.getByRole('button', { name: '重试', exact: true }).click();
+      const retry = page.getByRole('button', { name: '重试', exact: true });
+      // onclick 会同步清空状态栏，按钮可能在 Playwright 完成点击前就被移除
+      if (await retry.count()) await retry.evaluate((b) => b.click()).catch(() => {});
       await page.locator('#margin-root .card:not(.sk)').first().waitFor();
       assert.equal(await page.getByText(/Unexpected token/).count(), 0);
     } finally { await ctx.unroute(pattern); }
