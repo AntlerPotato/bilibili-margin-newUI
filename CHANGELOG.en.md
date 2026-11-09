@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+## v0.6.17 · 2026-11-09
+
+- Integrate the categorized settings panel from PR #135 with eight categories, cross-category search and keyboard navigation.
+- Adapt 21st settings-sidebar and animated-tab interaction patterns using existing local icons and themes, with reduced-motion support and no added React or Motion dependency.
+- Keep narrow-screen category navigation accessible, retain the player-corner setting and route the weather-permission shortcut to its category.
+- Include the author's space-retry test race fix and preserve all message, live-page, follow-status and layout fixes from 0.6.16.
+
 ## v0.6.16 · 2026-11-09
 
 - Fix private-message emoji rendering and missing picker entries, including native image URLs, large emoji and text emoticons.

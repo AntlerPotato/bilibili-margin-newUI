@@ -69,6 +69,8 @@ try {
       await page.locator('#margin-root .top [aria-label="设置"]').click();
       await page.waitForTimeout(500);
       assert.equal(await evaluate('thumbProbe.calls'), 0, 'offscreen thumbnails started on panel opening');
+      await page.locator('#margin-root .sheet[aria-label="设置"]').getByRole('tab', { name: '外观', exact: true }).click();
+      await page.waitForTimeout(100);
       const swatches = page.locator('#margin-root .swatches');
       const showSwatches = () => swatches.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
       await showSwatches();

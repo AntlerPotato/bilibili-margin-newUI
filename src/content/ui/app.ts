@@ -143,6 +143,8 @@ export class MarginApp {
         this.panel.sheet.open();
         requestAnimationFrame(() => {
           const control = this.panel.sheet.el.querySelector<HTMLElement>('[aria-label="允许外部辅助服务"]');
+          const section = control?.closest('[role="tabpanel"]');
+          if (section?.id) this.panel.sheet.el.querySelector<HTMLButtonElement>(`[aria-controls="${section.id}"]`)?.click();
           control?.scrollIntoView({ block: 'center' }); control?.focus({ preventScroll: true });
         });
       });
