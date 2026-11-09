@@ -1,9 +1,11 @@
 /* 分类设置：左侧分组标签，右侧一次只显示一个面板。沿用 .sheet 容器的打开/关闭语义。 */
 .stg-layer { z-index: 30; }
 .sheet.stg {
-  left: 10px; width: auto; max-width: none; border-radius: 24px;
+  inset: 0; margin: auto; width: min(960px, calc(100vw - 48px)); height: min(680px, calc(100dvh - 64px)); max-width: none; border-radius: 22px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
+  opacity: 0; transform: translateY(12px); transition: transform .24s var(--ease-out), opacity .18s var(--ease-out);
 }
+.stg-layer[data-open="true"] .stg { opacity: 1; }
 
 .stg-head { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(220px, 420px) auto; align-items: center; gap: 16px; padding: 18px 22px 16px; }
 .stg-title .eyebrow { margin: 0 0 6px; }
@@ -15,7 +17,7 @@
 .stg-search input::-webkit-search-cancel-button { display: none; }
 .stg-search kbd { flex: none; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--faint); font: 500 11px/1.2 var(--mono); }
 
-.stg-body { display: grid; grid-template-columns: 196px minmax(0, 1fr); padding: 0; overflow-y: auto; }
+.stg-body { display: grid; grid-template-columns: 168px minmax(0, 1fr); min-height: 0; padding: 0; overflow-y: auto; }
 .stg-nav { position: sticky; top: 0; align-self: start; display: flex; flex-direction: column; gap: 2px; padding: 14px 10px 24px; border-right: 1px solid var(--line); }
 .stg-nav button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 8px 12px; border-radius: 10px; color: var(--muted); font: 500 13px/1.4 var(--sans); transition: background .15s var(--ease-out), color .15s var(--ease-out); }
 .stg-nav button:hover { background: var(--chip); color: var(--ink); }
@@ -28,7 +30,7 @@
 .stg-nav button[data-count]::after { content: attr(data-count); margin-left: auto; min-width: 18px; padding: 0 5px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--muted); font: 500 10px/1.7 var(--mono); text-align: center; }
 .stg-nav button[aria-current][data-count]::after { color: var(--ink); }
 
-.stg-main { width: 100%; max-width: 880px; margin: 0 auto; padding: 8px 34px 64px; }
+.stg-main { width: 100%; max-width: 880px; margin: 0 auto; padding: 8px 24px 32px; }
 .stg-sec { padding: 18px 0 56px; scroll-margin-top: 8px; }
 .stg-sec:not([hidden]) { animation: stg-sec-in .2s var(--ease-out); }
 @keyframes stg-sec-in { from { opacity: 0; transform: translateY(6px); } }
@@ -50,6 +52,7 @@
 .ghost.small.danger:hover { background: color-mix(in srgb, #c94f4f 12%, transparent); }
 
 @media (max-width: 760px) {
+  .sheet.stg { width: calc(100vw - 24px); height: min(680px, calc(100dvh - 32px)); border-radius: 18px; }
   .stg-head { grid-template-columns: 1fr auto; }
   .stg-search { grid-column: 1 / -1; order: 3; }
   .stg-body { grid-template-columns: 1fr; grid-template-rows: max-content auto; }

@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## v0.6.18 · 2026-11-09
+
+- Center settings in a compact dialog capped at 960×680, adapting to smaller windows with internal scrolling.
+- Reduce sidebar width and content padding while retaining categories, search and preferences. Stop background thumbnail work when closed and resume it on demand after reopening.
+
 ## v0.6.17 · 2026-11-09
 
 - Integrate the categorized settings panel from PR #135 with eight categories, cross-category search and keyboard navigation.

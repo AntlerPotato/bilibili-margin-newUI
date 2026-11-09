@@ -24,6 +24,14 @@ try {
   const dialog = page.getByRole('dialog', { name: '设置', exact: true });
   const tabs = dialog.getByRole('tab'); assert.equal(await tabs.count(), 8);
   for (let i = 0; i < 8; i++) { await tabs.nth(i).click(); assert.equal(await dialog.getByRole('tabpanel').count(), 1); }
+  const checkDialogSize = async () => {
+    const viewport = page.viewportSize(), box = await dialog.boundingBox();
+    assert(box.width <= 960 && box.height <= 680, `settings too large: ${box.width}x${box.height}`);
+    assert(Math.abs(box.x + box.width / 2 - viewport.width / 2) < 2, 'settings not horizontally centered');
+    assert(Math.abs(box.y + box.height / 2 - viewport.height / 2) < 2, 'settings not vertically centered');
+    assert(box.x >= 10 && box.y >= 10, 'settings has no viewport clearance');
+  };
+  await checkDialogSize();
   await tabs.first().focus(); await page.keyboard.press('End'); assert.equal(await tabs.last().getAttribute('aria-selected'), 'true');
   await page.keyboard.press('Home'); assert.equal(await tabs.first().getAttribute('aria-selected'), 'true');
   results.push('eight categories, single panel and keyboard navigation');
@@ -50,11 +58,17 @@ try {
   await tabs.last().click(); await tabs.nth(1).click(); await tabs.last().click();
   const box = await dialog.boundingBox(); assert(box.x >= 0 && box.x + box.width <= 720);
   assert(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth));
+  await checkDialogSize();
   await page.screenshot({ path: join(out, 'light-narrow.png') });
   results.push('reduced motion, light theme and narrow tab navigation');
   await search.focus(); await page.keyboard.press('Escape'); await dialog.waitFor({ state: 'hidden' });
   await page.locator('#margin-root .top [aria-label="设置"]').click();
   await tabs.nth(4).click(); assert.equal(await corners.getAttribute('aria-checked'), 'false');
+  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 600 }]) {
+    await page.setViewportSize(viewport); await checkDialogSize();
+    assert(await dialog.locator('.stg-body').evaluate(el => el.scrollHeight > el.clientHeight), 'long settings panel must scroll internally');
+  }
+  results.push('compact centered dialog on desktop, narrow and short windows');
   assert.deepEqual(errors, []); results.push('saved preference survives close and reopen');
   results.forEach(result => console.log('PASS ' + result));
 } finally {
