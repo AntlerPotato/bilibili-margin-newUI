@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+## v0.6.20 · 2026-11-09
+
+- Integrate heatmap reliability improvements: merge legacy activity through the worker queue, validate save acknowledgements and distinguish empty, signed-out, partial and failed synchronization.
+- Preserve active visits shorter than 15 seconds when navigating, hiding or reloading a page. Retain cross-tab deduplication and exclude time spent away before a bfcache restore.
+- Update the heatmap after storage changes, retain periodic refresh and add history synchronization/retry controls with failure backoff.
+- Validate pagination cursors, deduplicate entries, handle request timeouts/cancellation and fix the patch's Web Locks type error.
+- Add the 44 patch tests, page lifecycle tests and loaded-extension heatmap regressions to continuous checks.
+
 ## v0.6.19 · 2026-11-09
 
 - Display selected emoji as images in private-message drafts while retaining editing, undo/redo, line breaks, the 500-character limit and the native send protocol (#137).
