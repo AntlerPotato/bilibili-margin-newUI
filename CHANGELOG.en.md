@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## v0.6.21 · 2026-11-09
+
+- Make native comment IP-location labels inherit the timestamp row's font and line height, fixing mismatched sizes in both themes and after font-size changes (#140).
+- Add centering regression checks for both glass-switch states on the homepage, watch page and profile page (#95).
+
 ## v0.6.20 · 2026-11-09
 
 - Integrate heatmap reliability improvements: merge legacy activity through the worker queue, validate save acknowledgements and distinguish empty, signed-out, partial and failed synchronization.
