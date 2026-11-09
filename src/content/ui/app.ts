@@ -138,7 +138,16 @@ export class MarginApp {
   private syncDash(): void {
     const s = this.settings;
     if (s.footprint) { if (!this.foot.isConnected) this.dash.prepend(this.foot); } else this.foot.remove();
-    if (s.weather) { this.wx ??= createWeather(); if (!this.wx.isConnected) this.dash.append(this.wx); } else this.wx?.remove();
+    if (s.weather) {
+      this.wx ??= createWeather(() => {
+        this.panel.sheet.open();
+        requestAnimationFrame(() => {
+          const control = this.panel.sheet.el.querySelector<HTMLElement>('[aria-label="允许外部辅助服务"]');
+          control?.scrollIntoView({ block: 'center' }); control?.focus({ preventScroll: true });
+        });
+      });
+      if (!this.wx.isConnected) this.dash.append(this.wx);
+    } else this.wx?.remove();
     this.dash.hidden = !s.footprint && !s.weather;
   }
 

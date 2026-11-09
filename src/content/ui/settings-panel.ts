@@ -240,6 +240,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
   const favD = toggle(s0.favDirect, '收藏夹直接展开', (v) => save({ favDirect: v }));
   const favCols = segmented<string>([['2','2 列'],['3','3 列'],['4','4 列']], String(s0.favColumns),(v) => save({ favColumns:Number(v) as 2 | 3 | 4 }));
   const wideT = toggle(s0.wide, '宽屏模式', (v) => save({ wide: v }));
+  const cornersT = toggle(s0.playerCorners, '播放器圆角', (v) => save({ playerCorners: v }));
   const autoW = toggle(s0.autoWeb, '自动网页全屏', (v) => save({ autoWeb: v }));
   const webS = toggle(s0.webScroll, '网页全屏可滚动', (v) => save({ webScroll: v }));
   const spdK = toggle(s0.speedKeys, '倍速快捷键', (v) => save({ speedKeys: v }));
@@ -506,6 +507,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
     h('section', { class: 'group' }, h('h3', {}, '播放页'),
       row('评论字号', '视频、动态评论与输入文字大小（px）', cfsS),
       row('宽屏模式', '有播放器时自动进入宽屏；番剧、列表和稍后再看等页面同样生效；和自动网页全屏同时开启时优先网页全屏', wideT),
+      row('播放器圆角', '关闭后保留完整矩形画面，其他卡片圆角不变', cornersT),
       row('自动网页全屏', '有播放器的页面打开后自动铺满浏览器窗口，按 Esc 退出', autoW),
       row('网页全屏时可滚动', '网页全屏下往下滚就能看评论，播放器跟着滚走', webS),
       row('倍速快捷键', 'X 减速、C 加速（每次 0.1×），Z 在当前倍速和 1× 之间切换', spdK),
@@ -594,6 +596,7 @@ function buildSettingsPanel(sheet: Sheet, get: () => Settings, currentShader: ()
       favD.setAttribute('aria-checked', String(s.favDirect));
       favCols.set(String(s.favColumns));
       wideT.setAttribute('aria-checked', String(s.wide));
+      cornersT.setAttribute('aria-checked', String(s.playerCorners));
       autoW.setAttribute('aria-checked', String(s.autoWeb));
       webS.setAttribute('aria-checked', String(s.webScroll));
       spdK.setAttribute('aria-checked', String(s.speedKeys));

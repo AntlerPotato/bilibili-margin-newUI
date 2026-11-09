@@ -156,6 +156,10 @@ jobs:
           SMOKE_OUT=smoke-artifacts/watch-toolbar node tests/watch-toolbar.mjs
           SMOKE_OUT=smoke-artifacts/favorites-subscriptions node tests/favorites-subscriptions.mjs
           SMOKE_OUT=smoke-artifacts/triple-release node tests/triple-release.mjs
+      - name: November messages, player, live and weather regressions
+        run: node tests/november-feedback.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/november-feedback
       - if: always()
         uses: actions/upload-artifact@v4
         with:
