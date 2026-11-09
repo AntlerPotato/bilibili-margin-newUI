@@ -39,6 +39,7 @@ try {
     await page.locator('#margin-root .card:not(.sk)').first().waitFor();
     const before = await page.locator('#margin-root .card:not(.sk)').count();
     await page.locator('#margin-root .hd-settings').click();
+    await page.locator('#margin-root .sheet[aria-label="设置"]').getByRole('tab', { name: '内容过滤', exact: true }).click();
     await page.getByRole('button', { name: '播放量与时长', exact: true }).click();
     await page.getByRole('radio', { name: '10 分钟', exact: true }).click();
     await page.waitForFunction(() => {
@@ -55,6 +56,7 @@ try {
     await seed({ headHide: [] });
     await page.goto('https://www.bilibili.com/');
     await page.locator('#margin-root .hd-settings').click();
+    await page.locator('#margin-root .sheet[aria-label="设置"]').getByRole('tab', { name: '搜索与顶栏', exact: true }).click();
     await page.getByRole('button', { name: /顶栏入口/ }).click();
     const toggle = page.getByRole('switch', { name: '顶栏显示直播', exact: true });
     await toggle.click();
@@ -653,6 +655,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('https://www.bilibili.com/');
     await page.locator('.top .acts > .hd-settings').click();
+    await page.locator('.sheet-layer .sheet[aria-label="设置"]').getByRole('tab', { name: '首页', exact: true }).click();
     await page.locator('.sheet-layer .sd-head').filter({ hasText: '天气城市与卡片信息' }).click();
     const input = page.locator('.sheet-layer').getByRole('searchbox', { name: '天气城市', exact: true });
     const options = page.locator('.sheet-layer .city-list [role="option"]');
