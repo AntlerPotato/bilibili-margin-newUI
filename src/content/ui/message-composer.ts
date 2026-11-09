@@ -22,6 +22,18 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
   let panelAnimation: Animation | null = null, attachmentAnimation: Animation | null = null;
   const selectedEmotes = new Set<string>();
   const controller = new AbortController();
+  const resizeInput = () => {
+    if (!input.isConnected) return;
+    const max = parseFloat(getComputedStyle(input).maxHeight);
+    input.style.height = '0px';
+    input.style.height = `${Math.min(input.scrollHeight + 2, max)}px`;
+  };
+  let inputWidth = 0;
+  const inputObserver = new ResizeObserver(([entry]) => {
+    const width = Math.round(entry.contentRect.width);
+    if (width !== inputWidth) { inputWidth = width; resizeInput(); }
+  });
+  inputObserver.observe(input);
   const sync = () => {
     count.textContent = `${input.value.length}/500`;
     send.disabled = busy || input.value.length > 500 || (!images.length && !input.value.trim());
@@ -30,6 +42,7 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
     attachment.hidden = !images.length;
     hint.hidden = !(images.length && input.value.trim());
     send.textContent = busy ? '发送中…' : '发送';
+    resizeInput();
   };
   const closePicker = (focus = false) => {
     panelAnimation?.cancel(); panelAnimation = null;
@@ -83,7 +96,8 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
       const items = query ? packs!.flatMap(p => p.emotes).filter(e => e.text.toLowerCase().includes(query)) : packs![pack]?.emotes ?? [];
       const seen = new Set<string>();
       grid.replaceChildren(...items.filter(e => !seen.has(e.text) && !!seen.add(e.text)).map(e => {
-        const b = h('button', { class: 'wh-emote', type: 'button', 'aria-label': e.text, title: e.text }, h('img', { src: e.url, alt: e.text, loading: 'lazy', referrerpolicy: 'no-referrer' }));
+        const b = h('button', { class: `wh-emote${e.size === 2 ? ' big' : ''}`, type: 'button', 'aria-label': e.text, title: e.text },
+          e.url ? h('img', { src: e.url, alt: e.text, loading: 'lazy', referrerpolicy: 'no-referrer' }) : h('span', { class: 'wh-emote-text' }, e.text));
         b.onclick = () => {
           if (input.value.length - (end - start) + e.text.length > 500) { o.say('消息不能超过 500 字'); return; }
           input.setRangeText(e.text, start, end, 'end'); selectedEmotes.add(e.text); remember(); sync(); closePicker(); input.focus();
@@ -155,5 +169,5 @@ export function createMessageComposer(o: { me: number; to: number; name: string;
   };
   send.onclick = () => { void go(); };
   input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void go(); } });
-  return { el, focus: () => input.focus(), dispose() { active = false; controller.abort(); closePicker(); clearImages(); } };
+  return { el, focus: () => input.focus(), dispose() { active = false; inputObserver.disconnect(); controller.abort(); closePicker(); clearImages(); } };
 }

@@ -1,5 +1,6 @@
 import { h, icon, ICONS } from './dom';
 import type { Sheet } from './sheet';
+import { uiReducedMotion } from '../motion';
 
 export interface SettingsSection {
   id: string;
@@ -20,6 +21,8 @@ export function createSettingsPage(opts: { title: string; eyebrow: string; onOpe
   const searchBox = h('label', { class: 'stg-search' }, icon(ICONS.search), search, h('kbd', {}, 'Esc'));
   const closeBtn = h('button', { class: 'sheet-x', title: '关闭', 'aria-label': '关闭' }, icon(ICONS.close));
   const nav = h('nav', { class: 'stg-nav', role: 'tablist', 'aria-orientation': 'vertical', 'aria-label': '设置分组' });
+  const indicator = h('span', { class: 'stg-indicator', 'aria-hidden': 'true' });
+  nav.append(indicator);
   const main = h('div', { class: 'stg-main' });
   const body = h('div', { class: 'sheet-body stg-body' }, nav, main);
   const panel = h('aside', {
@@ -40,6 +43,23 @@ export function createSettingsPage(opts: { title: string; eyebrow: string; onOpe
   const autoOpened = new Set<HTMLElement>();
   let active = '';
   let preSearch = '';
+  let indicatorAnimation: Animation | null = null;
+  const alignIndicator = (animate = false) => {
+    const button = sections.find(s => s.id === active)?.btn;
+    if (!button || !button.isConnected || !button.offsetWidth) return;
+    const previous = indicator.getBoundingClientRect();
+    const box = button.getBoundingClientRect(), parent = nav.getBoundingClientRect();
+    Object.assign(indicator.style, { left: `${box.left - parent.left + nav.scrollLeft}px`, top: `${box.top - parent.top + nav.scrollTop}px`, width: `${box.width}px`, height: `${box.height}px` });
+    indicatorAnimation?.cancel();
+    if (animate && previous.width && !uiReducedMotion()) indicatorAnimation = indicator.animate([
+      { transform: `translate(${previous.left - box.left}px,${previous.top - box.top}px) scale(${previous.width / box.width},${previous.height / box.height})` },
+      { transform: 'none' },
+    ], { duration: 280, easing: 'cubic-bezier(.22,1,.36,1)' });
+  };
+  new ResizeObserver(() => {
+    nav.setAttribute('aria-orientation', getComputedStyle(nav).flexDirection === 'row' ? 'horizontal' : 'vertical');
+    alignIndicator();
+  }).observe(nav);
 
   const activate = (id: string, focus = false) => {
     const target = sections.find((s) => s.id === id) ?? sections[0];
@@ -53,6 +73,7 @@ export function createSettingsPage(opts: { title: string; eyebrow: string; onOpe
       s.btn.toggleAttribute('aria-current', on);
     }
     if (focus) target.btn.focus({ preventScroll: true });
+    alignIndicator(true);
   };
   const show = (id: string, focus = false) => {
     const changed = id !== active;
@@ -74,7 +95,7 @@ export function createSettingsPage(opts: { title: string; eyebrow: string; onOpe
     const btn = h('button', {
       type: 'button', id: `stg-tab-${id}`, role: 'tab', 'aria-controls': `stg-${id}`,
       'aria-selected': 'false', tabindex: -1,
-    }, title) as HTMLButtonElement;
+    }, icon(({ overview: ICONS.gear, appearance: ICONS.palette, home: ICONS.zone, bar: ICONS.search, playback: ICONS.live, filter: ICONS.block, privacy: ICONS.user, lab: ICONS.command } as Record<string, string>)[id] || ICONS.gear), h('span', {}, title)) as HTMLButtonElement;
     btn.onclick = () => {
       if (search.value) preSearch = id;
       show(id);

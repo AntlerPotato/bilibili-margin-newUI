@@ -19,6 +19,13 @@ const setChromeMock = () => {
 };
 
 describe('settings 迁移（merge / loadSettings）', () => {
+  it('播放器圆角默认保留，关闭和导入不影响全局圆角', async () => {
+    expect((await loadSettings()).playerCorners).toBe(true);
+    await saveSettings({playerCorners:false});
+    expect(await loadSettings()).toMatchObject({playerCorners:false,radius:100});
+    expect(sanitizeSettings({playerCorners:false})?.playerCorners).toBe(false);
+    expect(sanitizeSettings({playerCorners:'false'})?.playerCorners).toBe(true);
+  });
   it('旧设置使用经典搜索，切换新版可以保存和重新载入', async () => {
     store.set('margin:settings', {});
     expect((await loadSettings()).searchStyle).toBe('classic');

@@ -111,6 +111,8 @@ export interface Settings {
   searchStyle: 'classic' | 'new';
   /** 有 B 站播放器时自动进入宽屏（v0.47），番剧、列表等页面同样生效 */
   wide: boolean;
+  /** 播放器独立圆角，关闭时不影响页面卡片 */
+  playerCorners: boolean;
   /** 隐藏广告与推广（v0.47），默认开启；只做展示层过滤 */
   hideAds: boolean;
   /** 社区广告片段自动跳过，默认关闭；只读小电视空降助手数据 */
@@ -192,6 +194,7 @@ export const DEFAULTS: Settings = {
   paletteSpeed: 100,
   searchStyle: 'classic',
   wide: false,
+  playerCorners: true,
   hideAds: true,
   sponsorSkip: false,
   danmakuJump: false,
@@ -262,6 +265,7 @@ function merge(raw: Partial<Settings> | undefined): Settings {
     paletteSpeed: clampPaletteSpeed(r.paletteSpeed),
     searchStyle: r.searchStyle === 'new' ? 'new' : 'classic',
     wide: r.wide === true,
+    playerCorners: r.playerCorners !== false,
     hideAds: r.hideAds !== false,
     sponsorSkip: r.sponsorSkip === true,
     privacyExternal: r.privacyExternal === true,
@@ -327,6 +331,7 @@ export function sanitizeSettings(raw: unknown): Settings | null {
   if (r.zoom === 100 || r.zoom === 110 || r.zoom === 120) out.zoom = r.zoom;
   if (r.titleFont === 'serif' || r.titleFont === 'sans') out.titleFont = r.titleFont;
   if (r.cols === 0 || r.cols === 4 || r.cols === 5 || r.cols === 6) out.cols = r.cols;
+  if (typeof r.playerCorners === 'boolean') out.playerCorners = r.playerCorners;
   if (typeof r.paletteSpeed === 'number') out.paletteSpeed = clampPaletteSpeed(r.paletteSpeed);
   if (r.searchStyle === 'classic' || r.searchStyle === 'new') out.searchStyle = r.searchStyle;
   if (typeof r.batchNav === 'boolean') out.batchNav = r.batchNav;

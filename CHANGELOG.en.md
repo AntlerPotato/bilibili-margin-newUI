@@ -4,6 +4,24 @@
 
 ## Unreleased
 
+## v0.6.17 · 2026-11-09
+
+- Integrate the categorized settings panel from PR #135 with eight categories, cross-category search and keyboard navigation.
+- Adapt 21st settings-sidebar and animated-tab interaction patterns using existing local icons and themes, with reduced-motion support and no added React or Motion dependency.
+- Keep narrow-screen category navigation accessible, retain the player-corner setting and route the weather-permission shortcut to its category.
+- Include the author's space-retry test race fix and preserve all message, live-page, follow-status and layout fixes from 0.6.16.
+
+## v0.6.16 · 2026-11-09
+
+- Fix private-message emoji rendering and missing picker entries, including native image URLs, large emoji and text emoticons.
+- Grow the message composer with its content up to eight visible lines and keep message-category navigation aligned.
+- Keep live-room controls clear of the fixed header while preserving fullscreen transitions.
+- Add a separate player-corner setting, enabled by default, without changing other cards.
+- Improve search and toolbar capsule outlines while keeping the full header transparent.
+- Explain disabled weather networking and provide a settings shortcut without enabling external access automatically.
+- Resolve real follow status for homepage video cards with batched, deduplicated requests and a short-lived memory cache; failures remain unknown.
+- The categorized settings panel in PR #135 remains an independent preview and is not included in this version.
+
 ## v0.6.15 · 2026-11-08
 
 - Restore the original compact header search with its icon, placeholder and shortcut hint, without a submit button.
