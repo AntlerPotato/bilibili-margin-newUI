@@ -3,6 +3,7 @@ import { fmtAgo, fmtCount, h, icon, ICONS, safeUrl } from './dom';
 import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
 import { appUrl, openBili } from '../navigation';
+import { decorateSendButton } from './send-button';
 
 const img = (src: string, w: number, hgt?: number) => h('img', { src: src ? `${src}@${w}w${hgt ? `_${hgt}h_1c` : ''}.webp` : '', alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
 const ext = { target: '_blank', rel: 'noopener' };
@@ -233,7 +234,7 @@ function replyThread(r: Reply, type: number, oid: string, active: () => boolean)
 /**
  * 动态卡底部互动条（v0.50，B 站评论建议：点赞、转发、评论不用跳详情页）。
  * 赞：直接切换；转发：卡片里展开一句话输入框，点「转发」才发出；评论：卡片里展开热门评论 + 输入框，
- * 「全部评论」仍新标签打开详情页。没有评论区信息（直播等）时保留原来的链接。
+ * 评论参考 21st cnippet-dev Collapsible：页内展开/收起，保留已读内容和草稿，按需分页。
  */
 function actions(d: Dyn): HTMLElement {
   const bar = h('div', { class: 'dy-stat dy-acts' });
@@ -260,20 +261,25 @@ function actions(d: Dyn): HTMLElement {
     wrap.append(fwdBox); fwd.setAttribute('aria-expanded', 'true'); ta.focus();
   });
   // 评论
-  const canCmt = !!(d.cmtType && d.cmtOid) || (!!d.id && !d.live && !d.link);
+  const canCmt = !!d.id;
   const cmt = canCmt
     ? h('button', { type: 'button', class: 'dy-act', 'aria-expanded': 'false' }, `评论 ${fmtCount(d.stat.comment)}`)
     : d.url ? h('a', { class: 'dy-cmt', href: `${d.url}#comment`, ...ext, title: '查看评论' }, `评论 ${fmtCount(d.stat.comment)}`) : h('span', {}, `评论 ${fmtCount(d.stat.comment)}`);
   let cmtBox: HTMLElement | null = null;
   let commentGen = 0;
-  function closeCmt(): void { commentGen++; cmtBox?.remove(); cmtBox = null; if (canCmt) cmt.setAttribute('aria-expanded', 'false'); }
+  function closeCmt(): void { if (cmtBox) cmtBox.hidden = true; if (canCmt) cmt.setAttribute('aria-expanded', 'false'); }
   if (canCmt) cmt.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (cmtBox) { closeCmt(); return; }
+    if (cmtBox) {
+      if (!cmtBox.hidden) closeCmt();
+      else { fwdBox?.remove(); fwdBox = null; fwd.setAttribute('aria-expanded', 'false'); cmtBox.hidden = false; cmt.setAttribute('aria-expanded', 'true'); }
+      return;
+    }
     const gen = ++commentGen;
     fwdBox?.remove(); fwdBox = null; fwd.setAttribute('aria-expanded', 'false');
-    const list = h('div', { class: 'dy-rlist' }, h('div', { class: 'dy-rempty' }, '加载中…'));
-    const ta = h('textarea', { class: 'dy-in', rows: '1', maxlength: '1000', placeholder: '发一条友善的评论' }) as HTMLTextAreaElement;
+    const status = h('div', { class: 'dy-rempty', role: 'status' });
+    const list = h('div', { class: 'dy-rlist' });
+    const ta = h('textarea', { class: 'dy-in', rows: '1', maxlength: '1000', placeholder: '发一条友善的评论', 'aria-label': '发表评论' }) as HTMLTextAreaElement;
     const send = h('button', { type: 'button', class: 'dy-send', disabled: '' }, '发布') as HTMLButtonElement;
     const post = async () => {
       const msg = ta.value.trim();
@@ -282,26 +288,43 @@ function actions(d: Dyn): HTMLElement {
       try {
         await dynReply(d.cmtType!, d.cmtOid!, msg);
         ta.value = ''; d.stat.comment++; cmt.textContent = `评论 ${fmtCount(d.stat.comment)}`;
-        list.querySelector('.dy-rempty')?.remove();
+        status.textContent = '';
         list.prepend(h('div', { class: 'dy-r mine' }, h('div', { class: 'dy-r-b' }, h('b', {}, '我'), h('p', {}, msg))));
       } catch (err) { say(`发布失败：${(err as Error).message}`); }
       send.removeAttribute('disabled');
     };
     send.addEventListener('click', post);
     ta.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && ev.keyCode !== 229) { ev.preventDefault(); post(); } });
-    cmtBox = h('div', { class: 'dy-box dy-cbox' }, h('div', { class: 'dy-box-row' }, ta, send), list,
-      d.url ? h('a', { class: 'dy-rall', href: `${d.url}#comment`, ...ext }, '全部评论 ↗') : null);
+    const more = h('button', { type: 'button', class: 'dy-comment-more', hidden: '' }, '加载更多评论') as HTMLButtonElement;
+    const collapse = h('button', { type: 'button', class: 'dy-comment-collapse', onclick: () => { closeCmt(); cmt.focus({ preventScroll: true }); } }, icon(ICONS.top), '收起评论');
+    cmtBox = h('div', { class: 'dy-box dy-cbox', id: `dy-comments-${d.id}`, role: 'region', 'aria-label': `${d.author} 的动态评论` },
+      h('div', { class: 'dy-box-row' }, ta, send), list, status, h('div', { class: 'dy-comment-footer' }, more, collapse));
+    cmt.setAttribute('aria-controls', cmtBox.id);
     wrap.append(cmtBox); cmt.setAttribute('aria-expanded', 'true');
-    void dynCommentTarget(d).then(async (target) => {
-      if (gen !== commentGen) return;
-      if (!target) throw new Error('暂不支持此动态的评论，请点「全部评论」');
-      send.disabled = false;
-      return dynReplies(target.type, target.oid);
-    }).then((result) => {
-      if (gen !== commentGen || !result) return;
-      const rs = result.list;
-      list.replaceChildren(...(rs.length ? rs.map((r) => replyThread(r, d.cmtType!, d.cmtOid!, () => gen === commentGen && !!cmtBox?.isConnected)) : [h('div', { class: 'dy-rempty' }, '还没有评论')]));
-    }).catch((err) => { if (gen === commentGen) list.replaceChildren(h('div', { class: 'dy-rempty' }, `评论加载失败：${(err as Error).message}`)); });
+    decorateSendButton(send);
+    let pn = 0, loading = false;
+    const seen = new Set<string>();
+    const load = async () => {
+      if (loading) return;
+      loading = true; more.disabled = true; status.textContent = '加载中…';
+      try {
+        const target = await dynCommentTarget(d);
+        if (!target) throw new Error('暂时无法读取此动态的评论，请稍后重试');
+        if (gen !== commentGen || !cmtBox?.isConnected) return;
+        send.disabled = false;
+        const result = await dynReplies(target.type, target.oid, 8, pn + 1);
+        if (gen !== commentGen || !cmtBox?.isConnected) return;
+        pn++;
+        for (const reply of result.list) if (!seen.has(reply.rpid)) {
+          seen.add(reply.rpid); list.append(replyThread(reply, target.type, target.oid, () => gen === commentGen && !!cmtBox?.isConnected));
+        }
+        status.textContent = seen.size ? '' : '还没有评论'; more.hidden = !result.more; more.textContent = '加载更多评论';
+      } catch (err) {
+        if (gen === commentGen && cmtBox?.isConnected) { status.textContent = `评论加载失败：${(err as Error).message}`; more.hidden = false; more.textContent = '重试加载评论'; }
+      } finally { loading = false; more.disabled = false; }
+    };
+    more.addEventListener('click', () => { void load(); });
+    void load();
   });
   // 赞
   const like = h('button', { type: 'button', class: 'dy-act dy-like', 'aria-pressed': String(!!d.liked) }, `赞 ${fmtCount(d.stat.like)}`);

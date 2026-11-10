@@ -12,6 +12,7 @@ import { fmtCount, h, icon, ICONS } from './dom';
 import { PageShell } from './shell';
 import { targetOfDyn } from '../filter-targets';
 import { uiReducedMotion as reducedMotion } from '../motion';
+import { createDynamicComposer } from './dynamic-composer';
 
 const TYPES: [FeedType, string][] = [['all', '全部'], ['video', '视频投稿'], ['pgc', '追番追剧'], ['article', '专栏']];
 const ext = { target: '_blank', rel: 'noopener' };
@@ -63,7 +64,10 @@ export class FeedApp {
       b.dataset.tab = id;
       return b;
     }));
-    const post = h('a', { class: 'fd-post', href: 'https://t.bilibili.com/?margin=off', title: '在 B 站原版里发动态' }, icon(ICONS.plus), h('span', {}, '发动态'));
+    let composer: ReturnType<typeof createDynamicComposer> | null = null;
+    const post = h('button', { type: 'button', class: 'fd-post', onclick: () => {
+      composer ??= createDynamicComposer(s.app, () => this.reload()); composer.open();
+    } }, icon(ICONS.plus), h('span', {}, '发动态'));
     this.list = h('div', { class: 'dy-list fd-list' });
     attachPreview(this.list, () => this.shell.settings.hoverPreview);
     this.status = h('div', { class: 'status' });

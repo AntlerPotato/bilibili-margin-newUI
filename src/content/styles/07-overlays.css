@@ -63,7 +63,7 @@
   will-change: left, top, width, height;
   transition: left calc(340ms * var(--cp-k, 1)) var(--ease-out), top calc(340ms * var(--cp-k, 1)) var(--ease-out),
     width calc(340ms * var(--cp-k, 1)) var(--ease-out), height calc(340ms * var(--cp-k, 1)) var(--ease-out),
-    border-radius calc(280ms * var(--cp-k, 1)) var(--ease-out);
+    border-radius calc(280ms * var(--cp-k, 1)) var(--ease-out), corner-shape calc(280ms * var(--cp-k, 1)) var(--ease-out);
 }
 .cp.cp-clipping .cp-panel {
   position: absolute; left: 0; top: 0; pointer-events: auto;

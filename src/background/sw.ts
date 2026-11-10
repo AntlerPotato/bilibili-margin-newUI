@@ -10,6 +10,7 @@ import { handleFootprint } from './footprint';
 import type { SponsorMessage } from '../shared/sponsor';
 import { handleHistory, protectAuthStorage, trustedSender } from './privacy';
 import { SEARCH_HISTORY_KEY, type HistoryMessage } from '../shared/privacy';
+import { recordVersionInstall } from './updates';
 
 let queue: Promise<unknown> = Promise.resolve();
 const serial = <T>(fn: () => Promise<T>): Promise<T> => { const p = queue.then(fn, fn); queue = p.catch(() => {}); return p; };
@@ -85,7 +86,8 @@ chrome.runtime.onMessage.addListener((m: FpMessage | AppMessage | SponsorMessage
   return true;
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(details => {
+  void serial(() => recordVersionInstall(details.reason, details.previousVersion)).catch(() => {});
   // v0.30 及更早的页面级节流戳，已不再使用
   chrome.storage.local.remove('margin:activity-tick').catch(() => {});
 });

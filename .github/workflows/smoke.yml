@@ -28,6 +28,13 @@ jobs:
         run: node tests/popup-version.mjs
         env:
           SMOKE_OUT: smoke-artifacts/popup-version
+      - name: Favorites loading, drawer scrolling and inline dynamic comments
+        run: |
+          node tests/favorites-loading.mjs
+          node tests/dynamic-inline-comments.mjs
+          node tests/dynamic-composer-extension.mjs
+      - name: Native Lit publish button and motion
+        run: node tests/button-motion.mjs
       - name: Space drawer regressions
         run: npm run test:drawers
       - name: Space articles, audio and public favorites

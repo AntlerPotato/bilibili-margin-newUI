@@ -203,6 +203,7 @@ export function createCommandPalette(commands: Command[]): Palette {
     shell.style.width = `${r.width}px`;
     shell.style.height = `${r.height}px`;
     shell.style.borderRadius = radius;
+    shell.style.setProperty('corner-shape', radius.includes('%') || parseFloat(radius) >= 99 ? 'round' : 'squircle');
   }
   function cleanupMorph(): void {
     cancelAnimationFrame(openFrame);

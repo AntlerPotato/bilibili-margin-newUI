@@ -1,8 +1,12 @@
-[中文](CHANGELOG.md) | **English**
+[中文](CHANGELOG## [v0.6.32](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.32) · 2026-11-10
 
-# Changelog
-
-## Unreleased
+- Favorites and subscriptions: remove growing entrance delays, prefetch nearby covers with bounded concurrency and reuse cached results. Reduce per-frame work on blurred copies and fix missing paint and full-page flashing. Add Return to top.
+- Dynamics: expand, collapse and paginate comments inline while retaining loaded replies and drafts; support nested replies, retries and closing during slow requests. Compose text and up to nine pictures within MARGIN without navigating to the native page.
+- Search: add an opt-in exact-target-first mode that stably promotes full-title or BV matches on the current page without additional queries or history collection. Improve contrast, compact glass controls and alignment while preserving native input and filter events.
+- Appearance: use native continuous corners with circular and pill shapes preserved, improve local liquid-refraction controls, and retain soft, flat and reduced-motion options. Remove large opaque blocks from Watch Later.
+- Native comments: fix the white detail iframe, apply the requested paper-plane publish animation while ignoring Lit render markers, and preserve native handlers, disabled states and keyboard operation. Add morphing pagination arrows.
+- Reliability: contain modal focus, retry favorites after login, and report actual footprint-import persistence. Raise manual history backfill to 200 pages with cancellation, deduplication and backoff. Show version and change notes after upgrades.
+- No additional frameworks, dependencies or permissions. Public builds preserve material preferences and exclude the local trial's one-time liquid-mode initializer.
 
 ## v0.6.21 · 2026-11-09
 

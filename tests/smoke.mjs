@@ -1442,17 +1442,17 @@ for (const theme of THEMES) {
       if (!requests.some((u) => u.includes('web-dynamic/v1/detail'))) miss.push('missing comment metadata was not resolved');
       if (ctx.pages().length !== before) miss.push('inline comments opened a new tab');
       await comment.click();
-      if (await card.locator('.dy-cbox').count()) miss.push('comments did not collapse');
+      if (!await card.locator('.dy-cbox').isHidden()) miss.push('comments did not collapse');
       const broken = root.locator('.fd-list .dy-text .dy-emoji').first();
       await broken.evaluate((el) => el.dispatchEvent(new Event('error')));
       if (!(await root.locator('.fd-list .dy-text').allTextContents()).some((t) => t.includes('[开心]'))) miss.push('failed emoji did not restore text');
-      // 查详情失败时保持页内状态和外部入口，不允许发布到未知评论区。
+      // 查详情失败时保留页内重试入口，不允许发布到未知评论区。
       mockOverride = (u) => u.includes('web-dynamic/v1/detail?') ? { code: -101, message: '未登录' } : null;
       try {
         const other = root.locator('.fd-list > .dy').nth(1);
         await other.getByRole('button', { name: /^评论/ }).click();
         await other.locator('.dy-rempty').filter({ hasText: '评论加载失败' }).waitFor({ timeout: 8000 });
-        if (!(await other.locator('.dy-rall').count())) miss.push('fallback link missing');
+        if (!await other.getByRole('button', { name: '重试加载评论', exact: true }).isVisible()) miss.push('inline retry missing');
         if (!(await other.getByRole('button', { name: '发布', exact: true }).isDisabled())) miss.push('posting enabled without comment target');
       } finally { mockOverride = null; }
       return miss;

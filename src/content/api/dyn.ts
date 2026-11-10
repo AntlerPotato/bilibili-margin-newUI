@@ -190,13 +190,15 @@ function toReply(r: any): Reply {
     location: typeof r.reply_control?.location === 'string' ? r.reply_control.location.trim() || undefined : undefined,
   };
 }
-/** 热门评论第一页（旧版 /x/v2/reply 不要 wbi 签名） */
-export async function dynReplies(type: number, oid: string, ps = 8): Promise<{ list: Reply[]; count: number }> {
-  const d = await getJSON<any>('/x/v2/reply', { type, oid, sort: 1, ps, pn: 1 });
+/** 热门评论按页读取；置顶只在第一页合并，避免挤掉该页最后一条普通评论。 */
+export async function dynReplies(type: number, oid: string, ps = 8, pn = 1): Promise<{ list: Reply[]; count: number; more: boolean }> {
+  const d = await getJSON<any>('/x/v2/reply', { type, oid, sort: 1, ps, pn });
   const seen = new Set<string>();
-  const list = [...(d.top_replies ?? []), ...(d.upper?.top ? [d.upper.top] : []), ...(d.replies ?? [])]
-    .map(toReply).filter((r) => !seen.has(r.rpid) && seen.add(r.rpid)).slice(0, ps);
-  return { list, count: d.page?.acount ?? d.page?.count ?? list.length };
+  const rows = d.replies ?? [];
+  const list = [...(pn === 1 ? [...(d.top_replies ?? []), ...(d.upper?.top ? [d.upper.top] : [])] : []), ...rows]
+    .map(toReply).filter((r) => !seen.has(r.rpid) && seen.add(r.rpid));
+  const more = rows.length > 0 && (typeof d.page?.count === 'number' ? pn * (d.page.size || ps) < d.page.count : rows.length >= ps);
+  return { list, count: d.page?.acount ?? d.page?.count ?? list.length, more };
 }
 export async function dynSubReplies(type: number, oid: string, root: string, pn: number): Promise<{ list: Reply[]; more: boolean }> {
   const ps = 10;

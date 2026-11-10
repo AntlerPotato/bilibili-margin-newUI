@@ -1,4 +1,6 @@
 import type { Settings } from '../../shared/settings';
+import { mountUpdateNotice } from './update-notice';
+import { attachNavigationGlass } from './navigation-glass';
 import { loadSettings } from '../../shared/settings';
 import { BackgroundLayer } from '../bg/background';
 import { h, ICONS, guardTyping } from './dom';
@@ -71,9 +73,9 @@ export class PageShell {
     // 标记抽屉状态；大面板使用实底，可见背景保持动态。
     this.app.addEventListener('margin:sheet', () => { const on = !!this.app.querySelector('.sheet-layer[data-open="true"]'); this.app.classList.toggle('sheeted', on); });
     this.root.append(this.app);
+    mountUpdateNotice(this.app);
     const lg = filtersIn(this.root);
-    this.head.glass.forEach((g) => attachGlass(g, lg));
-    attachGlass(this.head.thumb, lg, { blur: 2, strength: 0.4 });
+    attachNavigationGlass(this.head, lg);
     this.applyTheme();
     this.media.addEventListener('change', () => this.applyTheme());
   }

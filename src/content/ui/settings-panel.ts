@@ -1,6 +1,7 @@
 import type { BgMode, HomeBit, HomeSection, Settings, ShaderId, Theme } from '../../shared/settings';
 import { BG_IMAGE_KEY, clampPaletteSpeed, cleanFont, DEFAULTS, HOME_BITS, HOME_SECTION_NAMES, normalizeHomeOrder, replaceSettings, sanitizeSettings, saveSettings } from '../../shared/settings';
-import { ACTIVITY_KEY, sanitizeActivity, type FpMessage } from '../../shared/activity';
+import { ACTIVITY_KEY, sanitizeActivity } from '../../shared/activity';
+import { importActivity } from '../footprint/store';
 import { compressImage } from '../bg/background';
 import { SHADER_IDS, SHADER_NAMES } from '../bg/shaders';
 import { cachedThumb, shaderThumb } from '../bg/program';
@@ -381,10 +382,11 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
     } catch { say('导出失败，请重试；若浏览器拦截下载，请检查下载提示。'); }
   };
   const json = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, 'aria-label': '选择要导入的备份文件' });
+  let importing = false;
   json.addEventListener('change', async () => {
     const f = json.files?.[0];
     json.value = '';
-    if (!f) return;
+    if (!f || importing) return;
     let raw: Record<string, unknown>;
     try {
       if (f.size > 5e6) throw new Error('文件太大');
@@ -398,9 +400,16 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
     const parts = [settings ? '用备份覆盖当前设置（主题、背景、过滤）' : '', days ? `合并 ${days} 天足迹（同一天取较长时长、较早首次打开）` : ''].filter(Boolean);
     const when = typeof raw.exportedAt === 'string' ? `（${raw.exportedAt.slice(0, 10)} 导出）` : '';
     if (!confirm(`导入映间备份${when}：\n· ${parts.join('\n· ')}\n\n继续吗？`)) return;
-    if (activity && days) await chrome.runtime.sendMessage({ margin: 'fp', op: 'import', days: activity } satisfies FpMessage);
-    if (settings) await replaceSettings(settings);
-    say(`已导入${settings ? '设置' : ''}${settings && days ? '和' : ''}${days ? ` ${days} 天足迹` : ''}`);
+    importing = true; importBtn.disabled = true;
+    let savedDays = 0;
+    try {
+      if (activity && days) { await importActivity(activity); savedDays = days; }
+      if (settings) await replaceSettings(settings);
+      say(`已导入${settings ? '设置' : ''}${settings && days ? '和' : ''}${days ? ` ${days} 天足迹` : ''}`);
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : '保存失败，请重试';
+      say(savedDays ? `已导入 ${savedDays} 天足迹，但设置导入失败：${reason}` : `导入失败：${reason}`);
+    } finally { importing = false; importBtn.disabled = false; }
   });
   const exportBtn = h('button', { type: 'button', class: 'ghost small', onclick: exportData }, h('span', {}, '导出'));
   const importBtn = h('button', { type: 'button', class: 'ghost small', onclick: () => json.click() }, h('span', {}, '导入'));

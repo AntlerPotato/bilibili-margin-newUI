@@ -2,6 +2,7 @@ node_modules
 dist
 *.zip
 tests/artifacts/
+/delivery/
 dist-firefox
 .npm-cache/
 .uv-cache/
