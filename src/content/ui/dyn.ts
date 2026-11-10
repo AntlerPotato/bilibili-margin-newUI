@@ -4,6 +4,7 @@ import { laterButton } from './later-btn';
 import { openLightbox } from './lightbox';
 import { appUrl, openBili } from '../navigation';
 import { decorateSendButton } from './send-button';
+import { observeDynamicGlass } from './dynamic-glass';
 
 const img = (src: string, w: number, hgt?: number) => h('img', { src: src ? `${src}@${w}w${hgt ? `_${hgt}h_1c` : ''}.webp` : '', alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
 const ext = { target: '_blank', rel: 'noopener' };
@@ -62,7 +63,10 @@ export function dynCard(d: Dyn, nested = false, withAuthor = false): HTMLElement
       h('span', {}, h('b', {}, link.title), h('span', {}, [link.kind, link.desc].filter(Boolean).join(' · ')))));
   }
   if (d.reserve) media.push(reserveCard(d));
-  if (d.orig) media.push(h('div', { class: 'dy-orig' }, h('div', { class: 'dy-orig-by' }, `@${d.orig.author}`), dynCard(d.orig, true)));
+  if (d.orig) {
+    const original = h('div', { class: 'dy-orig' }, h('div', { class: 'dy-orig-by' }, `@${d.orig.author}`), dynCard(d.orig, true));
+    observeDynamicGlass(original); media.push(original);
+  }
 
   // 长文折叠（GitHub #8）：按字数 / 行数判断，不读布局
   const long = !!d.text && (d.text.length > 240 || d.text.split('\n').length > 8);
@@ -301,6 +305,7 @@ function actions(d: Dyn): HTMLElement {
       h('div', { class: 'dy-box-row' }, ta, send), list, status, h('div', { class: 'dy-comment-footer' }, more, collapse));
     cmt.setAttribute('aria-controls', cmtBox.id);
     wrap.append(cmtBox); cmt.setAttribute('aria-expanded', 'true');
+    observeDynamicGlass(cmtBox);
     decorateSendButton(send);
     let pn = 0, loading = false;
     const seen = new Set<string>();

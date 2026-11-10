@@ -149,31 +149,36 @@ html.margin-search .user-name, html.margin-search .media-card-content-head-title
 /* 分页 */
 html.margin-search .vui_pagenation--btn { border-radius: 999px !important; border: 0 !important; background: color-mix(in srgb, var(--m-surface) 80%, transparent) !important; color: var(--m-ink) !important; font-family: var(--m-mono) !important; }
 html.margin-search .vui_pagenation--btn-num.vui_button--active, html.margin-search .vui_pagenation--btn.vui_button--active { background: var(--margin-primary, var(--m-ink)) !important; color: var(--margin-primary-fg, var(--m-canvas)) !important; }
-/* Reserve the expanded width: the native pager and click handler stay in place. */
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child {
-  position: relative; flex: 0 0 120px; width: 120px !important; height: 64px !important;
+/* Both directions share the native page-number height; reserve hover width. */
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side {
+  --m-arrow-size: 32px; --m-arrow-wide: 60px; --m-arrow-delta: 28px;
+  position: relative; flex: 0 0 var(--m-arrow-wide); width: var(--m-arrow-wide) !important; height: var(--m-arrow-size) !important;
   padding: 0 !important; font-size: 0 !important; background: transparent !important;
-  clip-path: inset(0 0 0 56px round 32px); transition: clip-path .3s ease-in-out !important;
+  clip-path: inset(0 var(--m-arrow-delta) 0 0 round 16px); transition: clip-path .3s ease-in-out !important;
 }
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child::before {
-  content: ''; position: absolute; inset: 0 0 0 auto; box-sizing: border-box; width: 64px;
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; box-sizing: border-box; width: var(--m-arrow-size);
   border: 1px solid currentColor; border-radius: 50%; corner-shape: round;
-  background: linear-gradient(currentColor, currentColor) right 20px center / 0 2px no-repeat;
+  background: linear-gradient(currentColor, currentColor) left 16px center / 0 1.5px no-repeat;
   transition: width .3s ease-in-out, border-radius .3s ease-in-out, background-size .3s ease-in-out; pointer-events: none;
 }
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child::after {
-  content: ''; position: absolute; top: 0; left: 20px; width: 90px; height: 64px; pointer-events: none;
-  background: currentColor; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 64'%3E%3Cpath d='M15 26 9 32 15 38' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
-  transform: translateX(56px); transition: transform .3s ease-in-out;
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side::after {
+  content: ''; position: absolute; top: 50%; left: 8px; width: 16px; height: 16px; pointer-events: none;
+  background: currentColor; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m9 6 6 6-6 6' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  transform: translate(var(--m-arrow-move, 0px), -50%) scaleX(var(--m-arrow-flip, 1)); transition: transform .3s ease-in-out;
 }
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) { clip-path: inset(0 round 50px 14px 14px 50px); }
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])::before { width: 120px; border-radius: 50px 14px 14px 50px; corner-shape: round; background-size: 70px 2px; }
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])::after { transform: none; }
-html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child:focus-visible::before { box-shadow: inset 0 0 0 2px var(--m-accent); }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child { --m-arrow-flip: -1; clip-path: inset(0 0 0 var(--m-arrow-delta) round 16px); }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child::before { inset: 0 0 0 auto; background-position: right 16px center; }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child::after { left: auto; right: 8px; }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]):not(.vui_button--disabled) { --m-arrow-move: var(--m-arrow-delta); clip-path: inset(0 round 8px 16px 16px 8px); }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]):not(.vui_button--disabled)::before { width: var(--m-arrow-wide); border-radius: 8px 16px 16px 8px; background-size: var(--m-arrow-delta) 1.5px; }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]):not(.vui_button--disabled) { --m-arrow-move: calc(-1 * var(--m-arrow-delta)); clip-path: inset(0 round 16px 8px 8px 16px); }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]):not(.vui_button--disabled)::before { border-radius: 16px 8px 8px 16px; }
+html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:focus-visible::before { box-shadow: inset 0 0 0 2px var(--m-accent); }
 @media (prefers-reduced-motion: reduce) {
-  html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child,
-  html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child::before,
-  html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side:first-child::after { transition: none !important; }
+  html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side,
+  html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side::before,
+  html.margin-search .vui_pagenation--btns > .vui_pagenation--btn-side::after { transition: none !important; }
 }
 html.margin-search .vui_button--disabled { opacity: .45; }
 

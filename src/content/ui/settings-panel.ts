@@ -11,7 +11,7 @@ import { fmtCount, h, icon, ICONS } from './dom';
 import { createSettingsPage, type SettingsPage } from './settings-page';
 import { SITE_LINKS } from './header';
 import { appPoll, appQr, appRevoke, appState } from '../api/appfeed';
-import { clearLoc, savedLoc, setLoc as setLocWithName } from '../api/weather';
+import { clearLoc, loadLoc, savedLoc, setLoc as setLocWithName } from '../api/weather';
 import { createCityPicker } from './city-picker';
 import { forgetSearch } from '../api/search-history';
 
@@ -130,8 +130,8 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
   paintOrder();
   // 天气城市（#3）：输入后列出候选，点一个就固定；「自动」回到 IP 定位
   const cityAuto = h('button', { class: 'city-auto', type: 'button' }, '自动');
-  const cityPicker = createCityPicker(place => {
-    setLocWithName(place);
+  const cityPicker = createCityPicker(async place => {
+    await setLocWithName(place);
     say(`天气城市：${place.name} · ${place.region}`);
   });
   cityPicker.input.placeholder = '自动定位';
@@ -142,9 +142,13 @@ function buildSettingsPanel(sheet: SettingsPage, get: () => Settings, currentSha
     cityPicker.input.value = loc?.manual ? loc.name : '';
     cityAuto.hidden = !loc?.manual;
   };
-  cityAuto.addEventListener('click', () => { clearLoc(); paintCity(); say('天气改回按 IP 自动定位'); });
+  cityAuto.addEventListener('click', async () => {
+    try { await clearLoc(); paintCity(); say('天气改回按 IP 粗定位'); }
+    catch { say('天气位置保存失败，请重试'); }
+  });
   addEventListener('margin:wx-loc', paintCity);
   paintCity();
+  void loadLoc().then(paintCity, () => say('天气位置读取失败，请重试'));
   const cityBox = cityPicker.el;
   const cols = segmented<string>([['0', '自动'], ['4', '4 个'], ['5', '5 个'], ['6', '6 个']], String(s0.cols), (v) => save({ cols: Number(v) as 0 | 4 | 5 | 6 }));
   const fontS = segmented<'serif' | 'sans'>([['serif', '衬线'], ['sans', '无衬线']], s0.titleFont, (v) => save({ titleFont: v }));

@@ -4,6 +4,33 @@
 
 ## Unreleased
 
+## v0.6.39 · 2026-11-11
+
+- Confine dynamic comment/repost displacement to an 8px rim and reduce its scale from 200 to 6. Keep the center undistorted to remove large gray waves and stretched edges on tall cards.
+- Preserve transparent backgrounds, existing colors and the borderless finish. Retain viewport activation and soft/flat/reduced-transparency fallbacks without adding maps, animation loops, dependencies or permissions.
+
+## v0.6.38 · 2026-11-11
+
+- Remove the white inset rim and top highlight from inline dynamic comments and repost content. Retain transparent glass, background displacement, soft shadows and existing colors and interactions.
+
+## v0.6.37 · 2026-11-11
+
+- Apply transparent glass to inline dynamic comments and repost content using the supplied 21st GlassEffect's static noise displacement, 3px backdrop blur and inset highlights. Preserve foreground colors, buttons, layout and comment interactions.
+- Share one SVG filter per page and enable displacement only near the viewport. Add no React runtime, animation library, dependency or permission; generate no canvas maps at runtime. Retain soft, flat and reduced-transparency fallbacks.
+- Preserve the native header icons, weather search/location repairs and compact pagination arrows from 0.6.35–0.6.36.
+
+## v0.6.36 · 2026-11-10
+
+- Add a lazy Chinese city/district index with exact matching and province/city context. Retain online lookup for other places and remove the Xinxiang-specific workaround.
+- Share weather locations through extension local storage and migrate explicit legacy selections. Cache successful approximate IP locations for six hours; never substitute Shanghai on failure or overwrite manual choices with late responses.
+- Coalesce same-page location/forecast requests. Keep city selection and retry available on errors, and label stale refreshes. Add no geolocation permissions, map SDK or forecast provider.
+- Apply compact morphing arrows to both native search pagination directions at 32px height and 60px expanded width, retaining native events, disabled states and reduced motion.
+
+## v0.6.35 · 2026-11-10
+
+- Restore the approved native Bilibili shapes for header messages, updates, membership, favorites, history and creator center. Retain IconMCP for the other shortcuts, 20px sizing, the glass capsule, badges and existing interactions.
+- Scope the replacement to header shortcuts. Bundle SVGs locally without new dependencies, permissions or runtime requests.
+
 ## [v0.6.34](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.34) · 2026-11-10
 
 - Merge @hhh2210's PR #141 restoring the native All / Charging videos filter for creator uploads. Show it only when available, reuse the native endpoint and existing segmented control, and retain sorting and filtered search without dependencies or permissions.

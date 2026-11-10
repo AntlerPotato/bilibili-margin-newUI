@@ -3,6 +3,7 @@ import { loadSettings, onSettingsChange, type Settings } from '../../shared/sett
 import { account, dynamicUpdates, resetDynamicBaseline, unreadTotal } from '../api/account';
 import { onMsgRead } from '../api/msg';
 import { h, icon, ICONS, setMarkup } from './dom';
+import { HEADER_ICONS } from './header-icons';
 import { createExpandableTabs, type TabItem, type TabSpec } from './expandable-tabs';
 import { createUserMenu } from './user-menu';
 import { createSunMoon, type SunMoon } from './sun-moon';
@@ -115,7 +116,7 @@ export function createHeader(o: { tabs: TabItem[]; onTheme: () => void; onSearch
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
 
-  const tabsNav = createExpandableTabs(o.tabs);
+  const tabsNav = createExpandableTabs(o.tabs.map(tab => tab === 'separator' ? tab : { ...tab, icon: HEADER_ICONS[tab.title] ?? tab.icon }));
   // 直播 / 消息 / 动态 / 历史 / 收藏 / 稍后：停留 1.5 秒弹出悬停列表
   let msgPop: PopHandle | null = null;
   const popHandles: PopHandle[] = [];

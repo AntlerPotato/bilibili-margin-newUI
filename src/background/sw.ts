@@ -11,6 +11,8 @@ import type { SponsorMessage } from '../shared/sponsor';
 import { handleHistory, protectAuthStorage, trustedSender } from './privacy';
 import { SEARCH_HISTORY_KEY, type HistoryMessage } from '../shared/privacy';
 import { recordVersionInstall } from './updates';
+import { handleWeatherLocation } from './weather-location';
+import type { WeatherLocationMessage } from '../shared/weather-location';
 
 let queue: Promise<unknown> = Promise.resolve();
 const serial = <T>(fn: () => Promise<T>): Promise<T> => { const p = queue.then(fn, fn); queue = p.catch(() => {}); return p; };
@@ -75,9 +77,10 @@ async function handleApp(m: AppMessage): Promise<unknown> {
   return { ok: false };
 }
 
-chrome.runtime.onMessage.addListener((m: FpMessage | AppMessage | SponsorMessage | HistoryMessage, sender, reply) => {
-  if (!m || !['app', 'fp', 'sponsor', 'privacy'].includes(m.margin)) return;
+chrome.runtime.onMessage.addListener((m: FpMessage | AppMessage | SponsorMessage | HistoryMessage | WeatherLocationMessage, sender, reply) => {
+  if (!m || !['app', 'fp', 'sponsor', 'privacy', 'weather-location'].includes(m.margin)) return;
   if (!trustedSender(sender, chrome.runtime.id)) { reply({ ok: false, error: '消息来源无效' }); return; }
+  if (m.margin === 'weather-location') { serial(() => handleWeatherLocation(m)).then(reply, () => reply({ ok: false, error: '天气位置保存失败' })); return true; }
   if (m.margin === 'privacy') { serial(() => handleHistory(m)).then(reply, () => reply({ ok: false, entries: [] })); return true; }
   if (m && m.margin === 'sponsor') { getSponsorSegments(m.bvid).then((segments) => reply({ ok: true, segments }), () => reply({ ok: false })); return true; }
   if (m && m.margin === 'app') { handleApp(m).then(reply, () => reply({ ok: false, error: '推荐请求失败，请稍后重试' })); return true; }

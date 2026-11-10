@@ -112,6 +112,14 @@ jobs:
         run: npm run test:reported-issues
         env:
           SMOKE_OUT: smoke-artifacts/reported-issues
+      - name: Weather location, offline cities and cross-domain recovery
+        run: node tests/weather-system.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/weather-system
+      - name: Transparent dynamic glass and undistorted content
+        run: node tests/dynamic-glass.mjs
+        env:
+          SMOKE_OUT: smoke-artifacts/dynamic-glass
       - name: Native channel theme and video navigation
         run: |
           SMOKE_OUT=smoke-artifacts/channel-theme node tests/channel-theme.mjs
