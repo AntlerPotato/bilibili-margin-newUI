@@ -1,6 +1,6 @@
 import type { Settings } from '../../shared/settings';
 import { invalidateFollowStatus } from '../api/follow-status';
-import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceLive, spaceRecent, spaceVideos, spaceCollections, spaceCollectionVideos, createSpaceSearch, type SpaceCollection, type SpaceInfo, type VideoOrder } from '../api/space';
+import { block, follow, followTags, setUserTags, userTags, spaceInfo, spaceLive, spaceRecent, spaceVideos, spaceCollections, spaceCollectionVideos, createSpaceSearch, type SpaceCollection, type SpaceInfo, type VideoKind, type VideoOrder } from '../api/space';
 import { spaceDynamics } from '../api/dyn';
 import { videoCard, skeleton } from './card';
 import { dynCard, dynData } from './dyn';
@@ -42,6 +42,10 @@ export class SpaceApp {
   readonly shell: PageShell;
   private tab: Tab;
   private order: VideoOrder = 'pubdate';
+  /** 「全部 / 充电视频」筛选（原生空间「更多筛选 → 充电专属」）；UP 没有充电专属视频时不显示 */
+  private kind: VideoKind = 'all';
+  private chargingCount = 0;
+  private kindSeg!: HTMLElement & { set(v: VideoKind): void };
   private page = 1;
   private offset = '';
   private done = false;
@@ -98,9 +102,15 @@ export class SpaceApp {
     this.qInput = input;
     this.sort = segmented<VideoOrder>([['pubdate', '最新发布'], ['click', '最多播放']], this.order, (v) => { this.order = v; this.reload(); });
     this.sort.classList.add('sp-sort');
+    this.kindSeg = segmented<VideoKind>([['all', '全部'], ['charging', '充电视频']], this.kind, (v) => {
+      if (v === this.kind) return;
+      this.kind = v; this.reload();
+    });
+    this.kindSeg.classList.add('sp-sort', 'sp-kind');
+    this.kindSeg.hidden = true;
     this.layoutSeg = segmented<Layout>([['grid', '网格'], ['list', '列表']], this.layout, (v) => { this.layout = v; localStorage.setItem(LAYOUT_KEY, v); this.reload(); });
     this.layoutSeg.classList.add('sp-sort', 'sp-layout');
-    const bar = h('div', { class: 'bar sp-bar' }, h('div', { class: 'bar-row' }, tabs, h('div', { class: 'sp-tools' }, this.searchBox, this.sort, this.layoutSeg)));
+    const bar = h('div', { class: 'bar sp-bar' }, h('div', { class: 'bar-row' }, tabs, h('div', { class: 'sp-tools' }, this.searchBox, this.kindSeg, this.sort, this.layoutSeg)));
     this.list = h('section', { class: 'grid' });
     this.status = h('div', { class: 'status' });
     this.sentinel = h('div', { class: 'sentinel' });
@@ -346,6 +356,7 @@ export class SpaceApp {
     const vid = ['video', 'coin', 'like'].includes(this.tab) || !!this.collection || !!this.folder;
     const searchable = this.tab === 'video' || (this.tab === 'collections' && !!this.collection);
     this.sort.hidden = this.tab !== 'video';
+    this.kindSeg.hidden = this.tab !== 'video' || !this.chargingCount;
     this.searchBox.hidden = !searchable;
     if (this.qInput) {
       const label = this.tab === 'collections' ? '搜索合集内视频' : '搜索 TA 的视频';
@@ -355,6 +366,14 @@ export class SpaceApp {
     this.layoutSeg.hidden = !vid;
     this.list.className = this.tab === 'dynamic' ? 'dy-list' : vid && this.layout === 'list' ? 'vlist' : 'grid';
     this.collectionHead.hidden = !this.collection && !this.folder;
+  }
+
+  /** 第一次从投稿接口拿到「充电专属」数量时，把筛选显示出来并标上数量 */
+  private showCharging(n: number): void {
+    this.chargingCount = n;
+    const b = this.kindSeg.querySelector<HTMLElement>('[data-v=charging]');
+    if (b) b.replaceChildren('充电视频', h('span', { class: 'tab-n' }, fmtCount(n)));
+    this.kindSeg.hidden = this.tab !== 'video';
   }
 
   /** 清空搜索词并同步输入框（切标签 / 从搜索结果进合集时用） */
@@ -509,7 +528,8 @@ export class SpaceApp {
         this.done = true;
         if (!list.length) this.status.replaceChildren(h('span', {}, '对方没有公开，或者最近没有'));
       } else if (this.tab === 'video' || this.collection) {
-        const searching = !!this.q;
+        // 充电筛选下的搜索直接交给接口（keyword + special_type），不再并入合集搜索
+        const searching = !!this.q && !(this.kind === 'charging' && !this.collection);
         if (searching) {
           this.search ??= createSpaceSearch(this.mid, this.q, this.order, this.collection ?? undefined);
           const controller = new AbortController();
@@ -539,8 +559,10 @@ export class SpaceApp {
           if (!r.done) this.status.append(h('button', { type: 'button', class: 'ghost small sp-search-more', onclick: () => this.load(true) }, '继续搜索'));
           return;
         }
-        const r = this.collection ? await spaceCollectionVideos(this.mid, this.collection, this.page) : await spaceVideos(this.mid, this.page, this.order, this.q);
+        const uploads = this.collection ? null : await spaceVideos(this.mid, this.page, this.order, this.q, undefined, this.kind);
+        const r = uploads ?? await spaceCollectionVideos(this.mid, this.collection!, this.page);
         if (gen !== this.gen) return;
+        if (uploads && uploads.charging > this.chargingCount) this.showCharging(uploads.charging);
         this.page++;
         skNodes.forEach((n) => (n as Element).remove());
         const start = this.list.children.length;
@@ -550,7 +572,7 @@ export class SpaceApp {
           this.list.append(card);
         });
         this.done = r.list.length === 0 || this.list.children.length >= r.total;
-        if (!this.list.children.length) this.status.replaceChildren(h('span', {}, this.collection ? '暂无公开视频' : '还没有投稿'));
+        if (!this.list.children.length) this.status.replaceChildren(h('span', {}, this.collection ? '暂无公开视频' : this.kind === 'charging' ? (this.q ? `没有找到「${this.q}」相关的充电视频` : '没有充电专属视频') : '还没有投稿'));
       } else {
         const r = await spaceDynamics(this.mid, this.offset);
         if (gen !== this.gen) return;

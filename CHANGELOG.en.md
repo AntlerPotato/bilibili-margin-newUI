@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## [v0.6.34](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.34) · 2026-11-10
+
+- Merge @hhh2210's PR #141 restoring the native All / Charging videos filter for creator uploads. Show it only when available, reuse the native endpoint and existing segmented control, and retain sorting and filtered search without dependencies or permissions.
+- Preserve all 0.6.33 messaging, favorites, selection, weather and corner fixes; add eight charging-filter regressions.
+
 ## [v0.6.33](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.33) · 2026-11-10
 
 - Confirm before removing individual videos from owned favorites. Preserve failed items for retry and open Play all with Bilibili's native list without fetching the whole folder (#147, #144).

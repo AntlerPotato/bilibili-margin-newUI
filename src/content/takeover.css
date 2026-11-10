@@ -66,6 +66,7 @@ html.margin-reduce .sp-menu { animation: none; }
 .sp-bar .bar-row { align-items: flex-end; }
 .sp-sort[hidden] { display: none; }
 .sp-tools { display: flex; gap: 10px; align-items: center; }
+.sp-kind .tab-n { margin-left: 6px; vertical-align: 0; color: inherit; opacity: .6; }
 .sp-collection .cover { width: 100%; }
 .sp-collection .cover > svg { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; color: var(--muted); }
 .sp-collection .title { text-align: left; }

@@ -45,6 +45,8 @@ jobs:
         run: node tests/space-content.mjs
         env:
           SMOKE_OUT: smoke-artifacts/space-content
+      - name: Native charging-video filter, sorting and search
+        run: node tests/space-charging.mjs
       - name: Application window navigation
         run: npm run test:app-window
       - name: Native comment locations and both search styles
