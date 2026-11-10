@@ -1,4 +1,4 @@
-import { collectedFolders, createFolder, deleteFolder, folderUrl, folderVideos, folders, seasonVideos, type Folder } from '../api/fav';
+import { collectedFolders, createFolder, deleteFolder, folderPlayUrl, folderUrl, folderVideos, folders, removeFolderVideo, seasonVideos, type Folder } from '../api/fav';
 import { videoCard, skeleton, cardData } from './card';
 import { h, icon, ICONS } from './dom';
 import { glassFolder, type GFFile, type GlassFolderApi } from './glass-folder';
@@ -277,6 +277,7 @@ export function createFavorites(onRender: (grid: HTMLElement) => void, direct: (
     busy = false;
     shelf.querySelectorAll<HTMLElement>('.gf-root').forEach((el) => el.toggleAttribute('data-current', el.dataset.key === keyOf(f)));
     crumb.replaceChildren(h('span', {}, f.title), h('small', {}, `${f.count} 个视频`));
+    if (f.count && f.kind !== 'season') crumb.append(h('a', { class: 'btn small fav-play-all', href: folderPlayUrl(f), target: '_blank', rel: 'noopener' }, '播放全部'));
     grid.replaceChildren();
     status.replaceChildren();
     sheet.body.scrollTo({ top: 0 });
@@ -299,6 +300,28 @@ export function createFavorites(onRender: (grid: HTMLElement) => void, direct: (
       const start = grid.children.length;
       r.list.forEach((v, i) => {
         const card = videoCard(v, start + i, { compact: true });
+        const folder = current!;
+        if (!folder.kind) {
+          const remove = h('button', { type: 'button', class: 'fav-video-remove', 'aria-label': `取消收藏：${v.title}` }, icon(ICONS.close), '取消收藏') as HTMLButtonElement;
+          const error = h('span', { class: 'fav-video-error', role: 'alert' });
+          remove.addEventListener('click', async e => {
+            e.preventDefault(); e.stopPropagation();
+            if (!confirm(`将「${v.title}」从「${folder.title}」中移除？其他收藏夹不受影响。`)) return;
+            remove.disabled = true; error.textContent = '';
+            try {
+              await removeFolderVideo(folder.id, v.aid!);
+              firstPage.delete(keyOf(folder)); folder.count = Math.max(0, folder.count - 1);
+              const preview = previews.get(keyOf(folder));
+              if (preview) {
+                preview.raw = preview.raw.filter(item => item.bvid !== v.bvid); paintPreview(keyOf(folder));
+                const meta = preview.gf.el.querySelector('.gf-meta'); if (meta) meta.textContent = `${folder.count} 个视频`;
+              }
+              if (g === gen) { card.remove(); const count = crumb.querySelector('small'); if (count) count.textContent = `${folder.count} 个视频`; }
+            } catch (e) { if (card.isConnected) error.textContent = `取消失败：${(e as Error).message}`; }
+            finally { remove.disabled = false; }
+          });
+          card.append(h('div', { class: 'fav-video-actions' }, remove, error));
+        }
         card.toggleAttribute('data-margin-filtered', filter ? !filter.allows(targetOfVideo(v)) : false);
         grid.append(card);
       });

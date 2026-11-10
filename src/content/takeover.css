@@ -585,6 +585,10 @@ a.wh-card:hover { box-shadow: var(--ring), var(--sh-sm); transform: translateY(-
 .dy-sublist .dy-r-face img { width: 24px; height: 24px; }
 .dy-rempty { font: 400 13px/1.6 var(--sans); color: var(--muted); }
 .dy-cbox[hidden] { display: none; }
+.wh-recall { margin-left: 10px; color: var(--muted); font-size: 12px; opacity: 0; }
+.wh-m:hover .wh-recall, .wh-recall:focus-visible { opacity: 1; }
+.wh-recall:disabled { opacity: .5; cursor: wait; }
+@media (hover: none) { .wh-recall { opacity: 1; } }
 .dy-comment-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--line); }
 .dy-comment-more, .dy-comment-collapse { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: var(--chip); color: var(--ink); font: 500 12px/1.4 var(--sans); }
 .dy-comment-more[hidden] { display: none; }

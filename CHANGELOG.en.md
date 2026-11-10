@@ -1,4 +1,21 @@
-[中文](CHANGELOG## [v0.6.32](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.32) · 2026-11-10
+[中文](CHANGELOG.md) | **English**
+
+# Changelog
+
+## Unreleased
+
+## [v0.6.33](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.33) · 2026-11-10
+
+- Confirm before removing individual videos from owned favorites. Preserve failed items for retry and open Play all with Bilibili's native list without fetching the whole folder (#147, #144).
+- Recall own messages within two minutes through native type 5 with the original long message key. Preserve content on server rejection and isolate asynchronous conversation updates (#151).
+- Read composed Shadow DOM ranges when available to handle host-retargeted getRangeAt. Verify text/emoji deletion, selection replacement, undo and composition in Chromium and Firefox (#150).
+- Match cover clipping to configured corner radii while retaining circular avatars and autoplay switches. Keep author rows at a minimum line height and test narrow columns and late text; the intermittent live blank still needs field reproduction (#149).
+- Keep web-fullscreen mini progress at the player edge and use dynamic viewport height in scrollable mode without changing the scroll preference (#152).
+- Correct the upstream Xinxiang Chinese-name mapping and locality ordering, and show the China region label for Taiwan. No city database, provider or permission added (#153).
+- Fix accent propagation to glass search pills and update native-structure tests. Recheck centered settings across routes and elastic theme-switch motion (#148, #154).
+- Defer dynamic layout restructuring and level filtering as requested. Store listing issues remain maintainer-managed.
+
+## [v0.6.32](https://github.com/jiuyang5354/bilibili-margin/releases/tag/v0.60.32) · 2026-11-10
 
 - Favorites and subscriptions: remove growing entrance delays, prefetch nearby covers with bounded concurrency and reuse cached results. Reduce per-frame work on blurred copies and fix missing paint and full-page flashing. Add Return to top.
 - Dynamics: expand, collapse and paginate comments inline while retaining loaded replies and drafts; support nested replies, retries and closing during slow requests. Compose text and up to nine pictures within MARGIN without navigating to the native page.

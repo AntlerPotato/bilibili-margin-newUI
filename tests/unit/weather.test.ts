@@ -34,6 +34,17 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('天气城市候选', () => {
+  it('河南新乡排在同名乡镇前，纠正源站错误的中文地名并限制候选数量', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => response({ results: new URL(url).searchParams.get('name') === 'Xinxiang'
+      ? [{ id: 1788572, name: '南干道', latitude: 35.3, longitude: 113.8, admin1: '河南', country: '中国', country_code: 'CN' }]
+      : [{ name: '新乡', latitude: 29, longitude: 108, admin1: '重庆市', country: '中国' }] })));
+    expect((await geocodeList('新乡', 1))[0]).toEqual({ name: '新乡市', lat: 35.3, lon: 113.8, region: '河南 · 中国' });
+  });
+  it('台湾地区名称与中国标签一起展示，不重复源站的异常省名', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => response({ results: [{ name: '台湾', latitude: 23.9, longitude: 121,
+      country_code: 'TW', country: '台湾', admin1: '臺灣省 or 台灣省' }] })));
+    expect((await geocodeList('台湾'))[0].region).toBe('台湾省 · 中国');
+  });
   it('联网关闭时保留权限提示，不发城市查询请求', async () => {
     vi.mocked(chrome.storage.local.get).mockResolvedValue({ 'margin:settings': { privacyExternal: false } });
     const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);

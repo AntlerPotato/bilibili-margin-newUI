@@ -68,6 +68,9 @@ export async function geocodeList(q: string, n = 6): Promise<Place[]> {
   const query = q.trim();
   if (!query) return [];
   const queries = [query];
+  // GeoNames indexes Henan Xinxiang under an incorrect Chinese locality name.
+  const xinxiang = /^(?:河南(?:省)?\s*)?新乡市?$/.test(query);
+  if (xinxiang) queries.push('Xinxiang');
   if (/^[\u3400-\u9fff]{2,}$/.test(query) && !/(?:省|市|区|县|自治州|盟|旗|镇|乡|村)$/.test(query)) queries.push(`${query}市`);
   const results = await Promise.allSettled(queries.map(async name => {
     const response = await optionalFetch('city', `https://geocoding-api.open-meteo.com/v1/search?count=${n}&language=zh&name=${encodeURIComponent(name)}`);
@@ -81,14 +84,19 @@ export async function geocodeList(q: string, n = 6): Promise<Place[]> {
   if (blocked?.status === 'rejected') throw blocked.reason;
   if (!successful.length) throw new Error('城市搜索暂时不可用');
   const places = new Map<string, Place>();
-  for (const g of successful.flatMap(result => result.value)) {
+  const candidates = successful.flatMap(result => result.value);
+  if (xinxiang) candidates.sort((a, b) => Number(b.id === 1788572) - Number(a.id === 1788572));
+  for (const g of candidates) {
     if (typeof g.name !== 'string' || !Number.isFinite(g.latitude) || !Number.isFinite(g.longitude)) continue;
     const key = `${g.latitude},${g.longitude}`;
     if (places.has(key)) continue;
-    const region = [...new Set([g.admin1, g.admin2, g.country].filter((part: unknown) => typeof part === 'string' && part && part !== g.name))].join(' · ');
-    places.set(key, { name: g.name, lat: g.latitude, lon: g.longitude, region });
+    const name = xinxiang && g.id === 1788572 ? '新乡市' : g.name;
+    const country = g.country_code === 'TW' ? '中国' : g.country;
+    const admin1 = g.country_code === 'TW' && g.admin1 ? '台湾省' : g.admin1;
+    const region = [...new Set([admin1, g.admin2, country].filter((part: unknown) => typeof part === 'string' && part && part !== name))].join(' · ');
+    places.set(key, { name, lat: g.latitude, lon: g.longitude, region });
   }
-  return [...places.values()];
+  return [...places.values()].slice(0, n);
 }
 
 const WEEK = '日一二三四五六';

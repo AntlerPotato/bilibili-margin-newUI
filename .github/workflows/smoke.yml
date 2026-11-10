@@ -35,6 +35,10 @@ jobs:
           node tests/dynamic-composer-extension.mjs
       - name: Native Lit publish button and motion
         run: node tests/button-motion.mjs
+      - name: Favorite actions, message recall and viewport edges
+        run: |
+          node tests/issues-20261110.mjs
+          node tests/watch-edges.mjs
       - name: Space drawer regressions
         run: npm run test:drawers
       - name: Space articles, audio and public favorites

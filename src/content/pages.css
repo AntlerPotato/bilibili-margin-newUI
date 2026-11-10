@@ -34,8 +34,8 @@ html.margin-skin .bili-footer, html.margin-skin #biliMainFooter { background: tr
 
 /* ── 搜索页：编辑式排版，和首页同一套语言 ── */
 /* 壁纸亮暗不固定，文字所在的控件区保留足够底色，不再直接叠在图片上。 */
-html.margin-search { --m-search-surface: color-mix(in srgb, var(--m-surface) 96%, transparent); --ms-glass: rgb(250 250 248 / .8); --ms-ink: #242831; --ms-muted: #343b46; --ms-pill: #ffffffd9; --ms-selected: #171d28; --ms-rim: #ffffff90; }
-html.margin-search[data-margin-theme="dark"] { --ms-glass: rgb(22 25 31 / .72); --ms-ink: #f1f4f8; --ms-muted: #e1e6ed; --ms-pill: #f2f5f8; --ms-selected: #202630; --ms-rim: #ffffff40; }
+html.margin-search { --m-search-surface: color-mix(in srgb, var(--m-surface) 96%, transparent); --ms-glass: rgb(250 250 248 / .8); --ms-ink: #242831; --ms-muted: #343b46; --ms-pill: var(--margin-primary, #ffffffd9); --ms-selected: var(--margin-primary-fg, #171d28); --ms-rim: #ffffff90; }
+html.margin-search[data-margin-theme="dark"] { --ms-glass: rgb(22 25 31 / .72); --ms-ink: #f1f4f8; --ms-muted: #e1e6ed; --ms-pill: var(--margin-primary, #f2f5f8); --ms-selected: var(--margin-primary-fg, #202630); --ms-rim: #ffffff40; }
 html.margin-search .search-tabs,
 html.margin-search .search-conditions {
   background: transparent !important; border: 0 !important; box-sizing: border-box;

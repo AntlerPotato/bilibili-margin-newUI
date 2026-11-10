@@ -42,7 +42,7 @@ export async function collectedFolders(page = 1, refreshLogin = false): Promise<
 export const folderUrl = (f: Folder) => `https://space.bilibili.com/${f.mid}/favlist?fid=${f.id}${f.kind ? `&ftype=collect&ctype=${f.kind === 'season' ? 21 : 11}` : ''}`;
 const https = (url: unknown) => String(url || '').replace(/^http:/, 'https:').replace(/^\/\//, 'https://');
 const mediaVideo = (m: any, upper = m.upper): Video => ({
-  bvid: m.bvid, cid: m.ugc?.first_cid ?? 0, title: m.title,
+  bvid: m.bvid, aid: Number(m.id) || undefined, cid: m.ugc?.first_cid ?? 0, title: m.title,
   cover: https(m.cover), duration: m.duration ?? 0,
   author: upper?.name ?? '', mid: upper?.mid ?? 0, face: upper?.face ?? '',
   views: m.cnt_info?.play ?? 0, danmaku: m.cnt_info?.danmaku ?? 0, pubdate: m.fav_time ?? m.pubtime ?? 0,
@@ -80,3 +80,11 @@ export async function createFolder(title: string, isPrivate: boolean, intro = ''
 
 /** 删除收藏夹（连同里面的收藏记录，B 站不可恢复） */
 export const deleteFolder = (id: number) => post<unknown>('/x/v3/fav/folder/del', { media_ids: id });
+
+/** Remove one resource from this owned folder, without deleting the video or other favorites. */
+export async function removeFolderVideo(folder: number, aid: number): Promise<void> {
+  if (!Number.isSafeInteger(aid) || aid <= 0) throw new Error('视频标识缺失，请刷新收藏夹后重试');
+  await post('/x/v3/fav/resource/batch-del', { media_id: folder, resources: `${aid}:2` });
+}
+
+export const folderPlayUrl = (f: Folder) => `https://www.bilibili.com/list/ml${f.id}?sid=${f.id}`;
